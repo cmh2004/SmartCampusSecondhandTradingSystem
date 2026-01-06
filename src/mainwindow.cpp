@@ -13,6 +13,9 @@
 #include "GoodsDetailDialog.h"
 #include "ChatDialog.h"
 #include "DisputeSubmitDialog.h"
+#include "paymentdialog.h"
+#include "reviewdialog.h"
+#include "profileeditdialog.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle("校园二手商品智能交易系统");
@@ -32,45 +35,6 @@ void MainWindow::setupUI() {
     // 1. 创建主窗口部件
     mainWidget = new QWidget(this);
     setCentralWidget(mainWidget);
-
-    // 2. 设置菜单栏
-    QMenuBar *menuBar = this->menuBar();
-
-    // 文件菜单
-    QMenu *fileMenu = menuBar->addMenu("文件");
-    fileMenu->addAction("导入数据");
-    fileMenu->addAction("导出数据");
-    fileMenu->addSeparator();
-    fileMenu->addAction("退出", this, &QMainWindow::close);
-
-    // 用户菜单
-    userMenu = menuBar->addMenu("用户中心");
-    userMenu->addAction("我的资料", [](){ QMessageBox::information(nullptr, "提示", "功能开发中"); });
-    userMenu->addAction("安全设置", [](){ QMessageBox::information(nullptr, "提示", "功能开发中"); });
-    userMenu->addSeparator();
-    userMenu->addAction("退出登录", this, &MainWindow::onLogout);
-
-    // 帮助菜单
-    helpMenu = menuBar->addMenu("帮助");
-    helpMenu->addAction("使用教程");
-    helpMenu->addAction("关于系统");
-
-    // 3. 设置工具栏
-    mainToolBar = addToolBar("主工具栏");
-    mainToolBar->setMovable(false);
-
-    QAction *refreshAction = new QAction("刷新", this);
-    QAction *publishAction = new QAction("发布商品", this);
-    QAction *messageAction = new QAction("消息", this);
-    QAction *cartAction = new QAction("购物车", this);
-
-    mainToolBar->addAction(refreshAction);
-    mainToolBar->addSeparator();
-    mainToolBar->addAction(publishAction);
-    mainToolBar->addAction(messageAction);
-    mainToolBar->addAction(cartAction);
-
-    connect(publishAction, &QAction::triggered, this, &MainWindow::onPublishGoods);
 
     // 4. 创建主标签页
     mainTabWidget = new QTabWidget(mainWidget);
@@ -176,116 +140,247 @@ void MainWindow::setupUI() {
             background-color: #7f8c8d;
             color: white;
         }
+ /* 首页样式 */
+    #searchBar {
+        background-color: white;
+        border-radius: 10px;
+        padding: 15px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    #searchEdit {
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0 15px;
+        font-size: 14px;
+        background-color: white;
+    }
+
+    #searchEdit:focus {
+        border-color: #3b82f6;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    #searchEdit::placeholder {
+        color: #94a3b8;
+    }
+
+    #sortCombo {
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0 10px;
+        font-size: 14px;
+        background-color: white;
+    }
+
+    #sortCombo:hover {
+        border-color: #cbd5e1;
+    }
+
+    #sortCombo::drop-down {
+        border: none;
+        width: 20px;
+    }
+
+    #welcomeLabel {
+        font-size: 22px;
+        font-weight: 700;
+        color: #1e293b;
+        padding: 10px 5px;
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    /* 分类区域样式 */
+    #categoryWidget {
+        background-color: white;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        padding: 15px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    #categoryTitle {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1e293b;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #f1f5f9;
+    }
+
+    #categoryList {
+        border: none;
+        background-color: transparent;
+        font-size: 14px;
+    }
+
+    #categoryList::item {
+        padding: 12px 10px;
+        border-radius: 8px;
+        margin: 2px 0;
+        color: #475569;
+        border-left: 3px solid transparent;
+    }
+
+    #categoryList::item:hover {
+        background-color: #f8fafc;
+        color: #3b82f6;
+    }
+
+    #categoryList::item:selected {
+        background-color: #eff6ff;
+        color: #1d4ed8;
+        font-weight: 500;
+        border-left: 3px solid #3b82f6;
+    }
+
+    /* 商品区域样式 */
+    #goodsWidget {
+        background-color: white;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        padding: 20px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    /* 商品表格样式 */
+    #goodsTable {
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        gridline-color: transparent;
+        alternate-background-color: #f8fafc;
+        font-size: 13px;
+    }
+
+    #goodsTable::item {
+        padding: 12px 8px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    #goodsTable::item:selected {
+        background-color: #eff6ff;
+        color: #1e293b;
+        border-radius: 4px;
+    }
+
+    QHeaderView::section {
+        background-color: #f8fafc;
+        padding: 14px 8px;
+        border: none;
+        border-bottom: 2px solid #e2e8f0;
+        font-weight: 600;
+        color: #475569;
+        font-size: 13px;
+    }
+
+    QHeaderView::section:first {
+        border-top-left-radius: 8px;
+    }
+
+    QHeaderView::section:last {
+        border-top-right-radius: 8px;
+    }
+
+    /* 滚动条美化 */
+    QScrollBar:vertical {
+        border: none;
+        background: #f1f5f9;
+        width: 8px;
+        border-radius: 4px;
+    }
+
+    QScrollBar::handle:vertical {
+        background: #cbd5e1;
+        border-radius: 4px;
+        min-height: 20px;
+    }
+
+    QScrollBar::handle:vertical:hover {
+        background: #94a3b8;
+    }
+
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+        border: none;
+        background: none;
+        height: 0px;
+    }
     )");
 }
 
 QWidget* MainWindow::createHomePage() {
     QWidget *page = new QWidget();
     QVBoxLayout *mainLayout = new QVBoxLayout(page);
-    mainLayout->setContentsMargins(15, 15, 15, 15);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(15);
 
-    // 顶部搜索栏 - 美化
+    // 顶部搜索栏 - 样式优化
     QWidget *searchBar = new QWidget();
     searchBar->setObjectName("searchBar");
     QHBoxLayout *searchLayout = new QHBoxLayout(searchBar);
     searchLayout->setContentsMargins(0, 0, 0, 0);
-    searchLayout->setSpacing(10);
-
-    // 搜索图标
-    QLabel *searchIcon = new QLabel();
-    searchIcon->setPixmap(QPixmap(":/icons/search.png").scaled(20, 20));
-    searchIcon->setStyleSheet("padding-left: 5px;");
+    searchLayout->setSpacing(12);
 
     searchEdit = new QLineEdit();
     searchEdit->setPlaceholderText("搜索商品名称、描述...");
-    searchEdit->setMinimumHeight(40);
+    searchEdit->setMinimumHeight(38);
     searchEdit->setObjectName("searchEdit");
 
     searchBtn = new QPushButton("搜索");
     searchBtn->setObjectName("primaryBtn");
-    searchBtn->setFixedWidth(80);
-    searchBtn->setFixedHeight(40);
+    searchBtn->setFixedWidth(90);
+    searchBtn->setMinimumHeight(38);
 
     sortCombo = new QComboBox();
     sortCombo->addItems({"最新发布", "价格最低", "价格最高", "最热商品"});
-    sortCombo->setFixedSize(120, 40);
+    sortCombo->setFixedWidth(130);
+    sortCombo->setMinimumHeight(38);
     sortCombo->setObjectName("sortCombo");
 
-    searchLayout->addWidget(searchIcon);
     searchLayout->addWidget(searchEdit, 1);
     searchLayout->addWidget(searchBtn);
+    searchLayout->addWidget(new QLabel("排序:"));
     searchLayout->addWidget(sortCombo);
 
-    // 欢迎标签 - 美化
+    // 欢迎标签 - 样式优化
     welcomeLabel = new QLabel("热门推荐商品");
     welcomeLabel->setObjectName("welcomeLabel");
 
-    // 主体内容区 - 美化
+    // 主体内容区
     QWidget *contentArea = new QWidget();
     contentArea->setObjectName("contentArea");
     QHBoxLayout *contentLayout = new QHBoxLayout(contentArea);
     contentLayout->setContentsMargins(0, 0, 0, 0);
-    contentLayout->setSpacing(15);
+    contentLayout->setSpacing(20);
 
-    // 左侧分类列表 - 重新设计
+    // 左侧分类列表 - 样式优化
     QWidget *categoryWidget = new QWidget();
-    categoryWidget->setFixedWidth(220);  // 稍微加宽
+    categoryWidget->setFixedWidth(200);
     categoryWidget->setObjectName("categoryWidget");
     QVBoxLayout *categoryLayout = new QVBoxLayout(categoryWidget);
     categoryLayout->setContentsMargins(0, 0, 0, 0);
-    categoryLayout->setSpacing(0);
-
-    // 分类标题 - 美化
-    QWidget *categoryHeader = new QWidget();
-    categoryHeader->setFixedHeight(50);
-    categoryHeader->setObjectName("categoryHeader");
-    QHBoxLayout *headerLayout = new QHBoxLayout(categoryHeader);
-    headerLayout->setContentsMargins(15, 0, 15, 0);
-
-    QLabel *categoryIcon = new QLabel();
-    categoryIcon->setPixmap(QPixmap(":/icons/category.png").scaled(20, 20));
 
     QLabel *categoryTitle = new QLabel("商品分类");
     categoryTitle->setObjectName("categoryTitle");
-
-    headerLayout->addWidget(categoryIcon);
-    headerLayout->addWidget(categoryTitle);
-    headerLayout->addStretch();
+    categoryTitle->setContentsMargins(0, 0, 0, 10);
 
     categoryList = new QListWidget();
     categoryList->setObjectName("categoryList");
-    categoryList->addItems({"全部商品", "📚 书籍教材", "💻 电子产品", "👕 服饰鞋包", "🏠 生活用品",
-                            "⚽ 体育器材", "✏️ 学习工具", "💄 美妆个护", "🔍 其他"});
-    // 设置分类列表与表格等高
-    categoryList->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+    categoryList->addItems({"📦 全部商品", "📚 书籍教材", "💻 电子产品", "👕 服饰鞋包",
+                            "🏠 生活用品", "⚽ 体育器材", "✏️ 学习工具", "💄 美妆个护", "🔍 其他"});
 
-    categoryLayout->addWidget(categoryHeader);
-    categoryLayout->addWidget(categoryList);
+    categoryLayout->addWidget(categoryTitle);
+    categoryLayout->addWidget(categoryList, 1);
 
-    // 右侧商品表格区域 - 添加卡片效果
+    // 右侧商品表格区域
     QWidget *goodsWidget = new QWidget();
     goodsWidget->setObjectName("goodsWidget");
     QVBoxLayout *goodsLayout = new QVBoxLayout(goodsWidget);
     goodsLayout->setContentsMargins(0, 0, 0, 0);
-    goodsLayout->setSpacing(10);
-
-    // 表格统计信息
-    QWidget *statsWidget = new QWidget();
-    statsWidget->setFixedHeight(40);
-    QHBoxLayout *statsLayout = new QHBoxLayout(statsWidget);
-    statsLayout->setContentsMargins(0, 0, 0, 0);
-
-    QLabel *countLabel = new QLabel("共 8 件商品");
-    countLabel->setObjectName("statsLabel");
-
-    QPushButton *refreshBtn = new QPushButton("🔄 刷新");
-    refreshBtn->setObjectName("refreshBtn");
-    refreshBtn->setFixedSize(80, 30);
-
-    statsLayout->addWidget(countLabel);
-    statsLayout->addStretch();
-    statsLayout->addWidget(refreshBtn);
 
     goodsTable = new QTableWidget(0, 5);
     goodsTable->setObjectName("goodsTable");
@@ -298,13 +393,12 @@ QWidget* MainWindow::createHomePage() {
     goodsTable->setShowGrid(false);
 
     // 设置列宽
-    goodsTable->setColumnWidth(0, 100);  // 图片列加宽
-    goodsTable->setColumnWidth(1, 250);  // 名称列加宽
-    goodsTable->setColumnWidth(2, 120);
+    goodsTable->setColumnWidth(0, 90);
+    goodsTable->setColumnWidth(1, 250);
+    goodsTable->setColumnWidth(2, 110);
     goodsTable->setColumnWidth(3, 150);
     goodsTable->horizontalHeader()->setStretchLastSection(true);
 
-    goodsLayout->addWidget(statsWidget);
     goodsLayout->addWidget(goodsTable, 1);
 
     // 添加到内容区
@@ -489,19 +583,40 @@ QWidget* MainWindow::createUserCenterPage() {
     QWidget *subInfoWidget = new QWidget();
     QHBoxLayout *subInfoLayout = new QHBoxLayout(subInfoWidget);
     subInfoLayout->setSpacing(20);
+    subInfoLayout->setContentsMargins(0, 6, 0, 6);
 
     QLabel *userLevelLabel = new QLabel("信用等级: ★★★★☆");
     userLevelLabel->setStyleSheet("font-size: 14px; color: #4A5568;");
+    userLevelLabel->setMinimumHeight(24);
 
     QLabel *userJoinLabel = new QLabel("注册时间: 2024-03-01");
     userJoinLabel->setStyleSheet("font-size: 14px; color: #718096;");
+    userLevelLabel->setMinimumHeight(24);
 
     subInfoLayout->addWidget(userLevelLabel);
     subInfoLayout->addWidget(userJoinLabel);
 
     QPushButton *editProfileBtn = new QPushButton("编辑资料");
-    editProfileBtn->setObjectName("primaryBtn");
-    editProfileBtn->setFixedSize(100, 36);
+    editProfileBtn->setFixedSize(120, 40);
+    editProfileBtn->setStyleSheet(R"(
+    QPushButton {
+        background-color: #4299E1;
+        color: white;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        padding: 10px 16px;
+        border: none;
+    }
+    QPushButton:hover {
+        background-color: #3182CE;
+        box-shadow: 0 2px 4px rgba(66, 153, 225, 0.3);
+    }
+    QPushButton:pressed {
+        background-color: #2B6CB0;
+    }
+)");
+    connect(editProfileBtn, &QPushButton::clicked, this, &MainWindow::onShowProfileEdit);
 
     infoLayout->addWidget(userNameLabel);
     infoLayout->addWidget(subInfoWidget);
@@ -900,10 +1015,46 @@ QWidget* MainWindow::createOrdersPage() {
     filterLayout->addWidget(orderSearchEdit, 1);
     filterLayout->addWidget(filterBtn);
 
-    // 订单表格
-    ordersTable = new QTableWidget(0, 6);
-    ordersTable->setHorizontalHeaderLabels({"订单号", "商品", "价格", "状态", "下单时间", "操作"});
+    // 订单表格 - 增加列数以容纳操作按钮
+    ordersTable = new QTableWidget(3, 7);
+    ordersTable->setHorizontalHeaderLabels({"订单号", "商品", "价格", "状态", "下单时间", "支付", "评价"});
     ordersTable->horizontalHeader()->setStretchLastSection(true);
+    ordersTable->verticalHeader()->setVisible(false);
+
+    // 示例订单1 - 待付款
+    ordersTable->setItem(0, 0, new QTableWidgetItem("1001"));
+    ordersTable->setItem(0, 1, new QTableWidgetItem("二手iPhone 12 128GB"));
+    ordersTable->setItem(0, 2, new QTableWidgetItem("¥2500"));
+    ordersTable->setItem(0, 3, new QTableWidgetItem("待付款"));
+    ordersTable->setItem(0, 4, new QTableWidgetItem("2024-03-20 10:30"));
+
+    // 支付按钮
+    paymentBtn = new QPushButton("去支付");
+    paymentBtn->setProperty("orderId", 1001);
+    paymentBtn->setProperty("amount", 2500.00);
+    connect(paymentBtn, &QPushButton::clicked, this, &MainWindow::onShowPayment);
+    ordersTable->setCellWidget(0, 5, paymentBtn);
+
+    // 示例订单2 - 已完成
+    ordersTable->setItem(1, 0, new QTableWidgetItem("1002"));
+    ordersTable->setItem(1, 1, new QTableWidgetItem("大学物理教材"));
+    ordersTable->setItem(1, 2, new QTableWidgetItem("¥35"));
+    ordersTable->setItem(1, 3, new QTableWidgetItem("已完成"));
+    ordersTable->setItem(1, 4, new QTableWidgetItem("2024-03-18 14:20"));
+
+    // 评价按钮
+    reviewBtn = new QPushButton("评价");
+    reviewBtn->setProperty("orderId", 1002);
+    reviewBtn->setProperty("sellerName", "李四同学");
+    connect(reviewBtn, &QPushButton::clicked, this, &MainWindow::onShowReview);
+    ordersTable->setCellWidget(1, 6, reviewBtn);
+
+    // 示例订单3 - 待收货
+    ordersTable->setItem(2, 0, new QTableWidgetItem("1003"));
+    ordersTable->setItem(2, 1, new QTableWidgetItem("篮球鞋 Nike Air"));
+    ordersTable->setItem(2, 2, new QTableWidgetItem("¥280"));
+    ordersTable->setItem(2, 3, new QTableWidgetItem("待收货"));
+    ordersTable->setItem(2, 4, new QTableWidgetItem("2024-03-19 16:45"));
 
     mainLayout->addWidget(titleLabel);
     mainLayout->addWidget(filterWidget);
@@ -1106,14 +1257,73 @@ void MainWindow::onTabChanged(int index) {
     }
 }
 
-void MainWindow::onLogout() {
-    int result = QMessageBox::question(this, "确认退出", "确定要退出登录吗？",
-                                       QMessageBox::Yes | QMessageBox::No);
-    if (result == QMessageBox::Yes) {
-        // 关闭主窗口，返回登录页
-        this->close();
-        LoginPage *loginPage = new LoginPage();
-        loginPage->exec();
+// 支付对话框显示
+void MainWindow::onShowPayment() {
+    // 从按钮属性获取订单信息
+    QPushButton *btn = qobject_cast<QPushButton*>(sender());
+    if (btn) {
+        int orderId = btn->property("orderId").toInt();
+        double amount = btn->property("amount").toDouble();
+
+        PaymentDialog *dialog = new PaymentDialog(this, orderId, amount);
+        dialog->setAttribute(Qt::WA_DeleteOnClose);
+        dialog->show();
+    } else {
+        // 如果没有按钮触发，使用默认值
+        PaymentDialog *dialog = new PaymentDialog(this, 1001, 2500.00);
+        dialog->setAttribute(Qt::WA_DeleteOnClose);
+        dialog->show();
+    }
+}
+
+// 评价对话框显示
+void MainWindow::onShowReview() {
+    QPushButton *btn = qobject_cast<QPushButton*>(sender());
+    if (btn) {
+        int orderId = btn->property("orderId").toInt();
+        QString sellerName = btn->property("sellerName").toString();
+
+        ReviewDialog *dialog = new ReviewDialog(this, orderId, sellerName);
+        dialog->setAttribute(Qt::WA_DeleteOnClose);
+        connect(dialog, &ReviewDialog::reviewSubmitted, this, &MainWindow::onReviewSubmitted);
+        dialog->show();
+    } else {
+        ReviewDialog *dialog = new ReviewDialog(this, 1002, "李四同学");
+        dialog->setAttribute(Qt::WA_DeleteOnClose);
+        connect(dialog, &ReviewDialog::reviewSubmitted, this, &MainWindow::onReviewSubmitted);
+        dialog->show();
+    }
+}
+
+// 个人资料编辑对话框显示
+void MainWindow::onShowProfileEdit() {
+    ProfileEditDialog *dialog = new ProfileEditDialog(this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dialog, &ProfileEditDialog::profileUpdated, this, &MainWindow::onProfileUpdated);
+    dialog->show();
+}
+
+// 评价提交后的处理
+void MainWindow::onReviewSubmitted(int orderId, int rating, QString comment) {
+    qDebug() << "评价已提交 - 订单ID:" << orderId << "评分:" << rating << "评价内容:" << comment;
+
+    // 在实际应用中，这里应该更新数据库中的订单状态
+    QMessageBox::information(this, "评价成功",
+                             QString("感谢您的评价！\n订单: %1\n评分: %2星").arg(orderId).arg(rating));
+
+    // 可以在这里刷新订单列表，显示评价已完成
+}
+
+// 个人资料更新后的处理
+void MainWindow::onProfileUpdated() {
+    qDebug() << "个人资料已更新";
+
+    // 在实际应用中，这里应该刷新界面上的用户信息
+    QMessageBox::information(this, "保存成功", "个人资料已更新");
+
+    // 可以在这里更新主窗口中的用户信息显示
+    if (userNameLabel) {
+        userNameLabel->setText("用户资料已更新");
     }
 }
 

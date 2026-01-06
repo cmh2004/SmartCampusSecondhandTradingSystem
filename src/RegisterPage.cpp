@@ -5,6 +5,8 @@
 #include <QPainter>
 #include <QMouseEvent>
 #include <QShortcut>
+#include <QTimer>
+#include <QRegularExpression>
 
 RegisterPage::RegisterPage(QWidget *parent) : QDialog(parent), isDragging(false) {
     setWindowFlags(Qt::FramelessWindowHint);
@@ -94,12 +96,14 @@ void RegisterPage::setupUI() {
         QString placeholder;
         QString icon;
         bool isPassword;
+        int yPos;
     };
 
     QVector<InputField> fields = {
-        {"账号", ":/icons/user.png", false},
-        {"设置密码", ":/icons/password.png", true},
-        {"昵称", ":/icons/user.png", false}
+        {"账号", ":/icons/user.png", false, 0},
+        {"设置密码", ":/icons/password.png", true, 60},
+        {"昵称", ":/icons/nickname.png", false, 120},
+        {"邮箱", ":/icons/email.png", false, 180},
     };
 
     QVBoxLayout *inputLayout = new QVBoxLayout(inputContainer);
@@ -125,6 +129,7 @@ void RegisterPage::setupUI() {
         case 0: usernameEdit = lineEdit; break;
         case 1: passwordEdit = lineEdit; break;
         case 2: nicknameEdit = lineEdit; break;
+        case 3: emailEdit = lineEdit; break;
         }
 
         QLabel *iconLabel = new QLabel(inputWidget);

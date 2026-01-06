@@ -29,6 +29,12 @@ set(PROJECT_SOURCES
     src/DisputeSubmitDialog.h
     src/forgotpasswordpage.h
     src/forgotpasswordpage.cpp
+    src/paymentdialog.h
+    src/paymentdialog.cpp
+    src/reviewdialog.h
+    src/reviewdialog.cpp
+    src/profileeditdialog.h
+    src/profileeditdialog.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

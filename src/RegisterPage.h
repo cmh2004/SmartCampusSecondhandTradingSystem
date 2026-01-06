@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QCheckBox>
+#include <QMessageBox>
 #include <QMouseEvent>
 
 class RegisterPage : public QDialog {
@@ -30,7 +31,7 @@ private:
     // 输入控件
     QLineEdit *usernameEdit;
     QLineEdit *passwordEdit;
-    QLineEdit *confirmPasswordEdit;
+    QLineEdit *emailEdit;
     QLineEdit *nicknameEdit;
 
     // 按钮控件
