@@ -1070,7 +1070,7 @@ void MainWindow::onShowGoodsDetail(int row, int column) {
                 bool ok;
                 // 从价格字符串中提取数字
                 QString priceNum = goodsPrice;
-                priceNum.remove("¥").trimmed();
+                priceNum = priceNum.remove("¥").trimmed();
 
                 QString offerPrice = QInputDialog::getText(this, "议价",
                                                            QString("当前价格: %1\n请输入您的出价:").arg(goodsPrice),

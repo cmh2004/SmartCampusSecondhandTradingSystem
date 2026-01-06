@@ -7,6 +7,11 @@
 #include <QLabel>
 #include <QCheckBox>
 #include <QMouseEvent>
+#include <QTimer>
+#include <QStackedWidget>
+
+// 前向声明自定义类
+class StepIndicator;
 
 class ForgotPasswordPage : public QDialog {
     Q_OBJECT
@@ -20,44 +25,44 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
 
 private slots:
-    void onSendCodeClicked();
+    void updateCountdown();
     void onResetPasswordClicked();
-    void onBackToLoginClicked();
+    void onEnterPressed();
 
 private:
     void setupUI();
     void setupStyles();
     void startCountdown();
-    void updateCountdown();
+
+    // 创建各个步骤的UI
+    QWidget* createStep1Widget();
+    QWidget* createStep2Widget();
+    QWidget* createStep3Widget();
 
 private:
-    // 输入控件
+    // UI控件
     QLineEdit *emailEdit;
     QLineEdit *codeEdit;
     QLineEdit *newPasswordEdit;
     QLineEdit *confirmPasswordEdit;
 
-    // 按钮控件
     QPushButton *sendCodeBtn;
     QPushButton *resetBtn;
-    QPushButton *backBtn;
     QPushButton *closeBtn;
+    QPushButton *nextBtn1;
+    QPushButton *nextBtn2;
 
-    // 其他控件
     QCheckBox *togglePwdBtn;
     QLabel *countdownLabel;
-    QLabel *stepIndicator;
+    StepIndicator *stepIndicator;
+    QStackedWidget *contentStack;
 
-    // 验证码倒计时
     QTimer *countdownTimer;
     int countdownSeconds;
+    int currentStep;
 
-    // 窗口拖动相关
     bool isDragging;
     QPoint dragStartPosition;
-
-    // 当前步骤
-    int currentStep; // 1: 输入邮箱, 2: 输入验证码, 3: 设置新密码
 };
 
 #endif // FORGOTPASSWORDPAGE_H
