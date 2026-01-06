@@ -1,0 +1,79 @@
+// GoodsDetailDialog.h
+#ifndef GOODSDETAILDIALOG_H
+#define GOODSDETAILDIALOG_H
+
+#include <QDialog>
+#include <QWidget>
+#include <QLabel>
+#include <QPushButton>
+#include <QTextEdit>
+#include <QScrollArea>
+#include <QHBoxLayout>
+#include <QVBoxLayout>
+#include <QTabWidget>
+
+class GoodsDetailDialog : public QDialog {
+    Q_OBJECT
+
+public:
+    explicit GoodsDetailDialog(QWidget *parent = nullptr, int goodsId = -1);
+
+    // 添加公有方法获取商品ID
+    int getGoodsId() const { return goodsId; }
+
+signals:
+    // 添加信号
+    void contactSellerRequested(int goodsId);
+    void buyNowRequested(int goodsId);
+    void makeOfferRequested(int goodsId);
+
+private slots:
+    void onContactSeller();
+    void onMakeOffer();
+    void onCollectGoods();
+    void onReportGoods();
+    void onAIAssessment();
+    void onShowRiskAssessment();
+
+private:
+    void setupUI();
+    void loadGoodsData(int goodsId);
+    void loadAIAssessment(int goodsId);
+
+private:
+    int goodsId;
+
+    // 商品信息
+    QLabel *goodsImageLabel;
+    QLabel *goodsTitleLabel;
+    QLabel *priceLabel;
+    QLabel *originalPriceLabel;
+    QLabel *sellerLabel;
+    QLabel *contactLabel;
+    QLabel *locationLabel;
+    QLabel *publishTimeLabel;
+    QLabel *conditionLabel;
+    QLabel *categoryLabel;
+    QTextEdit *descriptionText;
+
+    // AI评估信息
+    QLabel *aiPriceRangeLabel;
+    QLabel *aiConditionLabel;
+    QLabel *aiBrandLabel;
+    QLabel *aiRiskLevelLabel;
+    QLabel *aiRecommendationLabel;
+
+    // 按钮
+    QPushButton *contactBtn;
+    QPushButton *buyBtn;
+    QPushButton *collectBtn;
+    QPushButton *offerBtn;
+    QPushButton *aiAssessmentBtn;
+    QPushButton *riskBtn;
+    QPushButton *reportBtn;
+
+    // 标签页
+    QTabWidget *detailTabs;
+};
+
+#endif // GOODSDETAILDIALOG_H

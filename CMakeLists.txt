@@ -13,20 +13,29 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
 set(PROJECT_SOURCES
-        src/main.cpp
-        src/mainwindow.cpp
-        src/mainwindow.h
-        src/mainwindow.ui
-        src/LoginPage.cpp
-        src/LoginPage.h
-        src/RegisterPage.cpp
-        src/RegisterPage.h
+    src/main.cpp
+    src/mainwindow.cpp
+    src/mainwindow.h
+    src/mainwindow.ui
+    src/LoginPage.cpp
+    src/LoginPage.h
+    src/RegisterPage.cpp
+    src/RegisterPage.h
+    src/GoodsDetailDialog.cpp
+    src/GoodsDetailDialog.h
+    src/ChatDialog.cpp
+    src/ChatDialog.h
+    src/DisputeSubmitDialog.cpp
+    src/DisputeSubmitDialog.h
+    src/forgotpasswordpage.h
+    src/forgotpasswordpage.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(SmartCampusSecondhandTradingSystem
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        resource.qrc
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET SmartCampusSecondhandTradingSystem APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

@@ -5,9 +5,9 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QLabel>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QCheckBox>
+#include <QMouseEvent>
+#include "ForgotPasswordPage.h"
 
 class LoginPage : public QDialog {
     Q_OBJECT
@@ -15,15 +15,37 @@ class LoginPage : public QDialog {
 public:
     explicit LoginPage(QWidget *parent = nullptr);
 
-signals:
-    void goToRegister();  // 触发切换到注册页
+protected:
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+
+private slots:
+    void onTogglePassword();
+    void onLoginClicked();
+    void onRegisterClicked();
+    void onForgotPasswordClicked();
 
 private:
-    QLineEdit *usernameEdit;  // 用户名输入框
-    QLineEdit *passwordEdit;  // 密码输入框
-    QPushButton *loginBtn;    // 登录按钮
-    QPushButton *toRegisterBtn; // 去注册按钮
-    QCheckBox *togglePwdBtn; // 密码显示切换按钮
+    void setupUI();
+    void setupStyles();
+    QWidget* createTitleBar();
+    QWidget* createLeftPanel();
+    QWidget* createRightPanel();
+
+private:
+    QLineEdit *usernameEdit;
+    QLineEdit *passwordEdit;
+    QPushButton *loginBtn;
+    QPushButton *toRegisterBtn;
+    QPushButton *togglePwdBtn;
+    QPushButton *closeBtn;
+    QPushButton *minimizeBtn;
+    QPushButton *forgotBtn;
+
+    // 用于窗口拖动
+    bool isDragging;
+    QPoint dragStartPosition;
 };
 
 #endif // LOGINPAGE_H
