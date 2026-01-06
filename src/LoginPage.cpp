@@ -411,5 +411,6 @@ void LoginPage::mouseReleaseEvent(QMouseEvent *event) {
 
 void LoginPage::onForgotPasswordClicked() {
     ForgotPasswordPage forgotPage(this);
+    forgotPage.setModal(true);
     forgotPage.exec();
 }
