@@ -26,6 +26,7 @@ signals:
     void contactSellerRequested(int goodsId);
     void buyNowRequested(int goodsId);
     void makeOfferRequested(int goodsId);
+    void reportGoodsRequested(int goodsId);
 
 private slots:
     void onContactSeller();

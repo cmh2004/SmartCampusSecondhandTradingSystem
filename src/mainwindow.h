@@ -26,6 +26,8 @@ class DisputeSubmitDialog;
 class PaymentDialog;
 class ReviewDialog;
 class ProfileEditDialog;
+class CreditScoreDialog;
+class ReportSubmitDialog;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -48,6 +50,20 @@ private slots:
     void onShowProfileEdit();
     void onReviewSubmitted(int orderId, int rating, QString comment);
     void onProfileUpdated();
+    void onShowCreditScore();  // 显示信用分详情
+
+    void onReportGoods(int goodsId);      // 举报商品
+    void onReportUser(QString userId);    // 举报用户
+    void onReportOrder(int orderId);      // 举报订单
+    void onReportSubmitted(int targetId, QString targetType); // 举报提交后的处理
+
+    void onShowDisputeSubmit(int orderId);  // 显示售后纠纷对话框
+    void onDisputeSubmitted(int orderId);   // 纠纷提交后的处理
+    void loadOrderExamples();  // 加载订单示例数据
+    void filterOrders(const QString &status, const QString &keyword); // 筛选订单
+    void onCancelOrder(int orderId);  // 取消订单
+    void onConfirmReceipt(int orderId);  // 确认收货
+    void onViewDisputeDetail(int orderId);  // 查看纠纷详情
 
 private:
     void setupUI();
@@ -107,6 +123,10 @@ private:
 
     // 工具栏
     QToolBar *mainToolBar;
+
+    CreditScoreDialog *creditScoreDialog = nullptr;  // 信用分对话框
+    ReportSubmitDialog *reportDialog = nullptr;
+    DisputeSubmitDialog *disputeDialog = nullptr;  // 纠纷对话框指针
 };
 
 #endif // MAINWINDOW_H

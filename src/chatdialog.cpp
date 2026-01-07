@@ -120,8 +120,17 @@ void ChatDialog::setupUI() {
     riskAnalysisBtn = new QPushButton("风险分析");
     riskAnalysisBtn->setObjectName("warningBtn");
 
+    QPushButton *reportUserBtn = new QPushButton("举报用户");
+    reportUserBtn->setObjectName("warningBtn");
+
+    // 连接信号
+    connect(reportUserBtn, &QPushButton::clicked, [this]() {
+        emit reportUserRequested(sellerId);
+    });
+
     buttonLayout->addWidget(aiAssistantBtn);
     buttonLayout->addWidget(riskAnalysisBtn);
+    buttonLayout->addWidget(reportUserBtn);
     buttonLayout->addStretch();
     buttonLayout->addWidget(sendBtn);
 

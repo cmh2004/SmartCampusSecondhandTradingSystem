@@ -35,6 +35,9 @@ private:
     void saveChatMessage(const QString &sender, const QString &message, bool isPriceOffer = false);
     void addRiskWarning(const QString &warning);
 
+signals:
+    void reportUserRequested(QString userId);
+
 private:
     int goodsId;
     QString sellerId;

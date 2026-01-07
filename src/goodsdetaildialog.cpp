@@ -202,7 +202,10 @@ void GoodsDetailDialog::setupUI() {
     connect(collectBtn, &QPushButton::clicked, this, &GoodsDetailDialog::onCollectGoods);
     connect(riskBtn, &QPushButton::clicked, this, &GoodsDetailDialog::onShowRiskAssessment);
     connect(aiAssessmentBtn, &QPushButton::clicked, this, &GoodsDetailDialog::onAIAssessment);
-    connect(reportBtn, &QPushButton::clicked, this, &GoodsDetailDialog::onReportGoods);
+    // 原来的连接改为信号
+    connect(reportBtn, &QPushButton::clicked, [this]() {
+        emit reportGoodsRequested(goodsId);
+    });
 
     // 样式
     setStyleSheet(R"(

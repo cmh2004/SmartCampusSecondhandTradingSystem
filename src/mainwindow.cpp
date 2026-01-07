@@ -16,6 +16,12 @@
 #include "paymentdialog.h"
 #include "reviewdialog.h"
 #include "profileeditdialog.h"
+#include "creditscoredialog.h"
+#include "reportsubmitdialog.h"
+#include "disputesubmitdialog.h"  // 售后纠纷对话框
+#include <QHeaderView>            // 表格头部
+#include <QMessageBox>            // 消息框
+#include <QInputDialog>           // 输入对话框
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle("校园二手商品智能交易系统");
@@ -309,6 +315,75 @@ void MainWindow::setupUI() {
         background: none;
         height: 0px;
     }
+QPushButton#warningBtn {
+    background-color: #e74c3c;
+    color: white;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 13px;
+    border: none;
+}
+
+QPushButton#warningBtn:hover {
+    background-color: #c0392b;
+}
+
+QPushButton#warningBtn:pressed {
+    background-color: #a93226;
+}
+// 在样式表末尾添加订单页面特定样式
+/* 订单页面样式 */
+QTableWidget QPushButton {
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-size: 12px;
+    border: 1px solid transparent;
+}
+
+QTableWidget QPushButton:hover {
+    opacity: 0.9;
+}
+
+QTableWidget QPushButton:pressed {
+    opacity: 0.8;
+}
+
+/* 表格样式增强 */
+QTableWidget {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: white;
+    gridline-color: #f1f5f9;
+}
+
+QTableWidget::item {
+    padding: 12px 8px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+QTableWidget::item:selected {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    border-radius: 4px;
+}
+
+QHeaderView::section {
+    background-color: #f8fafc;
+    padding: 14px 8px;
+    border: none;
+    border-bottom: 2px solid #e2e8f0;
+    font-weight: 600;
+    color: #475569;
+    font-size: 13px;
+}
+
+/* 订单状态标签样式 */
+#orderStatusLabel {
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: bold;
+}
     )");
 }
 
@@ -596,7 +671,9 @@ QWidget* MainWindow::createUserCenterPage() {
     subInfoLayout->addWidget(userLevelLabel);
     subInfoLayout->addWidget(userJoinLabel);
 
+    QHBoxLayout *profileButtonLayout = new QHBoxLayout();
     QPushButton *editProfileBtn = new QPushButton("编辑资料");
+    QPushButton *creditScoreBtn = new QPushButton("信用分详情");
     editProfileBtn->setFixedSize(120, 40);
     editProfileBtn->setStyleSheet(R"(
     QPushButton {
@@ -616,11 +693,35 @@ QWidget* MainWindow::createUserCenterPage() {
         background-color: #2B6CB0;
     }
 )");
+    creditScoreBtn->setFixedSize(120, 40);
+    creditScoreBtn->setStyleSheet(R"(
+    QPushButton {
+        background-color: #9B59B6;
+        color: white;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        padding: 10px 16px;
+        border: none;
+    }
+    QPushButton:hover {
+        background-color: #8E44AD;
+        box-shadow: 0 2px 4px rgba(155, 89, 182, 0.3);
+    }
+    QPushButton:pressed {
+        background-color: #7D3C98;
+    }
+)");
     connect(editProfileBtn, &QPushButton::clicked, this, &MainWindow::onShowProfileEdit);
+    connect(creditScoreBtn, &QPushButton::clicked, this, &MainWindow::onShowCreditScore);
+
+    profileButtonLayout->addWidget(editProfileBtn);
+    profileButtonLayout->addWidget(creditScoreBtn);
+    profileButtonLayout->addStretch();
 
     infoLayout->addWidget(userNameLabel);
     infoLayout->addWidget(subInfoWidget);
-    infoLayout->addWidget(editProfileBtn);
+    infoLayout->addLayout(profileButtonLayout);
 
     // 1.3 卡片右侧留白+阴影
     cardLayout->addWidget(userAvatarLabel);
@@ -994,71 +1095,105 @@ QWidget* MainWindow::createOrdersPage() {
     QVBoxLayout *mainLayout = new QVBoxLayout(page);
     mainLayout->setContentsMargins(20, 20, 20, 20);
 
+    // 1. 页面标题
     QLabel *titleLabel = new QLabel("我的订单");
     titleLabel->setStyleSheet("font-size: 24px; font-weight: bold; margin-bottom: 20px;");
+    mainLayout->addWidget(titleLabel);
 
-    // 订单筛选
+    // 2. 订单筛选区域
     QWidget *filterWidget = new QWidget();
     QHBoxLayout *filterLayout = new QHBoxLayout(filterWidget);
     filterLayout->setContentsMargins(0, 0, 0, 0);
+    filterLayout->setSpacing(10);
 
     QComboBox *statusCombo = new QComboBox();
-    statusCombo->addItems({"全部订单", "待付款", "待发货", "待收货", "已完成", "已取消"});
+    statusCombo->addItems({"全部订单", "待付款", "待发货", "待收货", "已完成", "已取消", "纠纷处理中"});
+    statusCombo->setFixedWidth(120);
 
     QLineEdit *orderSearchEdit = new QLineEdit();
     orderSearchEdit->setPlaceholderText("搜索订单号、商品名称...");
+    orderSearchEdit->setMinimumHeight(36);
 
     QPushButton *filterBtn = new QPushButton("筛选");
+    filterBtn->setObjectName("secondaryBtn");
+    filterBtn->setFixedWidth(80);
+
+    QPushButton *refreshBtn = new QPushButton("刷新");
+    refreshBtn->setObjectName("secondaryBtn");
+    refreshBtn->setFixedWidth(80);
 
     filterLayout->addWidget(new QLabel("订单状态:"));
     filterLayout->addWidget(statusCombo);
+    filterLayout->addSpacing(20);
     filterLayout->addWidget(orderSearchEdit, 1);
     filterLayout->addWidget(filterBtn);
+    filterLayout->addWidget(refreshBtn);
 
-    // 订单表格 - 增加列数以容纳操作按钮
-    ordersTable = new QTableWidget(3, 7);
-    ordersTable->setHorizontalHeaderLabels({"订单号", "商品", "价格", "状态", "下单时间", "支付", "评价"});
-    ordersTable->horizontalHeader()->setStretchLastSection(true);
-    ordersTable->verticalHeader()->setVisible(false);
-
-    // 示例订单1 - 待付款
-    ordersTable->setItem(0, 0, new QTableWidgetItem("1001"));
-    ordersTable->setItem(0, 1, new QTableWidgetItem("二手iPhone 12 128GB"));
-    ordersTable->setItem(0, 2, new QTableWidgetItem("¥2500"));
-    ordersTable->setItem(0, 3, new QTableWidgetItem("待付款"));
-    ordersTable->setItem(0, 4, new QTableWidgetItem("2024-03-20 10:30"));
-
-    // 支付按钮
-    paymentBtn = new QPushButton("去支付");
-    paymentBtn->setProperty("orderId", 1001);
-    paymentBtn->setProperty("amount", 2500.00);
-    connect(paymentBtn, &QPushButton::clicked, this, &MainWindow::onShowPayment);
-    ordersTable->setCellWidget(0, 5, paymentBtn);
-
-    // 示例订单2 - 已完成
-    ordersTable->setItem(1, 0, new QTableWidgetItem("1002"));
-    ordersTable->setItem(1, 1, new QTableWidgetItem("大学物理教材"));
-    ordersTable->setItem(1, 2, new QTableWidgetItem("¥35"));
-    ordersTable->setItem(1, 3, new QTableWidgetItem("已完成"));
-    ordersTable->setItem(1, 4, new QTableWidgetItem("2024-03-18 14:20"));
-
-    // 评价按钮
-    reviewBtn = new QPushButton("评价");
-    reviewBtn->setProperty("orderId", 1002);
-    reviewBtn->setProperty("sellerName", "李四同学");
-    connect(reviewBtn, &QPushButton::clicked, this, &MainWindow::onShowReview);
-    ordersTable->setCellWidget(1, 6, reviewBtn);
-
-    // 示例订单3 - 待收货
-    ordersTable->setItem(2, 0, new QTableWidgetItem("1003"));
-    ordersTable->setItem(2, 1, new QTableWidgetItem("篮球鞋 Nike Air"));
-    ordersTable->setItem(2, 2, new QTableWidgetItem("¥280"));
-    ordersTable->setItem(2, 3, new QTableWidgetItem("待收货"));
-    ordersTable->setItem(2, 4, new QTableWidgetItem("2024-03-19 16:45"));
-
-    mainLayout->addWidget(titleLabel);
     mainLayout->addWidget(filterWidget);
+
+    // 3. 订单表格 - 修改为7列，增加"操作"列
+    ordersTable = new QTableWidget(0, 7);
+    ordersTable->setHorizontalHeaderLabels({"订单号", "商品", "价格", "状态", "下单时间", "卖家", "操作"});
+
+    // 设置列宽
+    ordersTable->setColumnWidth(0, 100);  // 订单号
+    ordersTable->setColumnWidth(1, 250);  // 商品
+    ordersTable->setColumnWidth(2, 100);  // 价格
+    ordersTable->setColumnWidth(3, 100);  // 状态
+    ordersTable->setColumnWidth(4, 150);  // 下单时间
+    ordersTable->setColumnWidth(5, 120);  // 卖家
+    ordersTable->horizontalHeader()->setStretchLastSection(true);  // 操作列自适应
+
+    ordersTable->verticalHeader()->setVisible(false);
+    ordersTable->setAlternatingRowColors(true);
+    ordersTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ordersTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+    // 4. 添加示例订单数据
+    loadOrderExamples();
+
     mainLayout->addWidget(ordersTable, 1);
+
+    // 5. 底部统计信息
+    QWidget *statsWidget = new QWidget();
+    QHBoxLayout *statsLayout = new QHBoxLayout(statsWidget);
+    statsLayout->setContentsMargins(0, 10, 0, 0);
+
+    QLabel *totalLabel = new QLabel("共 3 个订单");
+    totalLabel->setStyleSheet("color: #666;");
+
+    statsLayout->addWidget(totalLabel);
+    statsLayout->addStretch();
+
+    QPushButton *exportBtn = new QPushButton("导出订单");
+    exportBtn->setObjectName("secondaryBtn");
+    statsLayout->addWidget(exportBtn);
+
+    mainLayout->addWidget(statsWidget);
+
+    // 6. 连接信号槽
+    connect(filterBtn, &QPushButton::clicked, [this, statusCombo, orderSearchEdit]() {
+        QString status = statusCombo->currentText();
+        QString keyword = orderSearchEdit->text().trimmed();
+        filterOrders(status, keyword);
+    });
+
+    connect(refreshBtn, &QPushButton::clicked, [this]() {
+        loadOrderExamples();  // 重新加载示例数据
+    });
+
+    connect(exportBtn, &QPushButton::clicked, [this]() {
+        QMessageBox::information(this, "导出订单", "订单导出功能开发中...");
+    });
+
+    connect(statusCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            [this, orderSearchEdit, statusCombo](int index) {
+                filterOrders(statusCombo->currentText(), orderSearchEdit->text().trimmed());
+            });
+
+    connect(orderSearchEdit, &QLineEdit::returnPressed, [this, statusCombo, orderSearchEdit]() {
+        filterOrders(statusCombo->currentText(), orderSearchEdit->text().trimmed());
+    });
 
     return page;
 }
@@ -1246,7 +1381,10 @@ void MainWindow::onShowGoodsDetail(int row, int column) {
                     }
                 }
             });
-
+    connect(detailDialog, &GoodsDetailDialog::reportGoodsRequested,
+            this, [this, goodsName](int goodsId) {
+                onReportGoods(goodsId);
+            });
     // 显示对话框
     detailDialog->show();
 }
@@ -1325,6 +1463,489 @@ void MainWindow::onProfileUpdated() {
     if (userNameLabel) {
         userNameLabel->setText("用户资料已更新");
     }
+}
+
+void MainWindow::onShowCreditScore() {
+    // 如果已经存在对话框，先关闭
+    if (creditScoreDialog) {
+        creditScoreDialog->close();
+        creditScoreDialog->deleteLater();
+    }
+
+    // 创建并显示信用分对话框
+    // 这里使用当前用户的ID，假设从登录信息中获取
+    QString currentUserId = "user_001";  // 实际应该从登录信息获取
+
+    creditScoreDialog = new CreditScoreDialog(this, currentUserId);
+    creditScoreDialog->setAttribute(Qt::WA_DeleteOnClose);
+
+    // 连接对话框关闭信号
+    connect(creditScoreDialog, &CreditScoreDialog::finished, [this]() {
+        creditScoreDialog = nullptr;
+    });
+
+    creditScoreDialog->show();
+    creditScoreDialog->raise();
+    creditScoreDialog->activateWindow();
+}
+
+void MainWindow::onReportGoods(int goodsId) {
+    if (reportDialog) {
+        reportDialog->close();
+        reportDialog->deleteLater();
+    }
+
+    // 获取商品名称 - 实际应从数据库获取
+    QString goodsName = "未知商品";
+    for (int i = 0; i < goodsTable->rowCount(); i++) {
+        QTableWidgetItem *item = goodsTable->item(i, 1);
+        if (item && item->data(Qt::UserRole).toInt() == goodsId) {
+            goodsName = item->text();
+            break;
+        }
+    }
+
+    reportDialog = new ReportSubmitDialog(this, goodsId, "goods", goodsName);
+    reportDialog->setAttribute(Qt::WA_DeleteOnClose);
+    reportDialog->setWindowTitle(QString("举报商品 - %1").arg(goodsName));
+
+    connect(reportDialog, &ReportSubmitDialog::reportSubmitted,
+            this, &MainWindow::onReportSubmitted);
+    connect(reportDialog, &ReportSubmitDialog::finished, [this]() {
+        reportDialog = nullptr;
+    });
+
+    reportDialog->show();
+    reportDialog->raise();
+    reportDialog->activateWindow();
+}
+
+void MainWindow::onReportUser(QString userId) {
+    if (reportDialog) {
+        reportDialog->close();
+        reportDialog->deleteLater();
+    }
+
+    // 获取用户名 - 实际应从数据库获取
+    QString userName = "未知用户";
+    // TODO: 从数据库查询用户名
+
+    reportDialog = new ReportSubmitDialog(this, userId.toInt(), "user", userName);
+    reportDialog->setAttribute(Qt::WA_DeleteOnClose);
+    reportDialog->setWindowTitle(QString("举报用户 - %1").arg(userName));
+
+    connect(reportDialog, &ReportSubmitDialog::reportSubmitted,
+            this, &MainWindow::onReportSubmitted);
+    connect(reportDialog, &ReportSubmitDialog::finished, [this]() {
+        reportDialog = nullptr;
+    });
+
+    reportDialog->show();
+    reportDialog->raise();
+    reportDialog->activateWindow();
+}
+
+void MainWindow::onReportOrder(int orderId) {
+    if (reportDialog) {
+        reportDialog->close();
+        reportDialog->deleteLater();
+    }
+
+    // 获取订单信息 - 实际应从数据库获取
+    QString orderInfo = QString("订单 %1").arg(orderId);
+
+    reportDialog = new ReportSubmitDialog(this, orderId, "order", orderInfo);
+    reportDialog->setAttribute(Qt::WA_DeleteOnClose);
+    reportDialog->setWindowTitle(QString("举报订单 - #%1").arg(orderId));
+
+    connect(reportDialog, &ReportSubmitDialog::reportSubmitted,
+            this, &MainWindow::onReportSubmitted);
+    connect(reportDialog, &ReportSubmitDialog::finished, [this]() {
+        reportDialog = nullptr;
+    });
+
+    reportDialog->show();
+    reportDialog->raise();
+    reportDialog->activateWindow();
+}
+
+void MainWindow::onReportSubmitted(int targetId, QString targetType) {
+    qDebug() << "举报已提交 - 目标ID:" << targetId << "类型:" << targetType;
+
+    // 在实际项目中，这里可以：
+    // 1. 更新数据库中的举报记录
+    // 2. 发送通知给管理员
+    // 3. 记录举报日志
+
+    // 显示成功消息
+    QString typeName;
+    if (targetType == "goods") typeName = "商品";
+    else if (targetType == "user") typeName = "用户";
+    else if (targetType == "order") typeName = "订单";
+
+    QMessageBox::information(this, "举报成功",
+                             QString("您的举报已提交成功！\n\n"
+                                     "举报对象：%1 #%2\n"
+                                     "管理员将在24小时内处理。\n"
+                                     "处理结果将通过系统消息通知您。")
+                                 .arg(typeName).arg(targetId));
+}
+
+void MainWindow::loadOrderExamples() {
+    if (!ordersTable) return;
+
+    ordersTable->setRowCount(0);
+
+    // 订单数据：订单号, 商品名称, 价格, 状态, 下单时间, 卖家, 操作
+    QList<QStringList> orderData = {
+        {"1001", "二手iPhone 12 128GB", "¥2500", "待付款", "2024-03-20 10:30", "张三同学", ""},
+        {"1002", "大学物理教材", "¥35", "已完成", "2024-03-18 14:20", "李四同学", ""},
+        {"1003", "篮球鞋 Nike Air", "¥280", "待收货", "2024-03-19 16:45", "王五同学", ""},
+        {"1004", "笔记本电脑戴尔", "¥3200", "已完成", "2024-03-15 09:15", "赵六同学", ""},
+        {"1005", "小米手环6", "¥150", "已取消", "2024-03-12 11:20", "钱七同学", ""},
+        {"1006", "吉他雅马哈", "¥800", "纠纷处理中", "2024-03-10 08:45", "孙八同学", ""}
+    };
+
+    for (int i = 0; i < orderData.size(); i++) {
+        int row = ordersTable->rowCount();
+        ordersTable->insertRow(row);
+
+        // 填充基础数据
+        for (int col = 0; col < orderData[i].size() - 1; col++) { // 最后一个列是操作，单独处理
+            QTableWidgetItem *item = new QTableWidgetItem(orderData[i][col]);
+
+            // 设置状态列的颜色
+            if (col == 3) { // 状态列
+                QString status = orderData[i][col];
+                if (status == "待付款") {
+                    item->setForeground(QColor(231, 76, 60));  // 红色
+                    item->setBackground(QColor(255, 243, 205));  // 浅黄色背景
+                } else if (status == "已完成") {
+                    item->setForeground(QColor(46, 204, 113));  // 绿色
+                } else if (status == "待收货") {
+                    item->setForeground(QColor(241, 196, 15));  // 黄色
+                } else if (status == "已取消") {
+                    item->setForeground(QColor(149, 165, 166)); // 灰色
+                } else if (status == "纠纷处理中") {
+                    item->setForeground(QColor(230, 126, 34));  // 橙色
+                    item->setBackground(QColor(253, 237, 236)); // 浅红色背景
+                }
+                item->setFont(QFont("", -1, QFont::Bold)); // 加粗
+            }
+
+            // 价格列右对齐
+            if (col == 2) {
+                item->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
+                item->setFont(QFont("", -1, QFont::Bold));
+            }
+
+            ordersTable->setItem(row, col, item);
+        }
+
+        // 第6列：操作按钮
+        QString status = orderData[i][3]; // 获取状态
+        int orderId = orderData[i][0].toInt();
+
+        QWidget *actionWidget = new QWidget();
+        QHBoxLayout *actionLayout = new QHBoxLayout(actionWidget);
+        actionLayout->setContentsMargins(5, 2, 5, 2);
+        actionLayout->setSpacing(5);
+
+        // 根据状态显示不同的操作按钮
+        if (status == "待付款") {
+            QPushButton *payBtn = new QPushButton("去支付");
+            payBtn->setProperty("orderId", orderId);
+            payBtn->setProperty("amount", 2500.00);
+            payBtn->setObjectName("primaryBtn");
+            payBtn->setFixedSize(70, 25);
+            connect(payBtn, &QPushButton::clicked, this, &MainWindow::onShowPayment);
+
+            QPushButton *cancelBtn = new QPushButton("取消订单");
+            cancelBtn->setObjectName("secondaryBtn");
+            cancelBtn->setFixedSize(80, 25);
+            connect(cancelBtn, &QPushButton::clicked, [this, orderId]() {
+                onCancelOrder(orderId);
+            });
+
+            actionLayout->addWidget(payBtn);
+            actionLayout->addWidget(cancelBtn);
+
+        } else if (status == "待收货") {
+            QPushButton *confirmBtn = new QPushButton("确认收货");
+            confirmBtn->setObjectName("primaryBtn");
+            confirmBtn->setFixedSize(80, 25);
+            connect(confirmBtn, &QPushButton::clicked, [this, orderId]() {
+                onConfirmReceipt(orderId);
+            });
+
+            // 售后纠纷按钮（待收货状态也可以申请）
+            QPushButton *disputeBtn = new QPushButton("售后");
+            disputeBtn->setObjectName("warningBtn");
+            disputeBtn->setFixedSize(60, 25);
+            disputeBtn->setProperty("orderId", orderId);
+            connect(disputeBtn, &QPushButton::clicked, [this, orderId]() {
+                onShowDisputeSubmit(orderId);
+            });
+
+            actionLayout->addWidget(confirmBtn);
+            actionLayout->addWidget(disputeBtn);
+
+        } else if (status == "已完成") {
+            QPushButton *reviewBtn = new QPushButton("评价");
+            reviewBtn->setProperty("orderId", orderId);
+            reviewBtn->setProperty("sellerName", orderData[i][5]); // 卖家名称
+            reviewBtn->setObjectName("secondaryBtn");
+            reviewBtn->setFixedSize(60, 25);
+            connect(reviewBtn, &QPushButton::clicked, this, &MainWindow::onShowReview);
+
+            // 售后纠纷按钮（已完成状态可以申请）
+            QPushButton *disputeBtn = new QPushButton("售后");
+            disputeBtn->setObjectName("warningBtn");
+            disputeBtn->setFixedSize(60, 25);
+            disputeBtn->setProperty("orderId", orderId);
+            connect(disputeBtn, &QPushButton::clicked, [this, orderId]() {
+                onShowDisputeSubmit(orderId);
+            });
+
+            actionLayout->addWidget(reviewBtn);
+            actionLayout->addWidget(disputeBtn);
+
+        } else if (status == "纠纷处理中") {
+            // 纠纷处理中的订单显示查看纠纷详情
+            QPushButton *viewDisputeBtn = new QPushButton("查看纠纷");
+            viewDisputeBtn->setObjectName("warningBtn");
+            viewDisputeBtn->setFixedSize(80, 25);
+            connect(viewDisputeBtn, &QPushButton::clicked, [this, orderId]() {
+                onViewDisputeDetail(orderId);
+            });
+
+            actionLayout->addWidget(viewDisputeBtn);
+
+        } else if (status == "已取消") {
+            // 已取消订单显示重新购买或删除
+            QPushButton *reorderBtn = new QPushButton("重新购买");
+            reorderBtn->setObjectName("secondaryBtn");
+            reorderBtn->setFixedSize(80, 25);
+
+            QPushButton *deleteBtn = new QPushButton("删除");
+            deleteBtn->setObjectName("secondaryBtn");
+            deleteBtn->setFixedSize(60, 25);
+
+            actionLayout->addWidget(reorderBtn);
+            actionLayout->addWidget(deleteBtn);
+        }
+
+        actionLayout->addStretch();
+        ordersTable->setCellWidget(row, 6, actionWidget);
+    }
+
+    // 设置表格行高
+    for (int i = 0; i < ordersTable->rowCount(); i++) {
+        ordersTable->setRowHeight(i, 50);
+    }
+}
+
+// 订单筛选函数
+void MainWindow::filterOrders(const QString &status, const QString &keyword) {
+    if (!ordersTable) return;
+
+    for (int row = 0; row < ordersTable->rowCount(); row++) {
+        bool showRow = true;
+
+        // 按状态筛选
+        if (status != "全部订单") {
+            QTableWidgetItem *statusItem = ordersTable->item(row, 3);
+            if (statusItem && statusItem->text() != status) {
+                showRow = false;
+            }
+        }
+
+        // 按关键词筛选
+        if (showRow && !keyword.isEmpty()) {
+            bool found = false;
+            for (int col = 0; col < ordersTable->columnCount(); col++) {
+                QTableWidgetItem *item = ordersTable->item(row, col);
+                if (item && item->text().contains(keyword, Qt::CaseInsensitive)) {
+                    found = true;
+                    break;
+                }
+            }
+            showRow = found;
+        }
+
+        ordersTable->setRowHidden(row, !showRow);
+    }
+}
+
+// 取消订单函数
+void MainWindow::onCancelOrder(int orderId) {
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this, "确认取消",
+        QString("确定要取消订单 #%1 吗？").arg(orderId),
+        QMessageBox::Yes | QMessageBox::No
+        );
+
+    if (reply == QMessageBox::Yes) {
+        // 这里应该更新数据库中的订单状态
+        QMessageBox::information(this, "取消成功", "订单已取消");
+        loadOrderExamples(); // 重新加载订单列表
+    }
+}
+
+// 确认收货函数
+void MainWindow::onConfirmReceipt(int orderId) {
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this, "确认收货",
+        QString("确认已收到订单 #%1 的商品吗？\n\n"
+                "确认后订单将变为【已完成】状态。").arg(orderId),
+        QMessageBox::Yes | QMessageBox::No
+        );
+
+    if (reply == QMessageBox::Yes) {
+        // 更新订单状态为已完成
+        for (int row = 0; row < ordersTable->rowCount(); row++) {
+            QTableWidgetItem *orderIdItem = ordersTable->item(row, 0);
+            if (orderIdItem && orderIdItem->text().toInt() == orderId) {
+                QTableWidgetItem *statusItem = ordersTable->item(row, 3);
+                if (statusItem) {
+                    statusItem->setText("已完成");
+                    statusItem->setForeground(QColor(46, 204, 113));
+
+                    // 更新操作按钮
+                    QWidget *oldWidget = ordersTable->cellWidget(row, 6);
+                    if (oldWidget) oldWidget->deleteLater();
+
+                    // 重新创建操作按钮
+                    QWidget *actionWidget = new QWidget();
+                    QHBoxLayout *actionLayout = new QHBoxLayout(actionWidget);
+                    actionLayout->setContentsMargins(5, 2, 5, 2);
+                    actionLayout->setSpacing(5);
+
+                    QPushButton *reviewBtn = new QPushButton("评价");
+                    reviewBtn->setProperty("orderId", orderId);
+                    reviewBtn->setObjectName("secondaryBtn");
+                    reviewBtn->setFixedSize(60, 25);
+                    connect(reviewBtn, &QPushButton::clicked, this, &MainWindow::onShowReview);
+
+                    QPushButton *disputeBtn = new QPushButton("售后");
+                    disputeBtn->setObjectName("warningBtn");
+                    disputeBtn->setFixedSize(60, 25);
+                    disputeBtn->setProperty("orderId", orderId);
+                    connect(disputeBtn, &QPushButton::clicked, [this, orderId]() {
+                        onShowDisputeSubmit(orderId);
+                    });
+
+                    actionLayout->addWidget(reviewBtn);
+                    actionLayout->addWidget(disputeBtn);
+                    actionLayout->addStretch();
+
+                    ordersTable->setCellWidget(row, 6, actionWidget);
+                }
+                break;
+            }
+        }
+
+        QMessageBox::information(this, "确认成功", "订单状态已更新为【已完成】");
+    }
+}
+
+// 查看纠纷详情函数
+void MainWindow::onViewDisputeDetail(int orderId) {
+    QMessageBox::information(this, "纠纷详情",
+                             QString("订单 #%1 纠纷处理中\n\n"
+                                     "纠纷类型：商品质量问题\n"
+                                     "提交时间：2024-03-20 14:30\n"
+                                     "当前状态：管理员审核中\n"
+                                     "预计处理时间：1-3个工作日").arg(orderId));
+}
+
+void MainWindow::onShowDisputeSubmit(int orderId) {
+    qDebug() << "onShowDisputeSubmit called with orderId:" << orderId; // 添加调试输出
+
+    if (disputeDialog) {
+        qDebug() << "Closing existing dispute dialog";
+        disputeDialog->close();
+        disputeDialog->deleteLater();
+    }
+
+    // 检查订单是否已经有纠纷
+    bool hasExistingDispute = false;
+    for (int row = 0; row < ordersTable->rowCount(); row++) {
+        QTableWidgetItem *orderIdItem = ordersTable->item(row, 0);
+        if (orderIdItem && orderIdItem->text().toInt() == orderId) {
+            QTableWidgetItem *statusItem = ordersTable->item(row, 3);
+            if (statusItem && statusItem->text() == "纠纷处理中") {
+                hasExistingDispute = true;
+                break;
+            }
+        }
+    }
+
+    if (hasExistingDispute) {
+        QMessageBox::information(this, "提示", "该订单已有正在处理的纠纷，请等待处理结果");
+        return;
+    }
+
+    disputeDialog = new DisputeSubmitDialog(this, orderId);
+    disputeDialog->setAttribute(Qt::WA_DeleteOnClose);
+    disputeDialog->setWindowTitle(QString("提交售后纠纷 - 订单#%1").arg(orderId));
+
+    // 连接提交成功的信号
+    connect(disputeDialog, &DisputeSubmitDialog::finished, [this, orderId](int result) {
+        if (result == QDialog::Accepted) {
+            // 提交成功，更新订单状态
+            onDisputeSubmitted(orderId);
+        }
+        disputeDialog = nullptr;
+    });
+
+    disputeDialog->show();
+    disputeDialog->raise();
+    disputeDialog->activateWindow();
+}
+
+void MainWindow::onDisputeSubmitted(int orderId) {
+    // 更新订单状态为"纠纷处理中"
+    for (int row = 0; row < ordersTable->rowCount(); row++) {
+        QTableWidgetItem *orderIdItem = ordersTable->item(row, 0);
+        if (orderIdItem && orderIdItem->text().toInt() == orderId) {
+            QTableWidgetItem *statusItem = ordersTable->item(row, 3);
+            if (statusItem) {
+                statusItem->setText("纠纷处理中");
+                statusItem->setForeground(QColor(230, 126, 34));  // 橙色
+                statusItem->setBackground(QColor(253, 237, 236)); // 浅红色背景
+
+                // 更新操作按钮为"查看纠纷"
+                QWidget *oldWidget = ordersTable->cellWidget(row, 6);
+                if (oldWidget) oldWidget->deleteLater();
+
+                QWidget *actionWidget = new QWidget();
+                QHBoxLayout *actionLayout = new QHBoxLayout(actionWidget);
+                actionLayout->setContentsMargins(5, 2, 5, 2);
+                actionLayout->setSpacing(5);
+
+                QPushButton *viewDisputeBtn = new QPushButton("查看纠纷");
+                viewDisputeBtn->setObjectName("warningBtn");
+                viewDisputeBtn->setFixedSize(80, 25);
+                connect(viewDisputeBtn, &QPushButton::clicked, [this, orderId]() {
+                    onViewDisputeDetail(orderId);
+                });
+
+                actionLayout->addWidget(viewDisputeBtn);
+                actionLayout->addStretch();
+
+                ordersTable->setCellWidget(row, 6, actionWidget);
+            }
+            break;
+        }
+    }
+
+    // 显示成功消息
+    QMessageBox::information(this, "提交成功",
+                             QString("售后纠纷申请已提交！\n\n"
+                                     "订单号: #%1\n"
+                                     "管理员将在24小时内处理。\n"
+                                     "处理结果将通过系统消息通知您。").arg(orderId));
 }
 
 MainWindow::~MainWindow() {}
