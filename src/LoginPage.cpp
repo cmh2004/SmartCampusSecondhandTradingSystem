@@ -7,6 +7,7 @@
 #include <QPainterPath>
 #include <QFontDatabase>
 #include <QShortcut>
+#include "ForgotPasswordPage.h"
 
 // 自定义圆形头像标签
 class AvatarLabel : public QLabel {
@@ -44,7 +45,7 @@ protected:
     }
 };
 
-LoginPage::LoginPage(QWidget *parent) : QDialog(parent), isDragging(false) {
+LoginPage::LoginPage(QWidget *parent) : QDialog(parent), isDragging(false), selectedRole("user") {
     setWindowFlags(Qt::FramelessWindowHint | Qt::WindowMinimizeButtonHint);
     setAttribute(Qt::WA_TranslucentBackground);
     setFixedSize(900, 520);
@@ -58,6 +59,12 @@ LoginPage::LoginPage(QWidget *parent) : QDialog(parent), isDragging(false) {
     connect(togglePwdBtn, &QPushButton::clicked, this, &LoginPage::onTogglePassword);
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::reject);
     connect(minimizeBtn, &QPushButton::clicked, this, &QWidget::showMinimized);
+
+    // 新增：连接角色选择信号
+    if (roleCombo) {
+        connect(roleCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+                this, &LoginPage::onRoleChanged);
+    }
 
     // 回车键登录快捷键
     QShortcut *enterShortcut = new QShortcut(QKeySequence(Qt::Key_Return), this);
@@ -238,6 +245,21 @@ QWidget* LoginPage::createRightPanel() {
     autoLogin->setStyleSheet("color: #666; font-size: 13px;");
     autoLogin->move(120, 5);
 
+    QWidget *roleWidget = new QWidget(rightPanel);
+    roleWidget->setFixedSize(320, 50);
+    roleWidget->setObjectName("roleWidget");
+
+    roleCombo = new QComboBox(roleWidget);
+    roleCombo->setGeometry(15, 10, 290, 30);
+    roleCombo->addItem("👤 普通用户");
+    roleCombo->addItem("🛡️ 管理员");
+    roleCombo->setStyleSheet(R"(
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 8px;
+    background-color: white;
+)");
+
     // 登录按钮
     loginBtn = new QPushButton("登录", rightPanel);
     loginBtn->setFixedSize(320, 42);
@@ -322,6 +344,21 @@ void LoginPage::setupStyles() {
             border-bottom-right-radius: 8px;
         }
 
+        #roleWidget {
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+
+        #roleWidget:hover {
+            border-color: #1e90ff;
+        }
+
+        #roleWidget:focus-within {
+            border-color: #1e90ff;
+            background-color: #f0f8ff;
+        }
+
         #usernameWidget, #passwordWidget {
             background-color: #f5f5f5;
             border-radius: 4px;
@@ -376,11 +413,6 @@ void LoginPage::onTogglePassword() {
     }
 }
 
-void LoginPage::onLoginClicked() {
-    // 这里添加登录验证逻辑
-    accept();
-}
-
 void LoginPage::onRegisterClicked() {
     RegisterPage registerPage;
     registerPage.exec();
@@ -413,4 +445,44 @@ void LoginPage::onForgotPasswordClicked() {
     ForgotPasswordPage forgotPage(this);
     forgotPage.setModal(true);
     forgotPage.exec();
+}
+
+// 新增：角色改变槽函数
+void LoginPage::onRoleChanged(int index) {
+    if (index == 0) {
+        selectedRole = "user";  // 普通用户
+        // 可以在这里更新UI提示
+    } else if (index == 1) {
+        selectedRole = "admin"; // 管理员
+        // 可以在这里显示管理员登录提示
+        QMessageBox::information(this, "管理员登录",
+                                 "请使用管理员账号登录\n默认账号：admin\n默认密码：admin123");
+    }
+}
+
+void LoginPage::onLoginClicked() {
+    QString username = usernameEdit->text().trimmed();
+    QString password = passwordEdit->text().trimmed();
+
+    if (username.isEmpty() || password.isEmpty()) {
+        QMessageBox::warning(this, "登录失败", "请输入账号和密码");
+        return;
+    }
+
+    // 根据选择的角色进行验证
+    if (selectedRole == "admin") {
+        // 管理员验证逻辑
+        if (username == "admin" && password == "admin123") {
+            accept(); // 登录成功
+        } else {
+            QMessageBox::warning(this, "管理员登录失败",
+                                 "管理员账号或密码错误\n默认账号：admin\n默认密码：admin123");
+        }
+    } else {
+        // 普通用户验证逻辑
+        // 这里可以添加实际的用户验证
+        if (!username.isEmpty() && !password.isEmpty()) {
+            accept(); // 登录成功
+        }
+    }
 }

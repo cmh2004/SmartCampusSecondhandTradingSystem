@@ -14,31 +14,33 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Charts)
 
 set(PROJECT_SOURCES
     src/main.cpp
-    src/mainwindow.cpp
-    src/mainwindow.h
-    src/mainwindow.ui
+    src/user/mainwindow.cpp
+    src/user/mainwindow.h
+    src/user/mainwindow.ui
     src/LoginPage.cpp
     src/LoginPage.h
     src/RegisterPage.cpp
     src/RegisterPage.h
-    src/GoodsDetailDialog.cpp
-    src/GoodsDetailDialog.h
-    src/ChatDialog.cpp
-    src/ChatDialog.h
-    src/DisputeSubmitDialog.cpp
-    src/DisputeSubmitDialog.h
+    src/user/GoodsDetailDialog.cpp
+    src/user/GoodsDetailDialog.h
+    src/user/ChatDialog.cpp
+    src/user/ChatDialog.h
+    src/user/DisputeSubmitDialog.cpp
+    src/user/DisputeSubmitDialog.h
     src/forgotpasswordpage.h
     src/forgotpasswordpage.cpp
-    src/paymentdialog.h
-    src/paymentdialog.cpp
-    src/reviewdialog.h
-    src/reviewdialog.cpp
-    src/profileeditdialog.h
-    src/profileeditdialog.cpp
-    src/creditscoredialog.h
-    src/creditscoredialog.cpp
-    src/reportsubmitdialog.h
-    src/reportsubmitdialog.cpp
+    src/user/paymentdialog.h
+    src/user/paymentdialog.cpp
+    src/user/reviewdialog.h
+    src/user/reviewdialog.cpp
+    src/user/profileeditdialog.h
+    src/user/profileeditdialog.cpp
+    src/user/creditscoredialog.h
+    src/user/creditscoredialog.cpp
+    src/user/reportsubmitdialog.h
+    src/user/reportsubmitdialog.cpp
+    src/admin/adminmainwindow.h
+    src/admin/adminmainwindow.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

@@ -7,13 +7,14 @@
 #include <QLabel>
 #include <QCheckBox>
 #include <QMouseEvent>
-#include "ForgotPasswordPage.h"
+#include <QComboBox>
 
 class LoginPage : public QDialog {
     Q_OBJECT
 
 public:
     explicit LoginPage(QWidget *parent = nullptr);
+    QString getSelectedRole() const { return selectedRole; }
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -25,6 +26,7 @@ private slots:
     void onLoginClicked();
     void onRegisterClicked();
     void onForgotPasswordClicked();
+    void onRoleChanged(int index);  // 新增：角色改变槽函数
 
 private:
     void setupUI();
@@ -42,10 +44,13 @@ private:
     QPushButton *closeBtn;
     QPushButton *minimizeBtn;
     QPushButton *forgotBtn;
+    QComboBox *roleCombo;
 
     // 用于窗口拖动
     bool isDragging;
     QPoint dragStartPosition;
+
+    QString selectedRole;
 };
 
 #endif // LOGINPAGE_H
