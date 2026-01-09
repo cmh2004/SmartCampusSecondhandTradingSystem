@@ -1159,10 +1159,11 @@ void MainWindow::loadMockData() {
     for (int i = 0; i < goodsNames.size(); i++) {
         int row = goodsTable->rowCount();
         goodsTable->insertRow(row);
+        goodsTable->setRowHeight(row, 90);
 
         // 商品图片（模拟）
         QLabel *imageLabel = new QLabel();
-        imageLabel->setPixmap(QPixmap(":/icons/img/buy.png").scaled(60, 60,Qt::KeepAspectRatio,Qt::SmoothTransformation));
+        imageLabel->setPixmap(QPixmap(":/icons/img/buy.png").scaled(80, 80,Qt::KeepAspectRatio,Qt::SmoothTransformation));
         imageLabel->setAlignment(Qt::AlignCenter);
         goodsTable->setCellWidget(row, 0, imageLabel);
 
