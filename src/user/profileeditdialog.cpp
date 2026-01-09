@@ -1,10 +1,10 @@
-#include "profileeditdialog.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QMessageBox>
 #include <QFileDialog>
+#include "profileeditdialog.h"
 
 ProfileEditDialog::ProfileEditDialog(QWidget *parent)
     : QDialog(parent) {
@@ -24,12 +24,13 @@ void ProfileEditDialog::setupUI() {
     QHBoxLayout *avatarLayout = new QHBoxLayout();
 
     avatarLabel = new QLabel();
-    avatarLabel->setPixmap(QPixmap(":/icons/default_avatar.png").scaled(80, 80));
+    avatarLabel->setPixmap(QPixmap(":/icons/img/user.png").scaled(80, 80));
     avatarLabel->setStyleSheet("border-radius: 40px; border: 3px solid #3498db;");
     avatarLabel->setFixedSize(80, 80);
+    avatarLabel->setScaledContents(true);
 
     uploadAvatarBtn = new QPushButton("更换头像");
-    uploadAvatarBtn->setObjectName("secondaryBtn");
+    uploadAvatarBtn->setObjectName("primaryBtn");
 
     avatarLayout->addWidget(avatarLabel);
     avatarLayout->addWidget(uploadAvatarBtn);
@@ -71,8 +72,8 @@ void ProfileEditDialog::setupUI() {
     changePwdBtn = new QPushButton("修改密码");
     bindPhoneBtn = new QPushButton("绑定手机号");
 
-    changePwdBtn->setObjectName("secondaryBtn");
-    bindPhoneBtn->setObjectName("secondaryBtn");
+    changePwdBtn->setObjectName("primaryBtn");
+    bindPhoneBtn->setObjectName("primaryBtn");
 
     securityLayout->addWidget(changePwdBtn);
     securityLayout->addWidget(bindPhoneBtn);
@@ -192,6 +193,7 @@ void ProfileEditDialog::onUploadAvatar() {
     if (!fileName.isEmpty()) {
         QPixmap pixmap(fileName);
         avatarLabel->setPixmap(pixmap.scaled(80, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        avatarLabel->setScaledContents(true);
         QMessageBox::information(this, "提示", "头像已更新，保存后生效");
     }
 }

@@ -1,10 +1,7 @@
-#include "reportsubmitdialog.h"
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QGroupBox>
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QDateTime>
+#include "reportsubmitdialog.h"
 
 ReportSubmitDialog::ReportSubmitDialog(QWidget *parent, int targetId,
                                        QString targetType, QString targetName)
@@ -30,7 +27,7 @@ void ReportSubmitDialog::setupUI() {
     QVBoxLayout *targetLayout = new QVBoxLayout();
 
     targetTitleLabel = new QLabel();
-    targetTitleLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #333;");
+    targetTitleLabel->setStyleSheet("font-size: 14px; font-weight: bold; color: #333;");
 
     targetInfoLabel = new QLabel();
     targetInfoLabel->setStyleSheet("color: #666;");
@@ -112,7 +109,7 @@ void ReportSubmitDialog::setupUI() {
     uploadBtn = new QPushButton("上传证据");
     QPushButton *removeBtn = new QPushButton("删除选中");
 
-    uploadBtn->setObjectName("secondaryBtn");
+    uploadBtn->setObjectName("primaryBtn");
     removeBtn->setObjectName("secondaryBtn");
 
     evidenceButtonLayout->addWidget(uploadBtn);
@@ -328,11 +325,11 @@ void ReportSubmitDialog::onUploadEvidence() {
 
         // 根据文件类型设置图标
         if (fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
-            item->setIcon(QIcon(":/icons/image.png"));
+            item->setIcon(QIcon(":/icons/img/image.png"));
         } else if (fileName.endsWith(".txt")) {
-            item->setIcon(QIcon(":/icons/text.png"));
+            item->setIcon(QIcon(":/icons/img/text.png"));
         } else {
-            item->setIcon(QIcon(":/icons/file.png"));
+            item->setIcon(QIcon(":/icons/img/file.png"));
         }
 
         evidenceList->addItem(item);

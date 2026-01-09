@@ -1,4 +1,3 @@
-// disputesubmitdialog.h 修复版
 #ifndef DISPUTESUBMITDIALOG_H
 #define DISPUTESUBMITDIALOG_H
 

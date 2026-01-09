@@ -1,15 +1,12 @@
-// goodsdetaildialog.cpp 完整实现
-#include "goodsdetaildialog.h"
 #include <QGridLayout>
 #include <QGroupBox>
-#include <QScrollArea>
 #include <QMessageBox>
 #include <QComboBox>
 #include <QDateTime>
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QLineEdit>
-
+#include "goodsdetaildialog.h"
 
 GoodsDetailDialog::GoodsDetailDialog(QWidget *parent, int goodsId)
     : QDialog(parent), goodsId(goodsId) {
@@ -40,10 +37,10 @@ void GoodsDetailDialog::setupUI() {
     QWidget *imageSection = new QWidget();
     QHBoxLayout *imageLayout = new QHBoxLayout(imageSection);
     goodsImageLabel = new QLabel();
-    goodsImageLabel->setFixedSize(300, 300);
+    goodsImageLabel->setFixedSize(150, 150);
     goodsImageLabel->setStyleSheet("border: 2px solid #ddd; border-radius: 8px;");
     goodsImageLabel->setAlignment(Qt::AlignCenter);
-    goodsImageLabel->setPixmap(QPixmap(":/icons/goods_detail.png").scaled(300, 300, Qt::KeepAspectRatio));
+    goodsImageLabel->setPixmap(QPixmap(":/icons/img/buy.png").scaled(150, 150, Qt::KeepAspectRatio));
     imageLayout->addWidget(goodsImageLabel);
     scrollLayout->addWidget(imageSection);
 
@@ -202,7 +199,6 @@ void GoodsDetailDialog::setupUI() {
     connect(collectBtn, &QPushButton::clicked, this, &GoodsDetailDialog::onCollectGoods);
     connect(riskBtn, &QPushButton::clicked, this, &GoodsDetailDialog::onShowRiskAssessment);
     connect(aiAssessmentBtn, &QPushButton::clicked, this, &GoodsDetailDialog::onAIAssessment);
-    // 原来的连接改为信号
     connect(reportBtn, &QPushButton::clicked, [this]() {
         emit reportGoodsRequested(goodsId);
     });
@@ -281,7 +277,6 @@ void GoodsDetailDialog::loadAIAssessment(int goodsId) {
     // 这里可以调用AI服务进行估价
 }
 
-// 槽函数实现
 void GoodsDetailDialog::onContactSeller() {
     QMessageBox::information(this, "联系卖家", "已打开与卖家的聊天窗口\n卖家联系方式: 138****1234");
 }

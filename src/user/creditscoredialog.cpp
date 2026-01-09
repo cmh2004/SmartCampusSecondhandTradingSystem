@@ -1,41 +1,28 @@
-#include "creditscoredialog.h"
-// 补充缺失的头文件
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QGroupBox>
 #include <QHeaderView>
 #include <QDateTime>
 #include <QTableWidgetItem>
-#include <QtCharts/QChart>
-#include <QtCharts/QLineSeries>
-#include <QtCharts/QChartView>
-#include <QtCharts/QValueAxis>
+#include "creditscoredialog.h"
 
-// 构造函数：修复this指针类型错误（本质是父类初始化正确）
 CreditScoreDialog::CreditScoreDialog(QWidget *parent, QString userId)
     : QDialog(parent), userId(userId) {
     setWindowTitle("信用分详情");
-    // 修正：setMinimumSize是QWidget的成员函数，调用方式正确
     this->setMinimumSize(800, 600);
-    // 修正：windowFlags调用时this指针显式转换为QWidget*（兼容部分Qt版本）
     this->setWindowFlags(this->windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
     setupUI();
     loadScoreData(userId);
-    createScoreChart();
 }
 
 void CreditScoreDialog::setupUI() {
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
-    // 顶部信用分概览（原有代码不变）
     QGroupBox *overviewGroup = new QGroupBox("信用分概览");
     QGridLayout *overviewLayout = new QGridLayout();
 
     QLabel *currentScoreTitle = new QLabel("当前信用分:");
     currentScoreTitle->setStyleSheet("font-size: 14px; color: #666;");
 
-    currentScoreLabel = new QLabel("850");
+    currentScoreLabel = new QLabel("96");
     currentScoreLabel->setStyleSheet("font-size: 32px; font-weight: bold; color: #27ae60;");
 
     QLabel *scoreLevelTitle = new QLabel("信用等级:");
@@ -44,52 +31,13 @@ void CreditScoreDialog::setupUI() {
     scoreLevelLabel = new QLabel("优秀");
     scoreLevelLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: #3498db;");
 
-    QLabel *rankingTitle = new QLabel("平台排名:");
-    rankingTitle->setStyleSheet("font-size: 14px; color: #666;");
-
-    rankingLabel = new QLabel("前5%");
-    rankingLabel->setStyleSheet("font-size: 16px; color: #e67e22;");
-
-    scoreProgressBar = new QProgressBar();
-    scoreProgressBar->setRange(300, 900);
-    scoreProgressBar->setValue(850);
-    scoreProgressBar->setTextVisible(true);
-    scoreProgressBar->setFormat("信用分: %v");
-    scoreProgressBar->setStyleSheet(R"(
-        QProgressBar {
-            height: 25px;
-            border-radius: 12px;
-            background-color: #ecf0f1;
-            border: 1px solid #bdc3c7;
-        }
-        QProgressBar::chunk {
-            border-radius: 12px;
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop:0 #27ae60, stop:0.5 #2ecc71, stop:1 #1abc9c);
-        }
-    )");
-
     overviewLayout->addWidget(currentScoreTitle, 0, 0);
     overviewLayout->addWidget(currentScoreLabel, 0, 1);
     overviewLayout->addWidget(scoreLevelTitle, 1, 0);
     overviewLayout->addWidget(scoreLevelLabel, 1, 1);
-    overviewLayout->addWidget(rankingTitle, 2, 0);
-    overviewLayout->addWidget(rankingLabel, 2, 1);
-    overviewLayout->addWidget(scoreProgressBar, 3, 0, 1, 2);
 
     overviewGroup->setLayout(overviewLayout);
     mainLayout->addWidget(overviewGroup);
-
-    // 信用分变化图表
-    QGroupBox *chartGroup = new QGroupBox("信用分变化趋势");
-    QVBoxLayout *chartLayout = new QVBoxLayout();
-
-    scoreChartView = new QChartView();
-    scoreChartView->setMinimumHeight(250);
-
-    chartLayout->addWidget(scoreChartView);
-    chartGroup->setLayout(chartLayout);
-    mainLayout->addWidget(chartGroup);
 
     // 分数明细和历史记录选项卡
     QTabWidget *detailTabs = new QTabWidget();
@@ -122,8 +70,18 @@ void CreditScoreDialog::setupUI() {
 
         QPushButton *viewBtn = new QPushButton("详情");
         viewBtn->setObjectName("secondaryBtn");
+        viewBtn->setFixedHeight(25);
         scoreDetailTable->setCellWidget(row, 3, viewBtn);
+        viewBtn->setStyleSheet("QPushButton#secondaryBtn { padding: 0; line-height: 25px; text-align: center; }");
+        QString itemName = detailItems[i*3];
+        connect(viewBtn, &QPushButton::clicked, this, [this, itemName]() {
+            showScoreItemDetail(itemName); // 点击后调用详情展示函数
+        });
     }
+    scoreDetailTable->setColumnWidth(0, 150);  // 评分项目列
+    scoreDetailTable->setColumnWidth(1, 80);   // 权重列
+    scoreDetailTable->setColumnWidth(2, 80);   // 得分列
+    scoreDetailTable->setColumnWidth(3, 80);   // 操作列（适配按钮宽度）
 
     detailLayout->addWidget(scoreDetailTable);
     detailTabs->addTab(detailTab, "分数明细");
@@ -135,14 +93,16 @@ void CreditScoreDialog::setupUI() {
     scoreHistoryTable = new QTableWidget(0, 4);
     scoreHistoryTable->setHorizontalHeaderLabels({"时间", "变更项目", "变更分值", "当前总分"});
     scoreHistoryTable->horizontalHeader()->setStretchLastSection(true);
+    scoreHistoryTable->setColumnWidth(0,150);
+    scoreHistoryTable->setColumnWidth(1,200);
     scoreHistoryTable->verticalHeader()->setVisible(false);
 
     // 示例历史数据
     QList<QStringList> historyData = {
-        {"2024-03-20 10:30", "完成交易 + 好评", "+10", "850"},
-        {"2024-03-18 14:20", "纠纷解决", "+5", "840"},
-        {"2024-03-15 09:15", "按时发货", "+3", "835"},
-        {"2024-03-10 16:45", "差评扣分", "-8", "832"}
+        {"2024-03-20 10:30", "完成交易 + 好评", "+10", "96"},
+        {"2024-03-18 14:20", "纠纷解决", "+5", "86"},
+        {"2024-03-15 09:15", "按时发货", "+3", "81"},
+        {"2024-03-10 16:45", "差评扣分", "-8", "78"}
     };
 
     for (const auto &data : historyData) {
@@ -186,7 +146,6 @@ void CreditScoreDialog::setupUI() {
 
     mainLayout->addWidget(buttonWidget);
 
-    // 修正connect：显式指定信号槽类型（兼容Qt5/6）
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::accept);
     connect(detailBtn, &QPushButton::clicked, this, &CreditScoreDialog::onScoreDetailClicked);
     connect(historyBtn, &QPushButton::clicked, this, &CreditScoreDialog::onScoreHistoryClicked);
@@ -225,16 +184,16 @@ void CreditScoreDialog::loadScoreData(QString userId) {
     this->userId = userId;
 
     // 模拟数据
-    int score = 850;
+    int score = 96;
     currentScoreLabel->setText(QString::number(score));
 
-    if (score >= 800) {
+    if (score >= 90) {
         scoreLevelLabel->setText("优秀");
         scoreLevelLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: #27ae60;");
-    } else if (score >= 700) {
+    } else if (score >= 75) {
         scoreLevelLabel->setText("良好");
         scoreLevelLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: #3498db;");
-    } else if (score >= 600) {
+    } else if (score >= 60) {
         scoreLevelLabel->setText("中等");
         scoreLevelLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: #f39c12;");
     } else {
@@ -243,39 +202,7 @@ void CreditScoreDialog::loadScoreData(QString userId) {
     }
 }
 
-void CreditScoreDialog::createScoreChart() {
-    // 修正：QChart创建方式（确保命名空间生效）
-    QChart *chart = new QChart();
-    chart->setTitle("信用分变化趋势");
-    chart->setTheme(QChart::ChartThemeLight);
-
-    QLineSeries *series = new QLineSeries();
-    series->setName("信用分");
-
-    // 修正：替换老旧的qrand为QRandomGenerator（Qt5.10+推荐）
-    for (int i = 30; i >= 0; i--) {
-        int day = 30 - i;
-        // 生成820±30的随机数（模拟波动）
-        int score = 820 + QRandomGenerator::global()->bounded(60) - 30;
-        series->append(day, score);
-    }
-
-    chart->addSeries(series);
-    chart->createDefaultAxes();
-
-    // 设置Y轴范围（修正：正确获取坐标轴）
-    QValueAxis *yAxis = qobject_cast<QValueAxis*>(chart->axes(Qt::Vertical).first());
-    if (yAxis) {
-        yAxis->setRange(700, 900);
-    }
-
-    scoreChartView->setChart(chart);
-    // 修正：RenderHint需要QPainter头文件（已补充）
-    scoreChartView->setRenderHint(QPainter::Antialiasing);
-}
-
 void CreditScoreDialog::onScoreDetailClicked() {
-    // 修正：QMessageBox::information参数（this是QDialog*，符合要求）
     QMessageBox::information(this,
                              "评分规则说明",
                              "信用分计算规则：\n"
@@ -293,4 +220,43 @@ void CreditScoreDialog::onScoreDetailClicked() {
 
 void CreditScoreDialog::onScoreHistoryClicked() {
     QMessageBox::information(this, "申诉记录", "暂无申诉记录");
+}
+
+void CreditScoreDialog::showScoreItemDetail(const QString &itemName) {
+    // 按评分项目展示对应的详细规则和得分依据
+    QString detailContent;
+    if (itemName == "交易完成率") {
+        detailContent = QString("【%1】详细规则：\n").arg(itemName) +
+                        "1. 权重占比：30%\n"
+                        "2. 计算方式：已完成交易数 / 总发起交易数 × 30\n"
+                        "3. 本次得分：30/30（完成率100%）\n"
+                        "4. 扣分场景：交易发起后取消/未完成";
+    } else if (itemName == "好评率") {
+        detailContent = QString("【%1】详细规则：\n").arg(itemName) +
+                        "1. 权重占比：25%\n"
+                        "2. 计算方式：好评数 / 总评价数 × 25\n"
+                        "3. 本次得分：25/25（好评率100%）\n"
+                        "4. 扣分场景：收到中评/差评";
+    } else if (itemName == "纠纷率") {
+        detailContent = QString("【%1】详细规则：\n").arg(itemName) +
+                        "1. 权重占比：20%\n"
+                        "2. 计算方式：(1 - 纠纷数/交易数) × 20\n"
+                        "3. 本次得分：18/20（纠纷率10%）\n"
+                        "4. 扣分场景：被投诉";
+    } else if (itemName == "响应速度") {
+        detailContent = QString("【%1】详细规则：\n").arg(itemName) +
+                        "1. 权重占比：15%\n"
+                        "2. 计算方式：平均响应时间＜5小时得满分\n"
+                        "3. 本次得分：15/15（响应及时）\n"
+                        "4. 扣分场景：响应时间＞24小时";
+    } else if (itemName == "活跃度") {
+        detailContent = QString("【%1】详细规则：\n").arg(itemName) +
+                        "1. 权重占比：10%\n"
+                        "2. 计算方式：近30天登录/交易次数\n"
+                        "3. 本次得分：8/10（活跃度一般）\n"
+                        "4. 加分场景：每日登录/发布商品";
+    }
+
+    // 弹出详情窗口
+    QMessageBox::information(this, QString("%1详情").arg(itemName), detailContent);
 }

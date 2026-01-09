@@ -1,5 +1,21 @@
 <RCC>
     <qresource prefix="/icons">
         <file>img/user.png</file>
+        <file>img/logo.png</file>
+        <file>img/eye_open.png</file>
+        <file>img/eye_close.png</file>
+        <file>img/buy.png</file>
+        <file>img/home.png</file>
+        <file>img/message.png</file>
+        <file>img/order.png</file>
+        <file>img/person.png</file>
+        <file>img/publish.png</file>
+        <file>img/alipay.png</file>
+        <file>img/wechat.png</file>
+        <file>img/file.png</file>
+        <file>img/image.png</file>
+        <file>img/text.png</file>
+        <file>img/star_empty.png</file>
+        <file>img/star_filled.png</file>
     </qresource>
 </RCC>

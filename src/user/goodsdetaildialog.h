@@ -1,4 +1,3 @@
-// GoodsDetailDialog.h
 #ifndef GOODSDETAILDIALOG_H
 #define GOODSDETAILDIALOG_H
 
@@ -18,11 +17,9 @@ class GoodsDetailDialog : public QDialog {
 public:
     explicit GoodsDetailDialog(QWidget *parent = nullptr, int goodsId = -1);
 
-    // 添加公有方法获取商品ID
     int getGoodsId() const { return goodsId; }
 
 signals:
-    // 添加信号
     void contactSellerRequested(int goodsId);
     void buyNowRequested(int goodsId);
     void makeOfferRequested(int goodsId);

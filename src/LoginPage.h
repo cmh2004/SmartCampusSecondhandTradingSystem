@@ -8,6 +8,7 @@
 #include <QCheckBox>
 #include <QMouseEvent>
 #include <QComboBox>
+#include <QApplication>
 
 class LoginPage : public QDialog {
     Q_OBJECT
@@ -26,7 +27,7 @@ private slots:
     void onLoginClicked();
     void onRegisterClicked();
     void onForgotPasswordClicked();
-    void onRoleChanged(int index);  // 新增：角色改变槽函数
+    void onRoleChanged(int index);
 
 private:
     void setupUI();

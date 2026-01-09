@@ -1,4 +1,3 @@
-// ChatDialog.h
 #ifndef CHATDIALOG_H
 #define CHATDIALOG_H
 
@@ -50,6 +49,7 @@ private:
     QPushButton *priceOfferBtn;
     QPushButton *aiAssistantBtn;
     QPushButton *riskAnalysisBtn;
+    QTextEdit *messageDisplay;
 
     // 风险提醒区域
     QWidget *riskWidget;

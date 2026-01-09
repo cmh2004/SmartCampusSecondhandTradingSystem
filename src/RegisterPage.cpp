@@ -1,12 +1,11 @@
-#include "RegisterPage.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGraphicsDropShadowEffect>
 #include <QPainter>
-#include <QMouseEvent>
 #include <QShortcut>
 #include <QTimer>
 #include <QRegularExpression>
+#include "RegisterPage.h"
 
 RegisterPage::RegisterPage(QWidget *parent) : QDialog(parent), isDragging(false) {
     setWindowFlags(Qt::FramelessWindowHint);
@@ -94,16 +93,15 @@ void RegisterPage::setupUI() {
     // 定义输入框配置
     struct InputField {
         QString placeholder;
-        QString icon;
         bool isPassword;
         int yPos;
     };
 
     QVector<InputField> fields = {
-        {"账号", ":/icons/user.png", false, 0},
-        {"设置密码", ":/icons/password.png", true, 60},
-        {"昵称", ":/icons/nickname.png", false, 120},
-        {"邮箱", ":/icons/email.png", false, 180},
+        {"账号", false, 0},
+        {"设置密码", true, 60},
+        {"昵称", false, 120},
+        {"邮箱", false, 180},
     };
 
     QVBoxLayout *inputLayout = new QVBoxLayout(inputContainer);
@@ -132,10 +130,6 @@ void RegisterPage::setupUI() {
         case 3: emailEdit = lineEdit; break;
         }
 
-        QLabel *iconLabel = new QLabel(inputWidget);
-        iconLabel->setGeometry(280, 15, 20, 20);
-        iconLabel->setPixmap(QPixmap(fields[i].icon).scaled(20, 20, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-
         inputLayout->addWidget(inputWidget);
     }
 
@@ -146,7 +140,7 @@ void RegisterPage::setupUI() {
     QWidget *buttonContainer = new QWidget(formContainer);
     QVBoxLayout *buttonLayout = new QVBoxLayout(buttonContainer);
     buttonLayout->setContentsMargins(0, 0, 0, 0);
-    buttonLayout->setSpacing(15); // 按钮之间的垂直间距
+    buttonLayout->setSpacing(10); // 按钮之间的垂直间距
 
     // 注册按钮
     registerBtn = new QPushButton("立即注册", formContainer);
@@ -169,11 +163,9 @@ void RegisterPage::setupUI() {
     formMainLayout->addWidget(avatarContainer, 0, Qt::AlignCenter);
     formMainLayout->addWidget(inputContainer, 0, Qt::AlignCenter);
     formMainLayout->addWidget(togglePwdBtn, 0, Qt::AlignCenter);
-    formMainLayout->addSpacing(10);  // 增加间距，从 10 改为 25
-    formMainLayout->addWidget(registerBtn, 0, Qt::AlignCenter);
-    formMainLayout->addSpacing(15);  // 增加按钮之间的间距
-    formMainLayout->addWidget(buttonContainer, 0, Qt::AlignCenter); // 添加按钮容器
-    formMainLayout->addStretch();
+    formMainLayout->addSpacing(10);
+    formMainLayout->addWidget(buttonContainer, 0, Qt::AlignCenter);
+    formMainLayout->addSpacing(10);
 
     // 窗口布局
     QVBoxLayout *windowLayout = new QVBoxLayout(this);
@@ -252,7 +244,6 @@ void RegisterPage::setupStyles() {
             border: 1px solid #1e90ff;
             border-radius: 3px;
             background-color: #1e90ff;
-            image: url(:/icons/check_white.png);
         }
 
         #registerBtn {

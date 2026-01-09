@@ -1,11 +1,10 @@
-#include "ForgotPasswordPage.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QMessageBox>
-#include <QTimer>
 #include <QRegularExpression>
 #include <QScreen>
 #include <QApplication>
+#include "ForgotPasswordPage.h"
 
 ForgotPasswordPage::ForgotPasswordPage(QWidget *parent)
     : QDialog(parent), countdownSeconds(60) {

@@ -35,7 +35,7 @@ private:
 
 private:
     int targetId;
-    QString targetType; // goods, user, order
+    QString targetType;
     QString targetName;
 
     // 被举报对象信息

@@ -1,5 +1,3 @@
-// mainwindow.h - 添加以下内容
-
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
@@ -37,14 +35,12 @@ public:
     ~MainWindow();
 
 private slots:
-    // 已有槽函数
     void onCategoryClicked(QListWidgetItem* item);
     void onSearchClicked();
     void onPublishGoods();
     void onShowGoodsDetail(int row, int column);
     void onTabChanged(int index);
 
-    // 新添加的槽函数
     void onShowPayment();
     void onShowReview();
     void onShowProfileEdit();
@@ -103,7 +99,7 @@ private:
     QLabel *userNameLabel;
     QTreeWidget *orderTree;
     QTabWidget *userSubTabs;
-    QPushButton *editProfileBtn; // 添加编辑资料按钮引用
+    QPushButton *editProfileBtn;
 
     // 消息页面
     QWidget *messagesPage;

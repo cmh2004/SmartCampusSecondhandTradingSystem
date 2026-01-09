@@ -1,4 +1,3 @@
-// reviewdialog.h
 #ifndef REVIEWDIALOG_H
 #define REVIEWDIALOG_H
 
@@ -6,7 +5,6 @@
 #include <QWidget>
 #include <QTextEdit>
 #include <QPushButton>
-#include <QHBoxLayout>
 #include <QRadioButton>
 #include <QLabel>
 #include <QGroupBox>

@@ -1,4 +1,3 @@
-// profileeditdialog.h
 #ifndef PROFILEEDITDIALOG_H
 #define PROFILEEDITDIALOG_H
 

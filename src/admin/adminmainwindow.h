@@ -1,4 +1,3 @@
-// adminmainwindow.h
 #ifndef ADMINMAINWINDOW_H
 #define ADMINMAINWINDOW_H
 

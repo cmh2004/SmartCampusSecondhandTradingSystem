@@ -1,9 +1,9 @@
-#include "paymentdialog.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGroupBox>
 #include <QMessageBox>
 #include <QDateTime>
+#include "paymentdialog.h"
 
 PaymentDialog::PaymentDialog(QWidget *parent, int orderId, double amount)
     : QDialog(parent), orderId(orderId), amount(amount) {
@@ -37,17 +37,14 @@ void PaymentDialog::setupUI() {
 
     wechatRadio = new QRadioButton("微信支付");
     alipayRadio = new QRadioButton("支付宝");
-    campusCardRadio = new QRadioButton("校园卡支付");
 
-    wechatRadio->setIcon(QIcon(":/icons/wechat.png"));
-    alipayRadio->setIcon(QIcon(":/icons/alipay.png"));
-    campusCardRadio->setIcon(QIcon(":/icons/card.png"));
+    wechatRadio->setIcon(QIcon(":/icons/img/wechat.png"));
+    alipayRadio->setIcon(QIcon(":/icons/img/alipay.png"));
 
     wechatRadio->setChecked(true);
 
     methodLayout->addWidget(wechatRadio);
     methodLayout->addWidget(alipayRadio);
-    methodLayout->addWidget(campusCardRadio);
     methodGroup->setLayout(methodLayout);
     mainLayout->addWidget(methodGroup);
 
@@ -65,9 +62,6 @@ void PaymentDialog::setupUI() {
     });
     connect(alipayRadio, &QRadioButton::toggled, [methodPreview](bool checked) {
         if (checked) methodPreview->setText("支付方式: 支付宝");
-    });
-    connect(campusCardRadio, &QRadioButton::toggled, [methodPreview](bool checked) {
-        if (checked) methodPreview->setText("支付方式: 校园卡支付");
     });
 
     previewLayout->addWidget(methodPreview);
@@ -126,8 +120,8 @@ void PaymentDialog::setupUI() {
             font-size: 14px;
         }
         QRadioButton::indicator {
-            width: 20px;
-            height: 20px;
+            width: 15px;
+            height: 15px;
         }
         #primaryBtn {
             background-color: #3498db;

@@ -1,11 +1,10 @@
-// chatdialog.cpp 完整实现
-#include "chatdialog.h"
 #include <QApplication>
 #include <QDateTime>
 #include <QListWidgetItem>
 #include <QScrollBar>
 #include <QInputDialog>
 #include <QMessageBox>
+#include "chatdialog.h"
 
 ChatDialog::ChatDialog(QWidget *parent, int goodsId, QString sellerId)
     : QDialog(parent), goodsId(goodsId), sellerId(sellerId) {
@@ -74,7 +73,7 @@ void ChatDialog::setupUI() {
     QWidget *rightPanel = new QWidget();
     QVBoxLayout *rightLayout = new QVBoxLayout(rightPanel);
 
-    QTextEdit *messageDisplay = new QTextEdit();
+    messageDisplay = new QTextEdit();
     messageDisplay->setReadOnly(true);
     messageDisplay->setMinimumHeight(300);
 

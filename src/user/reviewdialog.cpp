@@ -1,14 +1,12 @@
-#include "reviewdialog.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QGroupBox>
-#include <QMessageBox>
 #include <QFileDialog>
+#include "reviewdialog.h"
 
 ReviewDialog::ReviewDialog(QWidget *parent, int orderId, QString sellerName)
     : QDialog(parent), orderId(orderId), sellerName(sellerName) {
     setWindowTitle("评价订单");
-    setFixedSize(500, 600);
+    setFixedSize(500, 700);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
     setupUI();
@@ -41,14 +39,21 @@ void ReviewDialog::setupUI() {
 
     for (int i = 0; i < 5; i++) {
         QRadioButton *starBtn = new QRadioButton();
-        starBtn->setIcon(QIcon(":/icons/star_empty.png"));
+        starBtn->setIcon(QIcon(":/icons/img/star_empty.png"));
         starBtn->setIconSize(QSize(40, 40));
         starBtn->setProperty("rating", i + 1);
 
         // 设置选中时的图标
-        connect(starBtn, &QRadioButton::toggled, [starBtn](bool checked) {
+        connect(starBtn, &QRadioButton::toggled, [this, i](bool checked) {
             if (checked) {
-                starBtn->setIcon(QIcon(":/icons/star_filled.png"));
+                // 选中当前星 → 0~i 全部实心，i+1~4 全部空心
+                for(int j=0; j<5; j++){
+                    if(j <= i){
+                        starButtons[j]->setIcon(QIcon(":/icons/img/star_filled.png"));
+                    }else{
+                        starButtons[j]->setIcon(QIcon(":/icons/img/star_empty.png"));
+                    }
+                }
             }
         });
 
@@ -98,7 +103,7 @@ void ReviewDialog::setupUI() {
     QVBoxLayout *imageLayout = new QVBoxLayout();
 
     uploadImageBtn = new QPushButton("选择图片");
-    uploadImageBtn->setObjectName("secondaryBtn");
+    uploadImageBtn->setObjectName("primaryBtn");
 
     imagePreview = new QLabel();
     imagePreview->setFixedSize(150, 150);

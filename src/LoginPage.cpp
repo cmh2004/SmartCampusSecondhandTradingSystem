@@ -1,5 +1,3 @@
-#include "LoginPage.h"
-#include "RegisterPage.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGraphicsDropShadowEffect>
@@ -8,6 +6,8 @@
 #include <QFontDatabase>
 #include <QShortcut>
 #include "ForgotPasswordPage.h"
+#include "LoginPage.h"
+#include "RegisterPage.h"
 
 // 自定义圆形头像标签
 class AvatarLabel : public QLabel {
@@ -30,7 +30,7 @@ protected:
         // 使用渐变色背景
         QLinearGradient gradient(0, 0, width(), height());
         gradient.setColorAt(0, QColor(0, 150, 255));
-        gradient.setColorAt(1, QColor(0, 100, 220));
+        gradient.setColorAt(1, QColor(150, 100, 220));
         painter.fillRect(rect(), gradient);
 
         // 绘制默认头像图标
@@ -60,7 +60,6 @@ LoginPage::LoginPage(QWidget *parent) : QDialog(parent), isDragging(false), sele
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::reject);
     connect(minimizeBtn, &QPushButton::clicked, this, &QWidget::showMinimized);
 
-    // 新增：连接角色选择信号
     if (roleCombo) {
         connect(roleCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
                 this, &LoginPage::onRoleChanged);
@@ -80,7 +79,7 @@ void LoginPage::setupUI() {
     // 添加阴影效果
     QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect(mainContainer);
     shadow->setBlurRadius(30);
-    shadow->setColor(QColor(0, 0, 0, 60));
+    shadow->setColor(QColor(0, 0, 0, 50));
     shadow->setOffset(0, 5);
     mainContainer->setGraphicsEffect(shadow);
 
@@ -95,10 +94,10 @@ void LoginPage::setupUI() {
     // 添加右侧面板
     mainLayout->addWidget(createRightPanel());
 
-    // 设置主布局 - 修复顶部透明行问题
+    // 设置主布局
     QVBoxLayout *windowLayout = new QVBoxLayout(this);
     windowLayout->setContentsMargins(0, 0, 0, 0);
-    windowLayout->setSpacing(0); // 关键修改：去除布局间距
+    windowLayout->setSpacing(0);
 
     // 创建标题栏并添加到布局
     QWidget *titleBar = createTitleBar();
@@ -155,7 +154,7 @@ QWidget* LoginPage::createLeftPanel() {
 
     // Logo
     QLabel *logoLabel = new QLabel(leftPanel);
-    logoLabel->setPixmap(QPixmap(":/icons/qq_logo.png").scaled(120, 120, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    logoLabel->setPixmap(QPixmap(":/icons/img/logo.png").scaled(120, 120, Qt::KeepAspectRatio, Qt::SmoothTransformation));
 
     // 标题
     QLabel *titleLabel = new QLabel("校园二手交易", leftPanel);
@@ -171,12 +170,12 @@ QWidget* LoginPage::createLeftPanel() {
 
     // 垂直布局
     QVBoxLayout *layout = new QVBoxLayout(leftPanel);
-    layout->addStretch();
+    layout->addSpacing(85);
     layout->addWidget(logoLabel, 0, Qt::AlignCenter);
-    layout->addSpacing(20);
+    layout->addSpacing(25);
     layout->addWidget(titleLabel, 0, Qt::AlignCenter);
     layout->addWidget(subtitleLabel, 0, Qt::AlignCenter);
-    layout->addSpacing(40);
+    layout->addSpacing(30);
     layout->addWidget(infoLabel, 0, Qt::AlignCenter);
     layout->addStretch();
 
@@ -205,10 +204,6 @@ QWidget* LoginPage::createRightPanel() {
     usernameEdit->setPlaceholderText("账号");
     usernameEdit->setStyleSheet("border: none; background: transparent; font-size: 14px;");
 
-    QLabel *userIcon = new QLabel(usernameWidget);
-    userIcon->setGeometry(15, 15, 20, 20);
-    userIcon->setPixmap(QPixmap(":/icons/user.png").scaled(20, 20));
-
     // 密码输入框
     QWidget *passwordWidget = new QWidget(inputContainer);
     passwordWidget->setFixedSize(320, 50);
@@ -224,13 +219,9 @@ QWidget* LoginPage::createRightPanel() {
     // 密码显示切换按钮
     togglePwdBtn = new QPushButton(passwordWidget);
     togglePwdBtn->setGeometry(270, 10, 40, 30);
-    togglePwdBtn->setIcon(QIcon(":/icons/eye_close.png"));
+    togglePwdBtn->setIcon(QIcon(":/icons/img/eye_close.png"));
     togglePwdBtn->setIconSize(QSize(20, 20));
     togglePwdBtn->setStyleSheet("border: none; background: transparent;");
-
-    QLabel *pwdIcon = new QLabel(passwordWidget);
-    pwdIcon->setGeometry(320 - 40, 15, 20, 20);
-    pwdIcon->setPixmap(QPixmap(":/icons/password.png").scaled(20, 20));
 
     // 记住密码和自动登录
     QWidget *optionsWidget = new QWidget(inputContainer);
@@ -246,13 +237,14 @@ QWidget* LoginPage::createRightPanel() {
     autoLogin->move(120, 5);
 
     QWidget *roleWidget = new QWidget(rightPanel);
-    roleWidget->setFixedSize(320, 50);
+    roleWidget->setFixedSize(104, 32);
+    roleWidget->move(10,10);
     roleWidget->setObjectName("roleWidget");
 
     roleCombo = new QComboBox(roleWidget);
-    roleCombo->setGeometry(15, 10, 290, 30);
-    roleCombo->addItem("👤 普通用户");
-    roleCombo->addItem("🛡️ 管理员");
+    roleCombo->setGeometry(1, 1, 100, 30);
+    roleCombo->addItem("👤普通用户");
+    roleCombo->addItem("🛡️管理员");
     roleCombo->setStyleSheet(R"(
     border: 1px solid #e0e0e0;
     border-radius: 4px;
@@ -307,7 +299,7 @@ void LoginPage::setupStyles() {
         }
 
         #titleBar {
-            background-color: white;
+            background-color: #ffffff;
             border-top-left-radius: 8px;
             border-top-right-radius: 8px;
             border-bottom: none;
@@ -400,16 +392,15 @@ void LoginPage::setupStyles() {
     setStyleSheet(styleSheet);
 }
 
-// 以下为原有事件处理函数，保持不变
 void LoginPage::onTogglePassword() {
     static bool visible = false;
     visible = !visible;
     if (visible) {
         passwordEdit->setEchoMode(QLineEdit::Normal);
-        togglePwdBtn->setIcon(QIcon(":/icons/eye_open.png"));
+        togglePwdBtn->setIcon(QIcon(":/icons/img/eye_open.png"));
     } else {
         passwordEdit->setEchoMode(QLineEdit::Password);
-        togglePwdBtn->setIcon(QIcon(":/icons/eye_close.png"));
+        togglePwdBtn->setIcon(QIcon(":/icons/img/eye_close.png"));
     }
 }
 
@@ -429,9 +420,30 @@ void LoginPage::mousePressEvent(QMouseEvent *event) {
 
 void LoginPage::mouseMoveEvent(QMouseEvent *event) {
     if (isDragging && event->buttons() & Qt::LeftButton) {
-        move(event->globalPosition().toPoint() - dragStartPosition);
+        QPoint targetPos = event->globalPosition().toPoint() - dragStartPosition;
+
+        // 获取当前屏幕
+        QScreen *screen = QApplication::screenAt(targetPos);
+        if (!screen) {
+            screen = QApplication::primaryScreen();
+        }
+
+        QRect screenRect = screen->availableGeometry();
+        QSize windowSize = size();
+
+        // 限制窗口在屏幕内
+        targetPos.setX(qMax(screenRect.left(),
+                            qMin(targetPos.x(),
+                                 screenRect.right() - windowSize.width())));
+        targetPos.setY(qMax(screenRect.top(),
+                            qMin(targetPos.y(),
+                                 screenRect.bottom() - windowSize.height())));
+
+        move(targetPos);
         event->accept();
+        return;
     }
+    QDialog::mouseMoveEvent(event);
 }
 
 void LoginPage::mouseReleaseEvent(QMouseEvent *event) {
@@ -447,16 +459,11 @@ void LoginPage::onForgotPasswordClicked() {
     forgotPage.exec();
 }
 
-// 新增：角色改变槽函数
 void LoginPage::onRoleChanged(int index) {
     if (index == 0) {
         selectedRole = "user";  // 普通用户
-        // 可以在这里更新UI提示
     } else if (index == 1) {
         selectedRole = "admin"; // 管理员
-        // 可以在这里显示管理员登录提示
-        QMessageBox::information(this, "管理员登录",
-                                 "请使用管理员账号登录\n默认账号：admin\n默认密码：admin123");
     }
 }
 
@@ -464,25 +471,21 @@ void LoginPage::onLoginClicked() {
     QString username = usernameEdit->text().trimmed();
     QString password = passwordEdit->text().trimmed();
 
-    if (username.isEmpty() || password.isEmpty()) {
-        QMessageBox::warning(this, "登录失败", "请输入账号和密码");
-        return;
-    }
+    // if (username.isEmpty() || password.isEmpty()) {
+    //     QMessageBox::warning(this, "登录失败", "请输入账号和密码");
+    //     return;
+    // }
 
     // 根据选择的角色进行验证
     if (selectedRole == "admin") {
         // 管理员验证逻辑
-        if (username == "admin" && password == "admin123") {
+        // if (!username.isEmpty() && !password.isEmpty()) {
             accept(); // 登录成功
-        } else {
-            QMessageBox::warning(this, "管理员登录失败",
-                                 "管理员账号或密码错误\n默认账号：admin\n默认密码：admin123");
-        }
+        // }
     } else {
         // 普通用户验证逻辑
-        // 这里可以添加实际的用户验证
-        if (!username.isEmpty() && !password.isEmpty()) {
+        // if (!username.isEmpty() && !password.isEmpty()) {
             accept(); // 登录成功
-        }
+        // }
     }
 }

@@ -1,4 +1,3 @@
-// paymentdialog.h
 #ifndef PAYMENTDIALOG_H
 #define PAYMENTDIALOG_H
 
@@ -29,7 +28,6 @@ private:
     // 支付方式
     QRadioButton *wechatRadio;
     QRadioButton *alipayRadio;
-    QRadioButton *campusCardRadio;
 
     // 订单信息
     QLabel *orderIdLabel;

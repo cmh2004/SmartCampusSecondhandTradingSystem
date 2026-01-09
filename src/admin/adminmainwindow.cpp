@@ -1,9 +1,6 @@
-// adminmainwindow.cpp - 由于代码过长，这里只展示核心部分
-#include "adminmainwindow.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
-#include <QGroupBox>
 #include <QHeaderView>
 #include <QMessageBox>
 #include <QFileDialog>
@@ -13,13 +10,14 @@
 #include <QToolBar>
 #include <QMenu>
 #include <QAction>
+#include "adminmainwindow.h"
 
 AdminMainWindow::AdminMainWindow(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle("校园二手交易系统 - 管理员后台");
-    setMinimumSize(1400, 900);
+    setMinimumSize(1200, 800);
 
     setupUI();
-    // loadDashboardData();
+    loadDashboardData();
 
     // 连接信号
     connect(mainTabWidget, &QTabWidget::currentChanged, this, &AdminMainWindow::onTabChanged);
@@ -41,24 +39,6 @@ void AdminMainWindow::setupUI() {
     connect(logoutAction, &QAction::triggered, this, &AdminMainWindow::onLogoutClicked);
     connect(exitAction, &QAction::triggered, this, &QWidget::close);
 
-    // 工具菜单
-    QMenu *toolsMenu = menuBar->addMenu("工具");
-    toolsMenu->addAction("数据备份");
-    toolsMenu->addAction("日志查看");
-    toolsMenu->addAction("系统设置");
-
-    // 帮助菜单
-    QMenu *helpMenu = menuBar->addMenu("帮助");
-    helpMenu->addAction("使用手册");
-    helpMenu->addAction("关于系统");
-
-    // 工具栏
-    QToolBar *toolBar = addToolBar("主工具栏");
-    toolBar->addAction("刷新");
-    toolBar->addAction("导出");
-    toolBar->addSeparator();
-    toolBar->addAction("帮助");
-
     // 主标签页
     mainTabWidget = new QTabWidget(mainWidget);
     mainTabWidget->setTabPosition(QTabWidget::North);
@@ -70,11 +50,11 @@ void AdminMainWindow::setupUI() {
     QWidget *disputeManagementPage = createDisputeManagementPage();
     QWidget *statisticsPage = createStatisticsPage();
 
-    mainTabWidget->addTab(dashboardPage, QIcon(":/icons/dashboard.png"), "仪表盘");
-    mainTabWidget->addTab(goodsReviewPage, QIcon(":/icons/review.png"), "商品审核");
-    mainTabWidget->addTab(userManagementPage, QIcon(":/icons/users.png"), "用户管理");
-    mainTabWidget->addTab(disputeManagementPage, QIcon(":/icons/dispute.png"), "纠纷处理");
-    mainTabWidget->addTab(statisticsPage, QIcon(":/icons/statistics.png"), "数据统计");
+    mainTabWidget->addTab(dashboardPage, "仪表盘");
+    mainTabWidget->addTab(goodsReviewPage, "商品审核");
+    mainTabWidget->addTab(userManagementPage, "用户管理");
+    mainTabWidget->addTab(disputeManagementPage, "纠纷处理");
+    mainTabWidget->addTab(statisticsPage, "数据统计");
 
     QVBoxLayout *mainLayout = new QVBoxLayout(mainWidget);
     mainLayout->addWidget(mainTabWidget);
@@ -147,25 +127,33 @@ void AdminMainWindow::setupUI() {
             background-color: #3498db;
             color: white;
             border-radius: 4px;
-            padding: 8px 16px;
+            padding: 0px 16px;
+            text-align: center;/* 水平居中 */
+            vertical-align: middle; /* 垂直居中 */
         }
         #successBtn {
             background-color: #27ae60;
             color: white;
             border-radius: 4px;
-            padding: 8px 16px;
+            padding: 0px 16px;
+            text-align: center;/* 水平居中 */
+            vertical-align: middle; /* 垂直居中 */
         }
         #warningBtn {
             background-color: #e74c3c;
             color: white;
             border-radius: 4px;
-            padding: 8px 16px;
+            padding: 0px 16px;
+            text-align: center;/* 水平居中 */
+            vertical-align: middle; /* 垂直居中 */
         }
         #secondaryBtn {
             background-color: #95a5a6;
             color: white;
             border-radius: 4px;
-            padding: 8px 16px;
+            padding: 0px 16px;
+            text-align: center;/* 水平居中 */
+            vertical-align: middle; /* 垂直居中 */
         }
     )");
 }
@@ -246,7 +234,6 @@ QWidget* AdminMainWindow::createDashboardPage() {
         statsLayout->addWidget(cardWidget);
     }
 
-    statsLayout->addStretch();
     mainLayout->addWidget(statsWidget);
 
     // 图表区域
@@ -551,6 +538,7 @@ QWidget* AdminMainWindow::createStatisticsPage() {
     topUsersTable->setHorizontalHeaderLabels({"排名", "用户名", "交易次数", "总金额"});
     topUsersTable->verticalHeader()->setVisible(false);
     topUsersTable->setMaximumHeight(300);
+    topUsersTable->horizontalHeader()->setStretchLastSection(true);
     topUsersLayout->addWidget(topUsersTable);
 
     // 热门商品榜
@@ -560,6 +548,7 @@ QWidget* AdminMainWindow::createStatisticsPage() {
     topGoodsTable->setHorizontalHeaderLabels({"排名", "商品名称", "销量", "销售额"});
     topGoodsTable->verticalHeader()->setVisible(false);
     topGoodsTable->setMaximumHeight(300);
+    topGoodsTable->horizontalHeader()->setStretchLastSection(true);
     topGoodsLayout->addWidget(topGoodsTable);
 
     rankLayout->addWidget(topUsersGroup, 1);
@@ -572,7 +561,6 @@ QWidget* AdminMainWindow::createStatisticsPage() {
     return page;
 }
 
-// 其他槽函数实现...
 void AdminMainWindow::onLogoutClicked() {
     QMessageBox::StandardButton reply = QMessageBox::question(this, "退出登录", "确定要退出管理员账号吗？");
     if (reply == QMessageBox::Yes) {
@@ -591,7 +579,7 @@ void AdminMainWindow::onTabChanged(int index) {
     }
 }
 
-// 数据加载函数...
+// 数据加载函数
 void AdminMainWindow::loadGoodsReviewData() {
     // 清空表格
     goodsReviewTable->setRowCount(0);
@@ -609,6 +597,7 @@ void AdminMainWindow::loadGoodsReviewData() {
         QStringList items = data.split(',');
         int row = goodsReviewTable->rowCount();
         goodsReviewTable->insertRow(row);
+        goodsReviewTable->setRowHeight(row,40);
 
         for (int col = 0; col < items.size(); col++) {
             QTableWidgetItem *item = new QTableWidgetItem(items[col]);
@@ -631,13 +620,13 @@ void AdminMainWindow::loadGoodsReviewData() {
         // 添加操作按钮
         QWidget *actionWidget = new QWidget();
         QHBoxLayout *actionLayout = new QHBoxLayout(actionWidget);
-        actionLayout->setContentsMargins(5, 2, 5, 2);
+        actionLayout->setContentsMargins(5, 1, 5, 1);
         actionLayout->setSpacing(5);
 
         if (items[5] == "待审核") {
             QPushButton *approveBtn = new QPushButton("通过");
             approveBtn->setObjectName("successBtn");
-            approveBtn->setFixedSize(60, 25);
+            approveBtn->setFixedSize(60, 30);
             approveBtn->setProperty("goodsId", items[0].toInt());
             connect(approveBtn, &QPushButton::clicked, [this, approveBtn]() {
                 onReviewGoods(approveBtn->property("goodsId").toInt(), true);
@@ -645,7 +634,7 @@ void AdminMainWindow::loadGoodsReviewData() {
 
             QPushButton *rejectBtn = new QPushButton("拒绝");
             rejectBtn->setObjectName("warningBtn");
-            rejectBtn->setFixedSize(60, 25);
+            rejectBtn->setFixedSize(60, 30);
             rejectBtn->setProperty("goodsId", items[0].toInt());
             connect(rejectBtn, &QPushButton::clicked, [this, rejectBtn]() {
                 onReviewGoods(rejectBtn->property("goodsId").toInt(), false);
@@ -653,7 +642,7 @@ void AdminMainWindow::loadGoodsReviewData() {
 
             QPushButton *viewBtn = new QPushButton("查看");
             viewBtn->setObjectName("secondaryBtn");
-            viewBtn->setFixedSize(60, 25);
+            viewBtn->setFixedSize(60, 30);
 
             actionLayout->addWidget(approveBtn);
             actionLayout->addWidget(rejectBtn);
@@ -661,7 +650,7 @@ void AdminMainWindow::loadGoodsReviewData() {
         } else {
             QPushButton *viewBtn = new QPushButton("查看详情");
             viewBtn->setObjectName("secondaryBtn");
-            viewBtn->setFixedSize(80, 25);
+            viewBtn->setFixedSize(80, 30);
             actionLayout->addWidget(viewBtn);
         }
 
@@ -724,7 +713,7 @@ void AdminMainWindow::onSearchUsers() {
                                  .arg(keyword).arg(status).arg(creditLevel));
 
     // 这里应该实现具体的搜索逻辑
-    // loadUserManagementData();
+    loadUserManagementData();
 }
 
 // 纠纷处理相关
@@ -747,7 +736,7 @@ void AdminMainWindow::onFilterDisputes() {
                              QString("纠纷类型: %1\n处理状态: %2\n提交日期: %3之后")
                                  .arg(type).arg(status).arg(date));
 
-    // loadDisputeData();
+    loadDisputeData();
 }
 
 // 数据统计相关
@@ -774,10 +763,6 @@ void AdminMainWindow::onExportStatistics() {
 
 // 数据加载函数
 void AdminMainWindow::loadDashboardData() {
-    // 更新统计卡片
-    totalUsersLabel->setText("1,234");
-    totalGoodsLabel->setText("5,678");
-    // 其他标签更新...
 
     // 这里应该实现图表数据的加载
     // 暂时用空实现

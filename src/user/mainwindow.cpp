@@ -1,4 +1,3 @@
-#include "MainWindow.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -9,6 +8,7 @@
 #include <QInputDialog>
 #include <QScrollArea>
 #include <QGraphicsDropShadowEffect>
+#include "MainWindow.h"
 #include "GoodsDetailDialog.h"
 #include "ChatDialog.h"
 #include "DisputeSubmitDialog.h"
@@ -18,9 +18,6 @@
 #include "creditscoredialog.h"
 #include "reportsubmitdialog.h"
 #include "disputesubmitdialog.h"  // 售后纠纷对话框
-#include <QHeaderView>            // 表格头部
-#include <QMessageBox>            // 消息框
-#include <QInputDialog>           // 输入对话框
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle("校园二手商品智能交易系统");
@@ -37,34 +34,34 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 }
 
 void MainWindow::setupUI() {
-    // 1. 创建主窗口部件
+    // 创建主窗口部件
     mainWidget = new QWidget(this);
     setCentralWidget(mainWidget);
 
-    // 4. 创建主标签页
+    // 创建主标签页
     mainTabWidget = new QTabWidget(mainWidget);
     mainTabWidget->setTabPosition(QTabWidget::North);
     mainTabWidget->setTabShape(QTabWidget::Rounded);
 
-    // 创建各个页面 - 直接调用函数
+    // 创建各个页面
     homePage = createHomePage();
     publishPage = createPublishPage();
     messagesPage = createMessagesPage();
     ordersPage = createOrdersPage();
     userCenterPage = createUserCenterPage();
 
-    mainTabWidget->addTab(homePage, QIcon(":/icons/home.png"), "首页");
-    mainTabWidget->addTab(publishPage, QIcon(":/icons/publish.png"), "发布商品");
-    mainTabWidget->addTab(messagesPage, QIcon(":/icons/message.png"), "消息");
-    mainTabWidget->addTab(ordersPage, QIcon(":/icons/order.png"), "我的订单");
-    mainTabWidget->addTab(userCenterPage, QIcon(":/icons/user.png"), "个人中心");
+    mainTabWidget->addTab(homePage, QIcon(":/icons/img/home.png"), "首页");
+    mainTabWidget->addTab(publishPage, QIcon(":/icons/img/publish.png"), "发布商品");
+    mainTabWidget->addTab(messagesPage, QIcon(":/icons/img/message.png"), "消息");
+    mainTabWidget->addTab(ordersPage, QIcon(":/icons/img/order.png"), "我的订单");
+    mainTabWidget->addTab(userCenterPage, QIcon(":/icons/img/person.png"), "个人中心");
 
-    // 5. 设置主布局
+    // 设置主布局
     QVBoxLayout *mainLayout = new QVBoxLayout(mainWidget);
     mainLayout->setContentsMargins(5, 5, 5, 5);
     mainLayout->addWidget(mainTabWidget);
 
-    // 6. 设置状态栏 - 修正构造函数调用
+    // 设置状态栏
     QStatusBar *statusBar = this->statusBar();
     QLabel *statusLabel = new QLabel("欢迎使用校园二手交易系统");
     statusBar->addWidget(statusLabel);
@@ -145,244 +142,242 @@ void MainWindow::setupUI() {
             background-color: #7f8c8d;
             color: white;
         }
- /* 首页样式 */
-    #searchBar {
-        background-color: white;
-        border-radius: 10px;
-        padding: 15px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
+        /* 首页样式 */
+        #searchBar {
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
 
-    #searchEdit {
-        border: 2px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 0 15px;
-        font-size: 14px;
-        background-color: white;
-    }
+        #searchEdit {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0 15px;
+            font-size: 14px;
+            background-color: white;
+        }
 
-    #searchEdit:focus {
-        border-color: #3b82f6;
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
+        #searchEdit:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
 
-    #searchEdit::placeholder {
-        color: #94a3b8;
-    }
+        #searchEdit::placeholder {
+            color: #94a3b8;
+        }
 
-    #sortCombo {
-        border: 2px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 0 10px;
-        font-size: 14px;
-        background-color: white;
-    }
+        #sortCombo {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0 10px;
+            font-size: 14px;
+            background-color: white;
+        }
 
-    #sortCombo:hover {
-        border-color: #cbd5e1;
-    }
+        #sortCombo:hover {
+            border-color: #cbd5e1;
+        }
 
-    #sortCombo::drop-down {
-        border: none;
-        width: 20px;
-    }
+        #sortCombo::drop-down {
+            border: none;
+            width: 20px;
+        }
 
-    #welcomeLabel {
-        font-size: 22px;
-        font-weight: 700;
-        color: #1e293b;
-        padding: 10px 5px;
-        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
+        #welcomeLabel {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1e293b;
+            padding: 10px 5px;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
 
-    /* 分类区域样式 */
-    #categoryWidget {
-        background-color: white;
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        padding: 15px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
+        /* 分类区域样式 */
+        #categoryWidget {
+            background-color: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
 
-    #categoryTitle {
-        font-size: 18px;
-        font-weight: 600;
-        color: #1e293b;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #f1f5f9;
-    }
+        #categoryTitle {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f1f5f9;
+        }
 
-    #categoryList {
-        border: none;
-        background-color: transparent;
-        font-size: 14px;
-    }
+        #categoryList {
+            border: none;
+            background-color: transparent;
+            font-size: 14px;
+        }
 
-    #categoryList::item {
-        padding: 12px 10px;
-        border-radius: 8px;
-        margin: 2px 0;
-        color: #475569;
-        border-left: 3px solid transparent;
-    }
+        #categoryList::item {
+            padding: 12px 10px;
+            border-radius: 8px;
+            margin: 2px 0;
+            color: #475569;
+            border-left: 3px solid transparent;
+        }
 
-    #categoryList::item:hover {
-        background-color: #f8fafc;
-        color: #3b82f6;
-    }
+        #categoryList::item:hover {
+            background-color: #f8fafc;
+            color: #3b82f6;
+        }
 
-    #categoryList::item:selected {
-        background-color: #eff6ff;
-        color: #1d4ed8;
-        font-weight: 500;
-        border-left: 3px solid #3b82f6;
-    }
+        #categoryList::item:selected {
+            background-color: #eff6ff;
+            color: #1d4ed8;
+            font-weight: 500;
+            border-left: 3px solid #3b82f6;
+        }
 
-    /* 商品区域样式 */
-    #goodsWidget {
-        background-color: white;
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        padding: 20px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
+        /* 商品区域样式 */
+        #goodsWidget {
+            background-color: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
 
-    /* 商品表格样式 */
-    #goodsTable {
-        background-color: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        gridline-color: transparent;
-        alternate-background-color: #f8fafc;
-        font-size: 13px;
-    }
+        /* 商品表格样式 */
+        #goodsTable {
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            gridline-color: transparent;
+            alternate-background-color: #f8fafc;
+            font-size: 13px;
+        }
 
-    #goodsTable::item {
-        padding: 12px 8px;
-        border-bottom: 1px solid #f1f5f9;
-    }
+        #goodsTable::item {
+            padding: 12px 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
 
-    #goodsTable::item:selected {
-        background-color: #eff6ff;
-        color: #1e293b;
-        border-radius: 4px;
-    }
+        #goodsTable::item:selected {
+            background-color: #eff6ff;
+            color: #1e293b;
+            border-radius: 4px;
+        }
 
-    QHeaderView::section {
-        background-color: #f8fafc;
-        padding: 14px 8px;
-        border: none;
-        border-bottom: 2px solid #e2e8f0;
-        font-weight: 600;
-        color: #475569;
-        font-size: 13px;
-    }
+        QHeaderView::section {
+            background-color: #f8fafc;
+            padding: 14px 8px;
+            border: none;
+            border-bottom: 2px solid #e2e8f0;
+            font-weight: 600;
+            color: #475569;
+            font-size: 13px;
+        }
 
-    QHeaderView::section:first {
-        border-top-left-radius: 8px;
-    }
+        QHeaderView::section:first {
+            border-top-left-radius: 8px;
+        }
 
-    QHeaderView::section:last {
-        border-top-right-radius: 8px;
-    }
+        QHeaderView::section:last {
+            border-top-right-radius: 8px;
+        }
 
-    /* 滚动条美化 */
-    QScrollBar:vertical {
-        border: none;
-        background: #f1f5f9;
-        width: 8px;
-        border-radius: 4px;
-    }
+        /* 滚动条美化 */
+        QScrollBar:vertical {
+            border: none;
+            background: #f1f5f9;
+            width: 8px;
+            border-radius: 4px;
+        }
 
-    QScrollBar::handle:vertical {
-        background: #cbd5e1;
-        border-radius: 4px;
-        min-height: 20px;
-    }
+        QScrollBar::handle:vertical {
+            background: #cbd5e1;
+            border-radius: 4px;
+            min-height: 20px;
+        }
 
-    QScrollBar::handle:vertical:hover {
-        background: #94a3b8;
-    }
+        QScrollBar::handle:vertical:hover {
+            background: #94a3b8;
+        }
 
-    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-        border: none;
-        background: none;
-        height: 0px;
-    }
-QPushButton#warningBtn {
-    background-color: #e74c3c;
-    color: white;
-    border-radius: 4px;
-    padding: 6px 12px;
-    font-size: 13px;
-    border: none;
-}
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            border: none;
+            background: none;
+            height: 0px;
+        }
+        QPushButton#warningBtn {
+            background-color: #e74c3c;
+            color: white;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 13px;
+            border: none;
+        }
 
-QPushButton#warningBtn:hover {
-    background-color: #c0392b;
-}
+        QPushButton#warningBtn:hover {
+            background-color: #c0392b;
+        }
 
-QPushButton#warningBtn:pressed {
-    background-color: #a93226;
-}
-// 在样式表末尾添加订单页面特定样式
-/* 订单页面样式 */
-QTableWidget QPushButton {
-    padding: 5px 10px;
-    border-radius: 3px;
-    font-size: 12px;
-    border: 1px solid transparent;
-}
+        QPushButton#warningBtn:pressed {
+            background-color: #a93226;
+        }
+        /* 订单页面样式 */
+        QTableWidget QPushButton {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            border: 1px solid transparent;
+        }
 
-QTableWidget QPushButton:hover {
-    opacity: 0.9;
-}
+        QTableWidget QPushButton:hover {
+            opacity: 0.9;
+        }
 
-QTableWidget QPushButton:pressed {
-    opacity: 0.8;
-}
+        QTableWidget QPushButton:pressed {
+            opacity: 0.8;
+        }
 
-/* 表格样式增强 */
-QTableWidget {
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    background-color: white;
-    gridline-color: #f1f5f9;
-}
+        QTableWidget {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background-color: white;
+            gridline-color: #f1f5f9;
+        }
 
-QTableWidget::item {
-    padding: 12px 8px;
-    border-bottom: 1px solid #f1f5f9;
-}
+        QTableWidget::item {
+            padding: 12px 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
 
-QTableWidget::item:selected {
-    background-color: #e3f2fd;
-    color: #1976d2;
-    border-radius: 4px;
-}
+        QTableWidget::item:selected {
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border-radius: 4px;
+        }
 
-QHeaderView::section {
-    background-color: #f8fafc;
-    padding: 14px 8px;
-    border: none;
-    border-bottom: 2px solid #e2e8f0;
-    font-weight: 600;
-    color: #475569;
-    font-size: 13px;
-}
+        QHeaderView::section {
+            background-color: #f8fafc;
+            padding: 14px 8px;
+            border: none;
+            border-bottom: 2px solid #e2e8f0;
+            font-weight: 600;
+            color: #475569;
+            font-size: 13px;
+        }
 
-/* 订单状态标签样式 */
-#orderStatusLabel {
-    padding: 3px 8px;
-    border-radius: 10px;
-    font-size: 12px;
-    font-weight: bold;
-}
+        /* 订单状态标签样式 */
+        #orderStatusLabel {
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+        }
     )");
 }
 
@@ -392,7 +387,7 @@ QWidget* MainWindow::createHomePage() {
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(15);
 
-    // 顶部搜索栏 - 样式优化
+    // 顶部搜索栏
     QWidget *searchBar = new QWidget();
     searchBar->setObjectName("searchBar");
     QHBoxLayout *searchLayout = new QHBoxLayout(searchBar);
@@ -420,7 +415,7 @@ QWidget* MainWindow::createHomePage() {
     searchLayout->addWidget(new QLabel("排序:"));
     searchLayout->addWidget(sortCombo);
 
-    // 欢迎标签 - 样式优化
+    // 欢迎标签
     welcomeLabel = new QLabel("热门推荐商品");
     welcomeLabel->setObjectName("welcomeLabel");
 
@@ -431,12 +426,12 @@ QWidget* MainWindow::createHomePage() {
     contentLayout->setContentsMargins(0, 0, 0, 0);
     contentLayout->setSpacing(20);
 
-    // 左侧分类列表 - 样式优化
+    // 左侧分类列表
     QWidget *categoryWidget = new QWidget();
     categoryWidget->setFixedWidth(200);
     categoryWidget->setObjectName("categoryWidget");
     QVBoxLayout *categoryLayout = new QVBoxLayout(categoryWidget);
-    categoryLayout->setContentsMargins(0, 0, 0, 0);
+    categoryLayout->setContentsMargins(10, 10, 0, 0);
 
     QLabel *categoryTitle = new QLabel("商品分类");
     categoryTitle->setObjectName("categoryTitle");
@@ -536,7 +531,7 @@ QWidget* MainWindow::createPublishPage() {
     QLabel *priceLabel = new QLabel("期望价格:");
     priceLabel->setFixedWidth(100);
     goodsPriceEdit = new QLineEdit();
-    goodsPriceEdit->setPlaceholderText("元");
+    goodsPriceEdit->setPlaceholderText("单位：元");
 
     QPushButton *aiPriceBtn = new QPushButton("AI估价");
     aiPriceBtn->setObjectName("secondaryBtn");
@@ -616,10 +611,10 @@ QWidget* MainWindow::createPublishPage() {
 QWidget* MainWindow::createUserCenterPage() {
     QWidget *page = new QWidget();
     QVBoxLayout *mainLayout = new QVBoxLayout(page);
-    mainLayout->setContentsMargins(30, 30, 30, 30); // 全局边距，避免贴边
-    mainLayout->setSpacing(30); // 模块间间距，提升呼吸感
+    mainLayout->setContentsMargins(15, 15, 15, 15);
+    mainLayout->setSpacing(20);
 
-    // ========== 1. 顶部用户信息卡片（核心视觉区） ==========
+    // ========== 1. 顶部用户信息卡片 ==========
     QWidget *userCard = new QWidget();
     userCard->setFixedHeight(200); // 固定高度，保证布局稳定
     userCard->setStyleSheet(R"(
@@ -631,41 +626,41 @@ QWidget* MainWindow::createUserCenterPage() {
     cardLayout->setContentsMargins(0, 0, 0, 0);
     cardLayout->setSpacing(30);
 
-    // 1.1 头像区域（圆形美化）
+    // 1.1 头像区域
     userAvatarLabel = new QLabel();
     userAvatarLabel->setFixedSize(120, 120);
     userAvatarLabel->setStyleSheet(R"(
         border-radius: 60px; /* 圆形头像 */
-        border: 4px solid white;
-        background-color: #4299E1;
+        border: 1px solid white;
+        padding: 10px;
     )");
-    userAvatarLabel->setPixmap(QPixmap(":/icons/default_avatar.png").scaled(120, 120, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    userAvatarLabel->setAlignment(Qt::AlignCenter);
+    userAvatarLabel->setPixmap(QPixmap(":/icons/img/user.png").scaled(116,116, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    userAvatarLabel->setScaledContents(true);
 
-    // 1.2 用户信息文本区（层次化排版）
+    // 1.2 用户信息文本区
     QVBoxLayout *infoLayout = new QVBoxLayout();
-    infoLayout->setSpacing(12);
+    infoLayout->setSpacing(0);
     infoLayout->setAlignment(Qt::AlignCenter);
 
     userNameLabel = new QLabel("张三同学");
     userNameLabel->setStyleSheet(R"(
-        font-size: 24px;
+        font-size: 20px;
         font-weight: 600;
         color: #2D3748;
     )");
 
     QWidget *subInfoWidget = new QWidget();
     QHBoxLayout *subInfoLayout = new QHBoxLayout(subInfoWidget);
-    subInfoLayout->setSpacing(20);
-    subInfoLayout->setContentsMargins(0, 6, 0, 6);
+    subInfoLayout->setSpacing(10);
+    subInfoLayout->setContentsMargins(5, 6, 5, 6);
 
-    QLabel *userLevelLabel = new QLabel("信用等级: ★★★★☆");
+    QLabel *userLevelLabel = new QLabel("信用分: 96");
     userLevelLabel->setStyleSheet("font-size: 14px; color: #4A5568;");
-    userLevelLabel->setMinimumHeight(24);
+    userLevelLabel->setMinimumHeight(20);
 
     QLabel *userJoinLabel = new QLabel("注册时间: 2024-03-01");
     userJoinLabel->setStyleSheet("font-size: 14px; color: #718096;");
-    userLevelLabel->setMinimumHeight(24);
+    userLevelLabel->setMinimumHeight(20);
 
     subInfoLayout->addWidget(userLevelLabel);
     subInfoLayout->addWidget(userJoinLabel);
@@ -675,48 +670,49 @@ QWidget* MainWindow::createUserCenterPage() {
     QPushButton *creditScoreBtn = new QPushButton("信用分详情");
     editProfileBtn->setFixedSize(120, 40);
     editProfileBtn->setStyleSheet(R"(
-    QPushButton {
-        background-color: #4299E1;
-        color: white;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 14px;
-        padding: 10px 16px;
-        border: none;
-    }
-    QPushButton:hover {
-        background-color: #3182CE;
-        box-shadow: 0 2px 4px rgba(66, 153, 225, 0.3);
-    }
-    QPushButton:pressed {
-        background-color: #2B6CB0;
-    }
-)");
+        QPushButton {
+            background-color: #4299E1;
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 10px 16px;
+            border: none;
+        }
+        QPushButton:hover {
+            background-color: #3182CE;
+            box-shadow: 0 2px 4px rgba(66, 153, 225, 0.3);
+        }
+        QPushButton:pressed {
+            background-color: #2B6CB0;
+        }
+    )");
     creditScoreBtn->setFixedSize(120, 40);
     creditScoreBtn->setStyleSheet(R"(
-    QPushButton {
-        background-color: #9B59B6;
-        color: white;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 14px;
-        padding: 10px 16px;
-        border: none;
-    }
-    QPushButton:hover {
-        background-color: #8E44AD;
-        box-shadow: 0 2px 4px rgba(155, 89, 182, 0.3);
-    }
-    QPushButton:pressed {
-        background-color: #7D3C98;
-    }
-)");
+        QPushButton {
+            background-color: #9B59B6;
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 10px 16px;
+            border: none;
+        }
+        QPushButton:hover {
+            background-color: #8E44AD;
+            box-shadow: 0 2px 4px rgba(155, 89, 182, 0.3);
+        }
+        QPushButton:pressed {
+            background-color: #7D3C98;
+        }
+    )");
     connect(editProfileBtn, &QPushButton::clicked, this, &MainWindow::onShowProfileEdit);
     connect(creditScoreBtn, &QPushButton::clicked, this, &MainWindow::onShowCreditScore);
 
     profileButtonLayout->addWidget(editProfileBtn);
+    profileButtonLayout->addStretch(1);
     profileButtonLayout->addWidget(creditScoreBtn);
-    profileButtonLayout->addStretch();
+    profileButtonLayout->addStretch(10);
 
     infoLayout->addWidget(userNameLabel);
     infoLayout->addWidget(subInfoWidget);
@@ -734,80 +730,20 @@ QWidget* MainWindow::createUserCenterPage() {
     cardShadow->setColor(QColor(0, 0, 0, 15));
     userCard->setGraphicsEffect(cardShadow);
 
-    // ========== 2. 数据统计卡片（核心数据可视化） ==========
-    QWidget *statsWidget = new QWidget();
-    QHBoxLayout *statsLayout = new QHBoxLayout(statsWidget);
-    statsLayout->setContentsMargins(0, 0, 0, 0);
-    statsLayout->setSpacing(25);
-
-    // 统计项：已发布/已购买/收藏/待收货
-    struct StatsItem {
-        QString text;
-        QString num;
-        QString color;
-    };
-    QList<StatsItem> statsItems = {
-        {"已发布", "3", "#48BB78"},
-        {"已购买", "8", "#4299E1"},
-        {"我的收藏", "5", "#F6AD55"},
-        {"待收货", "2", "#ED64A6"}
-    };
-
-    for (const auto &item : statsItems) {
-        QWidget *statCard = new QWidget();
-        statCard->setFixedSize(150, 100);
-        statCard->setStyleSheet(R"(
-            background-color: white;
-            border-radius: 12px;
-            border: 1px solid #F3F4F6;
-        )");
-        QVBoxLayout *statLayout = new QVBoxLayout(statCard);
-        statLayout->setContentsMargins(15, 15, 15, 15);
-        statLayout->setSpacing(8);
-        statLayout->setAlignment(Qt::AlignCenter);
-
-        QLabel *numLabel = new QLabel(item.num);
-        numLabel->setStyleSheet(QString(R"(
-            font-size: 28px;
-            font-weight: 700;
-            color: %1;
-        )").arg(item.color));
-
-        QLabel *textLabel = new QLabel(item.text);
-        textLabel->setStyleSheet(R"(
-            font-size: 14px;
-            color: #718096;
-        )");
-
-        statLayout->addWidget(numLabel);
-        statLayout->addWidget(textLabel);
-
-        // hover效果
-        statCard->setStyleSheet(statCard->styleSheet() + R"(
-            QWidget:hover {
-                background-color: #F9FAFB;
-                border-color: #E2E8F0;
-            }
-        )");
-
-        statsLayout->addWidget(statCard);
-    }
-    statsLayout->addStretch(); // 自适应窗口宽度
-
-    // ========== 3. 功能标签区（左侧菜单+右侧内容） ==========
+    // ========== 2. 功能标签区（左侧菜单+右侧内容） ==========
     QWidget *funcContentWidget = new QWidget();
     QHBoxLayout *funcContentLayout = new QHBoxLayout(funcContentWidget);
     funcContentLayout->setContentsMargins(0, 0, 0, 0);
     funcContentLayout->setSpacing(30);
 
-    // 3.1 左侧功能菜单（垂直排列）
+    // 2.1 左侧功能菜单（垂直排列）
     QWidget *menuWidget = new QWidget();
     menuWidget->setFixedWidth(200);
     QVBoxLayout *menuLayout = new QVBoxLayout(menuWidget);
     menuLayout->setContentsMargins(0, 0, 0, 0);
     menuLayout->setSpacing(0);
 
-    // 菜单选项（与原userSubTabs对应）
+    // 菜单选项
     QStringList menuTexts = {"我的发布", "我的收藏", "评价记录", "浏览历史"};
     QStringList menuIcons = {"📦", "❤️", "⭐", "👁️"};
 
@@ -837,7 +773,7 @@ QWidget* MainWindow::createUserCenterPage() {
         menuBtn->setCheckable(true);
         if (i == 0) menuBtn->setChecked(true); // 默认选中第一个
 
-        // 绑定菜单切换信号（与原userSubTabs切换同步）
+        // 绑定菜单切换信号
         connect(menuBtn, &QPushButton::clicked, this, [this, i]() {
             userSubTabs->setCurrentIndex(i);
         });
@@ -846,7 +782,7 @@ QWidget* MainWindow::createUserCenterPage() {
     }
     menuLayout->addStretch();
 
-    // 3.2 右侧内容区（复用原userSubTabs，美化样式）
+    // 2.2 右侧内容区
     userSubTabs = new QTabWidget();
     userSubTabs->setTabPosition(QTabWidget::West);
     userSubTabs->setStyleSheet(R"(
@@ -863,9 +799,9 @@ QWidget* MainWindow::createUserCenterPage() {
             padding: 0;
             border: none;
         }
-    )"); // 隐藏原TabBar，用左侧菜单控制
+    )");
 
-    // 3.2.1 我的发布（复用原QTableWidget，美化）
+    // 2.2.1 我的发布
     QWidget *myPublishWidget = new QWidget();
     QVBoxLayout *publishLayout = new QVBoxLayout(myPublishWidget);
     publishLayout->setContentsMargins(0, 0, 0, 0);
@@ -880,6 +816,7 @@ QWidget* MainWindow::createUserCenterPage() {
 
     QTableWidget *myGoodsTable = new QTableWidget(0, 4);
     myGoodsTable->setHorizontalHeaderLabels({"商品", "价格", "状态", "操作"});
+    myGoodsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     myGoodsTable->setStyleSheet(R"(
         QTableWidget {
             border: 1px solid #F3F4F6;
@@ -905,10 +842,14 @@ QWidget* MainWindow::createUserCenterPage() {
             font-size: 13px;
         }
     )");
+    myGoodsTable->setColumnWidth(0,200);
+    myGoodsTable->setColumnWidth(1,100);
+    myGoodsTable->setColumnWidth(2,100);
+    myGoodsTable->setColumnWidth(3,200);
     myGoodsTable->horizontalHeader()->setStretchLastSection(true);
     myGoodsTable->verticalHeader()->setVisible(false);
 
-    // 模拟数据（与原逻辑一致）
+    // 模拟数据
     QStringList publishData = {"二手iPhone 12", "¥2500", "待售", "编辑/下架"};
     int row = myGoodsTable->rowCount();
     myGoodsTable->insertRow(row);
@@ -919,10 +860,10 @@ QWidget* MainWindow::createUserCenterPage() {
     publishLayout->addWidget(publishTitle);
     publishLayout->addWidget(myGoodsTable);
 
-    // 3.2.2 我的收藏（复用原QListWidget，美化）
+    // 2.2.2 我的收藏
     QWidget *myCollectionWidget = new QWidget();
     QVBoxLayout *collectionLayout = new QVBoxLayout(myCollectionWidget);
-    collectionLayout->setContentsMargins(0, 0, 0, 0);
+    collectionLayout->setContentsMargins(6, 0, 0, 0);
     collectionLayout->setSpacing(15);
 
     QLabel *collectionTitle = new QLabel("我的收藏");
@@ -956,7 +897,7 @@ QWidget* MainWindow::createUserCenterPage() {
     collectionLayout->addWidget(collectionTitle);
     collectionLayout->addWidget(collectionList);
 
-    // 3.2.3 评价记录（复用原QTextEdit，美化）
+    // 2.2.3 评价记录
     QWidget *reviewWidget = new QWidget();
     QVBoxLayout *reviewLayout = new QVBoxLayout(reviewWidget);
     reviewLayout->setContentsMargins(0, 0, 0, 0);
@@ -982,7 +923,7 @@ QWidget* MainWindow::createUserCenterPage() {
     reviewLayout->addWidget(reviewTitle);
     reviewLayout->addWidget(reviewEdit);
 
-    // 3.2.4 浏览历史（新增默认页面）
+    // 2.2.4 浏览历史
     QWidget *historyWidget = new QWidget();
     QVBoxLayout *historyLayout = new QVBoxLayout(historyWidget);
     historyLayout->setAlignment(Qt::AlignCenter);
@@ -996,7 +937,7 @@ QWidget* MainWindow::createUserCenterPage() {
     historyLayout->addWidget(historyIcon);
     historyLayout->addWidget(historyText);
 
-    // 给userSubTabs添加页面（与原逻辑一致）
+    // 给userSubTabs添加页面
     userSubTabs->addTab(myPublishWidget, "");
     userSubTabs->addTab(myCollectionWidget, "");
     userSubTabs->addTab(reviewWidget, "");
@@ -1008,7 +949,6 @@ QWidget* MainWindow::createUserCenterPage() {
 
     // ========== 组装所有模块到主布局 ==========
     mainLayout->addWidget(userCard);
-    mainLayout->addWidget(statsWidget);
     mainLayout->addWidget(funcContentWidget, 1); // 功能区占满剩余高度
 
     // 页面背景色
@@ -1047,7 +987,7 @@ QWidget* MainWindow::createMessagesPage() {
 
     QHBoxLayout *headerLayout = new QHBoxLayout(chatHeader);
     QLabel *chatWithLabel = new QLabel("与 李四 的对话");
-    chatWithLabel->setStyleSheet("font-weight: bold;");
+    chatWithLabel->setStyleSheet("font-weight: bold; font-size: 15px; ");
 
     headerLayout->addWidget(chatWithLabel);
     headerLayout->addStretch();
@@ -1066,13 +1006,11 @@ QWidget* MainWindow::createMessagesPage() {
 
     QHBoxLayout *btnLayout = new QHBoxLayout();
     QPushButton *sendBtn = new QPushButton("发送");
-    QPushButton *emojiBtn = new QPushButton("表情");
     QPushButton *fileBtn = new QPushButton("文件");
 
     sendBtn->setObjectName("primaryBtn");
 
     btnLayout->addStretch();
-    btnLayout->addWidget(emojiBtn);
     btnLayout->addWidget(fileBtn);
     btnLayout->addWidget(sendBtn);
 
@@ -1114,7 +1052,7 @@ QWidget* MainWindow::createOrdersPage() {
     orderSearchEdit->setMinimumHeight(36);
 
     QPushButton *filterBtn = new QPushButton("筛选");
-    filterBtn->setObjectName("secondaryBtn");
+    filterBtn->setObjectName("primaryBtn");
     filterBtn->setFixedWidth(80);
 
     QPushButton *refreshBtn = new QPushButton("刷新");
@@ -1130,7 +1068,7 @@ QWidget* MainWindow::createOrdersPage() {
 
     mainLayout->addWidget(filterWidget);
 
-    // 3. 订单表格 - 修改为7列，增加"操作"列
+    // 3. 订单表格
     ordersTable = new QTableWidget(0, 7);
     ordersTable->setHorizontalHeaderLabels({"订单号", "商品", "价格", "状态", "下单时间", "卖家", "操作"});
 
@@ -1156,7 +1094,7 @@ QWidget* MainWindow::createOrdersPage() {
     // 5. 底部统计信息
     QWidget *statsWidget = new QWidget();
     QHBoxLayout *statsLayout = new QHBoxLayout(statsWidget);
-    statsLayout->setContentsMargins(0, 10, 0, 0);
+    statsLayout->setContentsMargins(0, 5, 0, 0);
 
     QLabel *totalLabel = new QLabel("共 3 个订单");
     totalLabel->setStyleSheet("color: #666;");
@@ -1165,7 +1103,7 @@ QWidget* MainWindow::createOrdersPage() {
     statsLayout->addStretch();
 
     QPushButton *exportBtn = new QPushButton("导出订单");
-    exportBtn->setObjectName("secondaryBtn");
+    exportBtn->setObjectName("primaryBtn");
     statsLayout->addWidget(exportBtn);
 
     mainLayout->addWidget(statsWidget);
@@ -1224,7 +1162,7 @@ void MainWindow::loadMockData() {
 
         // 商品图片（模拟）
         QLabel *imageLabel = new QLabel();
-        imageLabel->setPixmap(QPixmap(":/icons/goods_default.png").scaled(60, 60));
+        imageLabel->setPixmap(QPixmap(":/icons/img/buy.png").scaled(60, 60,Qt::KeepAspectRatio,Qt::SmoothTransformation));
         imageLabel->setAlignment(Qt::AlignCenter);
         goodsTable->setCellWidget(row, 0, imageLabel);
 
@@ -1290,7 +1228,6 @@ void MainWindow::onPublishGoods() {
 
 void MainWindow::onShowGoodsDetail(int row, int column) {
     if (row < 0 || column < 0) return;
-    if (column == 0) return; // 点击图片列不处理
 
     // 获取商品ID和名称
     QTableWidgetItem *nameItem = goodsTable->item(row, 1);

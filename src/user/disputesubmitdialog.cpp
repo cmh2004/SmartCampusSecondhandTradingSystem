@@ -1,20 +1,15 @@
-// disputesubmitdialog.cpp 完整实现
-#include "disputesubmitdialog.h"
-#include <QComboBox>
-#include <QPushButton>
-#include <QListWidget>
-#include <QLabel>
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QGroupBox>
+#include "disputesubmitdialog.h"
 
 DisputeSubmitDialog::DisputeSubmitDialog(QWidget *parent, int orderId)
     : QDialog(parent), orderId(orderId) {
     setWindowTitle("提交售后纠纷");
-    setMinimumSize(500, 600);
+    setMinimumSize(500, 800);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
     setupUI();
