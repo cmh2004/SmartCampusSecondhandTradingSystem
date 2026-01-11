@@ -46,7 +46,7 @@ protected:
 };
 
 LoginPage::LoginPage(QWidget *parent) : QDialog(parent), isDragging(false), selectedRole("user") {
-    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowMinimizeButtonHint);
+    setWindowFlags(Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
     setFixedSize(900, 520);
 
@@ -98,53 +98,11 @@ void LoginPage::setupUI() {
     QVBoxLayout *windowLayout = new QVBoxLayout(this);
     windowLayout->setContentsMargins(0, 0, 0, 0);
     windowLayout->setSpacing(0);
-
-    // 创建标题栏并添加到布局
-    QWidget *titleBar = createTitleBar();
-    QWidget *seamlessWidget = new QWidget();
-    seamlessWidget->setFixedHeight(1);
-    seamlessWidget->setStyleSheet("background-color: white;");
-
-    // 修改窗口布局
-    windowLayout->addWidget(titleBar);
-    windowLayout->addWidget(seamlessWidget);  // 添加覆盖层
     windowLayout->addWidget(mainContainer);
 
-    // 确保标题栏与主容器无缝衔接
-    titleBar->setStyleSheet(titleBar->styleSheet() + "border-bottom: none;");
     mainContainer->setStyleSheet(mainContainer->styleSheet() + "border-top-left-radius: 0px; border-top-right-radius: 0px;");
 
     setLayout(windowLayout);
-}
-
-QWidget* LoginPage::createTitleBar() {
-    QWidget *titleBar = new QWidget(this);
-    titleBar->setFixedHeight(40);
-    titleBar->setObjectName("titleBar");
-
-    // 标题
-    QLabel *titleLabel = new QLabel("校园二手交易系统", titleBar);
-    titleLabel->setStyleSheet("color: #333; font-weight: bold; font-size: 14px; margin-left: 20px;");
-
-    // 窗口控制按钮
-    minimizeBtn = new QPushButton("－", titleBar);
-    closeBtn = new QPushButton("×", titleBar);
-
-    minimizeBtn->setFixedSize(40, 40);
-    closeBtn->setFixedSize(40, 40);
-
-    minimizeBtn->setObjectName("minimizeBtn");
-    closeBtn->setObjectName("closeBtn");
-
-    // 布局
-    QHBoxLayout *layout = new QHBoxLayout(titleBar);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->addWidget(titleLabel);
-    layout->addStretch();
-    layout->addWidget(minimizeBtn);
-    layout->addWidget(closeBtn);
-
-    return titleBar;
 }
 
 QWidget* LoginPage::createLeftPanel() {
@@ -186,6 +144,15 @@ QWidget* LoginPage::createRightPanel() {
     QWidget *rightPanel = new QWidget();
     rightPanel->setFixedWidth(500);
     rightPanel->setObjectName("rightPanel");
+
+    minimizeBtn = new QPushButton("－", rightPanel);
+    closeBtn = new QPushButton("×", rightPanel);
+    // 定位到右上角
+    minimizeBtn->setGeometry(423, 5, 35, 35);
+    closeBtn->setGeometry(460, 5, 35, 35);
+    // 设置按钮标识
+    minimizeBtn->setObjectName("minimizeBtn");
+    closeBtn->setObjectName("closeBtn");
 
     // 头像
     AvatarLabel *avatar = new AvatarLabel(rightPanel);
@@ -278,15 +245,16 @@ QWidget* LoginPage::createRightPanel() {
 
     // 主布局
     QVBoxLayout *mainLayout = new QVBoxLayout(rightPanel);
-    mainLayout->addStretch();
+    mainLayout->addStretch(2);
+    mainLayout->addSpacing(10);
     mainLayout->addWidget(avatar, 0, Qt::AlignCenter);
     mainLayout->addSpacing(30);
     mainLayout->addWidget(inputContainer, 0, Qt::AlignCenter);
-    mainLayout->addSpacing(25); // 增加输入框与按钮间距
+    mainLayout->addSpacing(25);
     mainLayout->addWidget(loginBtn, 0, Qt::AlignCenter);
-    mainLayout->addSpacing(25); // 增加按钮与底部链接间距
+    mainLayout->addSpacing(25);
     mainLayout->addLayout(bottomLayout);
-    mainLayout->addStretch();
+    mainLayout->addStretch(1);
 
     return rightPanel;
 }
@@ -295,21 +263,15 @@ void LoginPage::setupStyles() {
     QString styleSheet = R"(
         #mainContainer {
             background-color: white;
-            border-radius:  0px 0px 8px 8px;
-        }
-
-        #titleBar {
-            background-color: #ffffff;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
-            border-bottom: none;
+            border-radius:  15px;
         }
 
         #minimizeBtn, #closeBtn {
             color: #666;
             font-size: 18px;
             border: none;
-            background: transparent;
+            background: transparent;、
+            border-radius: 4px; /* 轻微圆角 */
         }
 
         #minimizeBtn:hover {
@@ -320,7 +282,6 @@ void LoginPage::setupStyles() {
         #closeBtn:hover {
             background-color: #e81123;
             color: white;
-            border-radius: 0;
         }
 
         #leftPanel {
@@ -411,7 +372,7 @@ void LoginPage::onRegisterClicked() {
 
 void LoginPage::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton &&
-        event->pos().y() < 40) {  // 只有标题栏区域可拖动
+        event->pos().y() < 60) {  // 只有标题栏区域可拖动
         isDragging = true;
         dragStartPosition = event->globalPosition().toPoint() - frameGeometry().topLeft();
         event->accept();

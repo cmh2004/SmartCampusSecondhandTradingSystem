@@ -32,7 +32,6 @@ private slots:
 private:
     void setupUI();
     void setupStyles();
-    QWidget* createTitleBar();
     QWidget* createLeftPanel();
     QWidget* createRightPanel();
 

@@ -20,12 +20,12 @@ protected:
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
 
-private slots:
-    void onTogglePassword();
-
 private:
     void setupUI();
     void setupStyles();
+
+private slots:
+    void onTogglePassword();    // 密码显示/隐藏切换槽函数
 
 private:
     // 输入控件
@@ -39,12 +39,12 @@ private:
     QPushButton *toLoginBtn;
     QPushButton *closeBtn;
 
-    // 其他控件
-    QCheckBox *togglePwdBtn;
-
     // 窗口拖动相关
     bool isDragging;
     QPoint dragStartPosition;
+
+    QPushButton *togglePwdBtn;  // 密码显示/隐藏按钮
+    bool isPasswordVisible;     // 密码可见状态标记
 };
 
 #endif // REGISTERPAGE_H

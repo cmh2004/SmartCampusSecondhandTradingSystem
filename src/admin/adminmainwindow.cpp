@@ -48,13 +48,11 @@ void AdminMainWindow::setupUI() {
     QWidget *goodsReviewPage = createGoodsReviewPage();
     QWidget *userManagementPage = createUserManagementPage();
     QWidget *disputeManagementPage = createDisputeManagementPage();
-    QWidget *statisticsPage = createStatisticsPage();
 
     mainTabWidget->addTab(dashboardPage, "仪表盘");
     mainTabWidget->addTab(goodsReviewPage, "商品审核");
     mainTabWidget->addTab(userManagementPage, "用户管理");
     mainTabWidget->addTab(disputeManagementPage, "纠纷处理");
-    mainTabWidget->addTab(statisticsPage, "数据统计");
 
     QVBoxLayout *mainLayout = new QVBoxLayout(mainWidget);
     mainLayout->addWidget(mainTabWidget);
@@ -458,109 +456,6 @@ QWidget* AdminMainWindow::createDisputeManagementPage() {
     return page;
 }
 
-QWidget* AdminMainWindow::createStatisticsPage() {
-    QWidget *page = new QWidget();
-    QVBoxLayout *mainLayout = new QVBoxLayout(page);
-    mainLayout->setContentsMargins(20, 20, 20, 20);
-    mainLayout->setSpacing(20);
-
-    // 时间筛选工具栏
-    QWidget *dateWidget = new QWidget();
-    QHBoxLayout *dateLayout = new QHBoxLayout(dateWidget);
-    dateLayout->setContentsMargins(0, 0, 0, 0);
-    dateLayout->setSpacing(10);
-
-    dateLayout->addWidget(new QLabel("统计时间:"));
-    statDateFromEdit = new QDateEdit();
-    statDateFromEdit->setDate(QDate::currentDate().addDays(-30));
-    statDateFromEdit->setDisplayFormat("yyyy-MM-dd");
-    statDateFromEdit->setFixedWidth(120);
-    dateLayout->addWidget(statDateFromEdit);
-
-    dateLayout->addWidget(new QLabel("至"));
-    statDateToEdit = new QDateEdit();
-    statDateToEdit->setDate(QDate::currentDate());
-    statDateToEdit->setDisplayFormat("yyyy-MM-dd");
-    statDateToEdit->setFixedWidth(120);
-    dateLayout->addWidget(statDateToEdit);
-
-    dateLayout->addWidget(new QLabel("统计类型:"));
-    statTypeCombo = new QComboBox();
-    statTypeCombo->addItems({"交易统计", "用户统计", "商品统计", "纠纷统计"});
-    dateLayout->addWidget(statTypeCombo);
-
-    QPushButton *updateBtn = new QPushButton("更新统计");
-    updateBtn->setObjectName("primaryBtn");
-    dateLayout->addWidget(updateBtn);
-
-    QPushButton *exportBtn = new QPushButton("导出报表");
-    exportBtn->setObjectName("secondaryBtn");
-    dateLayout->addWidget(exportBtn);
-
-    dateLayout->addStretch();
-
-    connect(updateBtn, &QPushButton::clicked, this, &AdminMainWindow::onDateRangeChanged);
-    connect(exportBtn, &QPushButton::clicked, this, &AdminMainWindow::onExportStatistics);
-
-    // 图表区域
-    QWidget *chartWidget = new QWidget();
-    QHBoxLayout *chartLayout = new QHBoxLayout(chartWidget);
-    chartLayout->setContentsMargins(0, 0, 0, 0);
-    chartLayout->setSpacing(20);
-
-    // 日度统计图
-    QGroupBox *dailyGroup = new QGroupBox("日度交易趋势");
-    QVBoxLayout *dailyLayout = new QVBoxLayout(dailyGroup);
-    dailyChartView = new QChartView();
-    dailyChartView->setMinimumHeight(300);
-    dailyLayout->addWidget(dailyChartView);
-
-    // 周度统计图
-    QGroupBox *weeklyGroup = new QGroupBox("周度分布");
-    QVBoxLayout *weeklyLayout = new QVBoxLayout(weeklyGroup);
-    weeklyChartView = new QChartView();
-    weeklyChartView->setMinimumHeight(300);
-    weeklyLayout->addWidget(weeklyChartView);
-
-    chartLayout->addWidget(dailyGroup, 1);
-    chartLayout->addWidget(weeklyGroup, 1);
-
-    // 排行榜区域
-    QWidget *rankWidget = new QWidget();
-    QHBoxLayout *rankLayout = new QHBoxLayout(rankWidget);
-    rankLayout->setContentsMargins(0, 0, 0, 0);
-    rankLayout->setSpacing(20);
-
-    // 活跃用户榜
-    QGroupBox *topUsersGroup = new QGroupBox("活跃用户Top10");
-    QVBoxLayout *topUsersLayout = new QVBoxLayout(topUsersGroup);
-    topUsersTable = new QTableWidget(0, 4);
-    topUsersTable->setHorizontalHeaderLabels({"排名", "用户名", "交易次数", "总金额"});
-    topUsersTable->verticalHeader()->setVisible(false);
-    topUsersTable->setMaximumHeight(300);
-    topUsersTable->horizontalHeader()->setStretchLastSection(true);
-    topUsersLayout->addWidget(topUsersTable);
-
-    // 热门商品榜
-    QGroupBox *topGoodsGroup = new QGroupBox("热门商品Top10");
-    QVBoxLayout *topGoodsLayout = new QVBoxLayout(topGoodsGroup);
-    topGoodsTable = new QTableWidget(0, 4);
-    topGoodsTable->setHorizontalHeaderLabels({"排名", "商品名称", "销量", "销售额"});
-    topGoodsTable->verticalHeader()->setVisible(false);
-    topGoodsTable->setMaximumHeight(300);
-    topGoodsTable->horizontalHeader()->setStretchLastSection(true);
-    topGoodsLayout->addWidget(topGoodsTable);
-
-    rankLayout->addWidget(topUsersGroup, 1);
-    rankLayout->addWidget(topGoodsGroup, 1);
-
-    mainLayout->addWidget(dateWidget);
-    mainLayout->addWidget(chartWidget, 1);
-    mainLayout->addWidget(rankWidget);
-
-    return page;
-}
-
 void AdminMainWindow::onLogoutClicked() {
     QMessageBox::StandardButton reply = QMessageBox::question(this, "退出登录", "确定要退出管理员账号吗？");
     if (reply == QMessageBox::Yes) {
@@ -575,7 +470,6 @@ void AdminMainWindow::onTabChanged(int index) {
     case 1: loadGoodsReviewData(); break;
     case 2: loadUserManagementData(); break;
     case 3: loadDisputeData(); break;
-    case 4: loadStatisticsData(); break;
     }
 }
 
@@ -739,28 +633,6 @@ void AdminMainWindow::onFilterDisputes() {
     loadDisputeData();
 }
 
-// 数据统计相关
-void AdminMainWindow::onDateRangeChanged() {
-    QString dateFrom = statDateFromEdit->date().toString("yyyy-MM-dd");
-    QString dateTo = statDateToEdit->date().toString("yyyy-MM-dd");
-    QString type = statTypeCombo->currentText();
-
-    QMessageBox::information(this, "更新统计",
-                             QString("统计时间: %1 至 %2\n统计类型: %3")
-                                 .arg(dateFrom).arg(dateTo).arg(type));
-
-    loadStatisticsData();
-}
-
-void AdminMainWindow::onExportStatistics() {
-    QString fileName = QFileDialog::getSaveFileName(this, "导出报表",
-                                                    "统计报表.xlsx", "Excel文件 (*.xlsx)");
-    if (!fileName.isEmpty()) {
-        QMessageBox::information(this, "导出成功",
-                                 QString("报表已导出到: %1").arg(fileName));
-    }
-}
-
 // 数据加载函数
 void AdminMainWindow::loadDashboardData() {
 
@@ -795,11 +667,6 @@ void AdminMainWindow::loadUserManagementData() {
 
 void AdminMainWindow::loadDisputeData() {
     // 类似loadGoodsReviewData的实现
-    // 暂时用空实现
-}
-
-void AdminMainWindow::loadStatisticsData() {
-    // 这里应该实现统计数据的加载和图表更新
     // 暂时用空实现
 }
 

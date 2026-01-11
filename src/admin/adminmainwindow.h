@@ -46,10 +46,6 @@ private slots:
     void onProcessDispute(int disputeId, QString decision);
     void onFilterDisputes();
 
-    // 数据统计相关
-    void onDateRangeChanged();
-    void onExportStatistics();
-
 private:
     void setupUI();
 
@@ -58,14 +54,12 @@ private:
     QWidget* createGoodsReviewPage();
     QWidget* createUserManagementPage();
     QWidget* createDisputeManagementPage();
-    QWidget* createStatisticsPage();
 
     // 加载数据
     void loadDashboardData();
     void loadGoodsReviewData();
     void loadUserManagementData();
     void loadDisputeData();
-    void loadStatisticsData();
 
 private:
     // 主标签页
@@ -99,15 +93,6 @@ private:
     QComboBox *disputeTypeCombo;
     QComboBox *disputeStatusCombo;
     QDateEdit *disputeDateEdit;
-
-    // 数据统计页面组件
-    QDateEdit *statDateFromEdit;
-    QDateEdit *statDateToEdit;
-    QComboBox *statTypeCombo;
-    QChartView *dailyChartView;
-    QChartView *weeklyChartView;
-    QTableWidget *topUsersTable;
-    QTableWidget *topGoodsTable;
 };
 
 #endif // ADMINMAINWINDOW_H

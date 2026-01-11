@@ -7,10 +7,10 @@
 #include <QRegularExpression>
 #include "RegisterPage.h"
 
-RegisterPage::RegisterPage(QWidget *parent) : QDialog(parent), isDragging(false) {
+RegisterPage::RegisterPage(QWidget *parent) : QDialog(parent), isDragging(false), isPasswordVisible(false) {
     setWindowFlags(Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
-    setFixedSize(420, 720);
+    setFixedSize(420, 575);
 
     setupUI();
     setupStyles();
@@ -19,7 +19,7 @@ RegisterPage::RegisterPage(QWidget *parent) : QDialog(parent), isDragging(false)
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::reject);
     connect(toLoginBtn, &QPushButton::clicked, this, &QDialog::accept);
     connect(registerBtn, &QPushButton::clicked, this, &QDialog::accept);
-    connect(togglePwdBtn, &QCheckBox::stateChanged, this, &RegisterPage::onTogglePassword);
+    connect(togglePwdBtn, &QPushButton::clicked, this, &RegisterPage::onTogglePassword);
 
     // 回车键注册快捷键
     QShortcut *enterShortcut = new QShortcut(QKeySequence(Qt::Key_Return), this);
@@ -30,13 +30,13 @@ void RegisterPage::setupUI() {
     // 主容器
     QWidget *mainContainer = new QWidget(this);
     mainContainer->setObjectName("mainContainer");
-    mainContainer->setFixedSize(420, 720);
+    mainContainer->setFixedSize(420, 570);
 
     // 添加阴影效果
     QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect(mainContainer);
     shadow->setBlurRadius(25);
     shadow->setColor(QColor(0, 0, 0, 60));
-    shadow->setOffset(0, 5);
+    shadow->setOffset(0, 3);
     mainContainer->setGraphicsEffect(shadow);
 
     // 标题栏
@@ -65,61 +65,90 @@ void RegisterPage::setupUI() {
     formContainer->setFixedSize(420, 675);
 
     // 头像区域
-    QWidget *avatarContainer = new QWidget(formContainer);
-    avatarContainer->setFixedSize(90, 90);
+    QWidget *avatarArea = new QWidget(formContainer);
+    avatarArea->setFixedHeight(110);
+
+    QVBoxLayout *avatarAreaLayout = new QVBoxLayout(avatarArea);
+    avatarAreaLayout->setContentsMargins(0, 0, 0, 0);
+    avatarAreaLayout->setSpacing(2);
+
+    // 头像容器
+    QWidget *avatarContainer = new QWidget();
+    avatarContainer->setFixedSize(80, 80);
     avatarContainer->setStyleSheet(R"(
         background-color: #f0f8ff;
-        border-radius: 45px;
+        border-radius: 40px;
         border: 2px dashed #1e90ff;
     )");
 
     QLabel *avatarIcon = new QLabel("+", avatarContainer);
     avatarIcon->setFixedSize(50, 50);
-    avatarIcon->setStyleSheet("color: #1e90ff; font-size: 32px; font-weight: bold;");
+    avatarIcon->setStyleSheet("color: #1e90ff; font-size: 24px; font-weight: bold;");
     avatarIcon->setAlignment(Qt::AlignCenter);
+    avatarIcon->move(15, 15); // 居中显示
 
-    QLabel *avatarText = new QLabel("点击上传头像", avatarContainer);
-    avatarText->setStyleSheet("color: #999; font-size: 12px;");
+    // 头像文字
+    QLabel *avatarText = new QLabel("点击上传头像");
+    avatarText->setStyleSheet(R"(
+        color: #666;
+        font-size: 11px;
+        border: none;
+        background-color: transparent;
+        padding: 0;
+        margin: 0;
+    )");
     avatarText->setAlignment(Qt::AlignCenter);
-
-    QVBoxLayout *avatarLayout = new QVBoxLayout(avatarContainer);
-    avatarLayout->addWidget(avatarIcon, 0, Qt::AlignCenter);
-    avatarLayout->addWidget(avatarText, 0, Qt::AlignCenter);
+    avatarText->setFixedHeight(15);
+    avatarAreaLayout->addWidget(avatarContainer, 0, Qt::AlignCenter);
+    avatarAreaLayout->addWidget(avatarText, 0, Qt::AlignCenter);
 
     // 输入框容器
     QWidget *inputContainer = new QWidget(formContainer);
-    inputContainer->setFixedSize(320, 300);
+    inputContainer->setFixedSize(320, 260);
+    inputContainer->setContentsMargins(0, 0, 0, 0); // 清除边距
 
     // 定义输入框配置
     struct InputField {
         QString placeholder;
         bool isPassword;
-        int yPos;
     };
 
     QVector<InputField> fields = {
-        {"账号", false, 0},
-        {"设置密码", true, 60},
-        {"昵称", false, 120},
-        {"邮箱", false, 180},
-    };
+                                  {"账号", false},
+                                  {"设置密码", true},
+                                  {"昵称", false},
+                                  {"邮箱", false},
+                                  };
 
     QVBoxLayout *inputLayout = new QVBoxLayout(inputContainer);
-    inputLayout->setSpacing(15);
+    inputLayout->setSpacing(8);
     inputLayout->setContentsMargins(0, 0, 0, 0);
 
     for (int i = 0; i < fields.size(); ++i) {
         QWidget *inputWidget = new QWidget();
-        inputWidget->setFixedSize(320, 50);
+        inputWidget->setFixedHeight(45);
         inputWidget->setObjectName("inputWidget");
 
         QLineEdit *lineEdit = new QLineEdit(inputWidget);
-        lineEdit->setGeometry(15, 10, 290, 30);
+        lineEdit->setGeometry(15, 8, 290, 30);
         lineEdit->setPlaceholderText(fields[i].placeholder);
-        lineEdit->setStyleSheet("border: none; background: transparent; font-size: 14px;");
+        lineEdit->setStyleSheet(R"(
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            padding: 0;
+        )");
 
         if (fields[i].isPassword) {
             lineEdit->setEchoMode(QLineEdit::Password);
+            togglePwdBtn = new QPushButton(inputWidget);
+            togglePwdBtn->setGeometry(270, 8, 40, 30);
+            togglePwdBtn->setIcon(QIcon(":/icons/img/eye_close.png"));
+            togglePwdBtn->setIconSize(QSize(20, 20));
+            togglePwdBtn->setStyleSheet(R"(
+                border: none;
+                background: transparent;
+            )");
         }
 
         // 保存输入框引用
@@ -133,24 +162,29 @@ void RegisterPage::setupUI() {
         inputLayout->addWidget(inputWidget);
     }
 
-    // 密码选项
-    togglePwdBtn = new QCheckBox("显示密码", formContainer);
-    togglePwdBtn->setObjectName("togglePwdBtn");
-
+    // 按钮区域
     QWidget *buttonContainer = new QWidget(formContainer);
+    buttonContainer->setFixedHeight(100);
     QVBoxLayout *buttonLayout = new QVBoxLayout(buttonContainer);
     buttonLayout->setContentsMargins(0, 0, 0, 0);
-    buttonLayout->setSpacing(10); // 按钮之间的垂直间距
+    buttonLayout->setSpacing(8);
 
     // 注册按钮
-    registerBtn = new QPushButton("立即注册", formContainer);
-    registerBtn->setFixedSize(320, 45);
+    registerBtn = new QPushButton("立即注册");
+    registerBtn->setFixedSize(320, 42);
     registerBtn->setObjectName("registerBtn");
 
     // 去登录按钮
-    toLoginBtn = new QPushButton("已有账号？去登录", formContainer);
+    toLoginBtn = new QPushButton("已有账号？去登录");
     toLoginBtn->setObjectName("toLoginBtn");
-    toLoginBtn->setStyleSheet("color: #1e90ff; border: none; font-size: 14px;");
+    toLoginBtn->setFixedHeight(20);
+    toLoginBtn->setStyleSheet(R"(
+        color: #1e90ff;
+        border: none;
+        font-size: 13px;
+        background-color: transparent;
+        padding: 0;
+    )");
 
     // 将按钮添加到按钮布局
     buttonLayout->addWidget(registerBtn, 0, Qt::AlignCenter);
@@ -158,14 +192,17 @@ void RegisterPage::setupUI() {
 
     // 主布局
     QVBoxLayout *formMainLayout = new QVBoxLayout(formContainer);
-    formMainLayout->setContentsMargins(50, 30, 50, 30);
-    formMainLayout->setSpacing(25);
-    formMainLayout->addWidget(avatarContainer, 0, Qt::AlignCenter);
+    formMainLayout->setContentsMargins(50, 15, 50, 15);
+    formMainLayout->setSpacing(0);
+
+    // 添加组件，精确控制间距
+    formMainLayout->addSpacing(5);  // 顶部间距
+    formMainLayout->addWidget(avatarArea, 0, Qt::AlignCenter);
+    formMainLayout->addSpacing(15); // 头像和输入框之间的间距
     formMainLayout->addWidget(inputContainer, 0, Qt::AlignCenter);
-    formMainLayout->addWidget(togglePwdBtn, 0, Qt::AlignCenter);
-    formMainLayout->addSpacing(10);
+    formMainLayout->addSpacing(10); // 输入框和按钮之间的间距
     formMainLayout->addWidget(buttonContainer, 0, Qt::AlignCenter);
-    formMainLayout->addSpacing(10);
+    formMainLayout->addStretch();   // 弹性空间，让内容保持在上部
 
     // 窗口布局
     QVBoxLayout *windowLayout = new QVBoxLayout(this);
@@ -223,29 +260,6 @@ void RegisterPage::setupStyles() {
             border-width: 2px;
         }
 
-        #togglePwdBtn {
-            color: #666;
-            font-size: 13px;
-            spacing: 5px;
-        }
-
-        #togglePwdBtn::indicator {
-            width: 16px;
-            height: 16px;
-        }
-
-        #togglePwdBtn::indicator:unchecked {
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            background-color: white;
-        }
-
-        #togglePwdBtn::indicator:checked {
-            border: 1px solid #1e90ff;
-            border-radius: 3px;
-            background-color: #1e90ff;
-        }
-
         #registerBtn {
             background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                 stop:0 #1e90ff, stop:1 #00bfff);
@@ -289,10 +303,14 @@ void RegisterPage::setupStyles() {
 }
 
 void RegisterPage::onTogglePassword() {
-    bool isVisible = togglePwdBtn->isChecked();
-    QLineEdit::EchoMode mode = isVisible ? QLineEdit::Normal : QLineEdit::Password;
-
-    passwordEdit->setEchoMode(mode);
+    isPasswordVisible = !isPasswordVisible;
+    if (isPasswordVisible) {
+        passwordEdit->setEchoMode(QLineEdit::Normal);
+        togglePwdBtn->setIcon(QIcon(":/icons/img/eye_open.png"));
+    } else {
+        passwordEdit->setEchoMode(QLineEdit::Password);
+        togglePwdBtn->setIcon(QIcon(":/icons/img/eye_close.png"));
+    }
 }
 
 void RegisterPage::mousePressEvent(QMouseEvent *event) {

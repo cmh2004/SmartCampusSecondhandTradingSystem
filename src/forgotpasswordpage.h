@@ -14,6 +14,11 @@ class ForgotPasswordPage : public QDialog {
 public:
     explicit ForgotPasswordPage(QWidget *parent = nullptr);
 
+protected:
+    void mousePressEvent(QMouseEvent *event);
+
+    void mouseMoveEvent(QMouseEvent *event);
+
 private slots:
     void onSendCodeClicked();
     void onNextClicked();
@@ -21,6 +26,7 @@ private slots:
     void onResetClicked();
     void onShowPasswordChanged(int state);
     void updateCountdown();
+    void onCloseClicked(); // 新增：自定义关闭按钮槽函数
 
 private:
     void setupUI();
@@ -37,6 +43,7 @@ private:
     QPushButton *backBtn;
     QPushButton *resetBtn;
     QCheckBox *showPasswordCheck;
+    QPushButton *closeBtn; // 新增：自定义关闭按钮
 
     // 定时器
     QTimer *countdownTimer;
