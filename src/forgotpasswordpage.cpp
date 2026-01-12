@@ -1,26 +1,22 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QMessageBox>
 #include <QRegularExpression>
 #include <QScreen>
 #include <QApplication>
-#include <QMouseEvent> // 新增：用于无边框窗口拖动
+#include <QMouseEvent>
 #include "ForgotPasswordPage.h"
 
-// 新增：用于无边框窗口拖动的变量
 static QPoint g_dragPos;
 
 ForgotPasswordPage::ForgotPasswordPage(QWidget *parent)
-    : QDialog(parent), countdownSeconds(60) {
-    // 关键修改1：去掉默认标题栏，自定义关闭按钮
+    : QDialog(parent), countdownSeconds(60),step(0) {
     setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog);
     setWindowTitle("找回密码");
     setFixedSize(450, 550);
 
-    // 优化窗口样式：去掉黑框，优化圆角透明
     setStyleSheet(R"(
         QDialog {
-            background-color: transparent; /* 完全透明，避免黑框 */
+            background-color: transparent;
         }
     )");
     setAttribute(Qt::WA_TranslucentBackground);
@@ -37,7 +33,6 @@ ForgotPasswordPage::ForgotPasswordPage(QWidget *parent)
 }
 
 void ForgotPasswordPage::setupUI() {
-    // 外层容器：核心容器，解决黑框问题，优化阴影和圆角
     QWidget *container = new QWidget(this);
     container->setStyleSheet(R"(
         QWidget {
@@ -47,7 +42,7 @@ void ForgotPasswordPage::setupUI() {
         }
     )");
     QVBoxLayout *outerLayout = new QVBoxLayout(this);
-    outerLayout->setContentsMargins(0, 0, 0, 0); // 关键：去掉外层margin，避免黑框
+    outerLayout->setContentsMargins(0, 0, 0, 0);
     outerLayout->addWidget(container);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(container);
@@ -60,7 +55,6 @@ void ForgotPasswordPage::setupUI() {
     topLayout->setContentsMargins(0, 0, 0, 0);
     topLayout->setSpacing(0);
 
-    // 标题：关键修改2：去掉底部边框（标题框），优化样式
     QLabel *titleLabel = new QLabel("找回密码");
     titleLabel->setStyleSheet(R"(
         QLabel {
@@ -68,12 +62,10 @@ void ForgotPasswordPage::setupUI() {
             font-weight: 600;
             color: #2d3748;
             padding-bottom: 8px;
-            /* 移除border-bottom，去掉标题框 */
         }
     )");
     titleLabel->setAlignment(Qt::AlignCenter);
 
-    // 自定义关闭按钮：关键修改3：放到标题栏下方区域右上角
     closeBtn = new QPushButton("×");
     closeBtn->setStyleSheet(R"(
         QPushButton {
@@ -330,7 +322,7 @@ void ForgotPasswordPage::setupUI() {
     buttonLayout->addWidget(resetBtn);
 
     // 添加到主布局
-    mainLayout->addWidget(topWidget); // 替换原标题Label，使用包含关闭按钮的顶部布局
+    mainLayout->addWidget(topWidget);
     mainLayout->addSpacing(15);
     mainLayout->addWidget(stepLabel);
     mainLayout->addSpacing(10);
@@ -350,12 +342,10 @@ void ForgotPasswordPage::setupUI() {
     connect(showPasswordCheck, &QCheckBox::stateChanged, this, &ForgotPasswordPage::onShowPasswordChanged);
 }
 
-// 新增：自定义关闭按钮槽函数
 void ForgotPasswordPage::onCloseClicked() {
     this->close();
 }
 
-// 新增：实现无边框窗口拖动（可选，提升体验）
 void ForgotPasswordPage::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         g_dragPos = event->globalPos() - frameGeometry().topLeft();
@@ -374,13 +364,13 @@ void ForgotPasswordPage::onSendCodeClicked() {
     QString email = emailEdit->text().trimmed();
 
     if (email.isEmpty()) {
-        QMessageBox::warning(this, "提示", "请输入邮箱地址");
+        showMessageBox(this, "提示", "请输入邮箱地址", QMessageBox::Warning);
         return;
     }
 
     QRegularExpression emailRegex(R"(^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$)");
     if (!emailRegex.match(email).hasMatch()) {
-        QMessageBox::warning(this, "提示", "邮箱格式不正确");
+        showMessageBox(this, "提示", "邮箱格式不正确", QMessageBox::Warning);
         return;
     }
 
@@ -390,7 +380,7 @@ void ForgotPasswordPage::onSendCodeClicked() {
     sendCodeBtn->setText("60秒后重发");
     countdownTimer->start(1000);
 
-    QMessageBox::information(this, "提示", "验证码已发送到您的邮箱");
+    showMessageBox(this, "提示", "验证码已发送到您的邮箱", QMessageBox::Information);
 }
 
 void ForgotPasswordPage::updateCountdown() {
@@ -405,19 +395,17 @@ void ForgotPasswordPage::updateCountdown() {
 }
 
 void ForgotPasswordPage::onNextClicked() {
-    static int step = 0; // 0:输入邮箱, 1:输入验证码, 2:设置密码
-
     if (step == 0) {
         // 检查邮箱
         QString email = emailEdit->text().trimmed();
         if (email.isEmpty()) {
-            QMessageBox::warning(this, "提示", "请输入邮箱地址");
+            showMessageBox(this, "提示", "请输入邮箱地址", QMessageBox::Warning);
             return;
         }
 
         QRegularExpression emailRegex(R"(^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$)");
         if (!emailRegex.match(email).hasMatch()) {
-            QMessageBox::warning(this, "提示", "邮箱格式不正确");
+            showMessageBox(this, "提示", "邮箱格式不正确", QMessageBox::Warning);
             return;
         }
 
@@ -433,13 +421,13 @@ void ForgotPasswordPage::onNextClicked() {
         // 检查验证码
         QString code = codeEdit->text().trimmed();
         if (code.isEmpty() || code.length() != 6) {
-            QMessageBox::warning(this, "提示", "请输入6位验证码");
+            showMessageBox(this, "提示", "请输入6位验证码", QMessageBox::Warning);
             return;
         }
 
         // 简单验证码验证（实际应该从服务器验证）
         if (code != "123456") {
-            QMessageBox::warning(this, "提示", "验证码错误");
+            showMessageBox(this, "提示", "验证码错误", QMessageBox::Warning);
             return;
         }
 
@@ -451,13 +439,12 @@ void ForgotPasswordPage::onNextClicked() {
         confirmPasswordEdit->show();
         showPasswordCheck->show();
         nextBtn->hide();
+        backBtn->hide();
         resetBtn->show();
     }
 }
 
 void ForgotPasswordPage::onBackClicked() {
-    static int step = 1; // 当前步骤
-
     if (step == 1) {
         // 返回到邮箱步骤
         step = 0;
@@ -474,17 +461,17 @@ void ForgotPasswordPage::onResetClicked() {
     QString confirmPassword = confirmPasswordEdit->text().trimmed();
 
     if (newPassword.isEmpty() || confirmPassword.isEmpty()) {
-        QMessageBox::warning(this, "提示", "请输入密码");
+        showMessageBox(this, "提示", "请输入密码", QMessageBox::Warning);
         return;
     }
 
     if (newPassword != confirmPassword) {
-        QMessageBox::warning(this, "提示", "两次输入的密码不一致");
+        showMessageBox(this, "提示", "两次输入的密码不一致", QMessageBox::Warning);
         return;
     }
 
     if (newPassword.length() < 6 || newPassword.length() > 20) {
-        QMessageBox::warning(this, "提示", "密码长度应为6-20位");
+        showMessageBox(this, "提示", "密码长度应为6-20位", QMessageBox::Warning);
         return;
     }
 
@@ -497,12 +484,12 @@ void ForgotPasswordPage::onResetClicked() {
     }
 
     if (!hasLetter || !hasDigit) {
-        QMessageBox::warning(this, "提示", "密码需包含字母和数字");
+        showMessageBox(this, "提示", "密码需包含字母和数字", QMessageBox::Warning);
         return;
     }
 
     // 重置密码成功
-    QMessageBox::information(this, "成功", "密码重置成功！\n请使用新密码登录。");
+    showMessageBox(this, "成功", "密码重置成功！\n请使用新密码登录。", QMessageBox::Information);
     accept();
 }
 
@@ -511,4 +498,50 @@ void ForgotPasswordPage::onShowPasswordChanged(int state) {
     QLineEdit::EchoMode mode = visible ? QLineEdit::Normal : QLineEdit::Password;
     newPasswordEdit->setEchoMode(mode);
     confirmPasswordEdit->setEchoMode(mode);
+}
+
+void ForgotPasswordPage::showMessageBox(QWidget *parent, const QString &title, const QString &text, QMessageBox::Icon icon) {
+    // 1. 不使用当前透明对话框作为父窗口，改用应用程序顶级窗口（避免继承属性）
+    QWidget *msgParent = QApplication::activeWindow();
+    if (!msgParent) msgParent = nullptr;
+
+    // 2. 手动创建 QMessageBox，重置样式表
+    QMessageBox msgBox(icon, title, text, QMessageBox::Ok, msgParent);
+    // 重置背景为白色，避免透明继承
+    msgBox.setStyleSheet(R"(
+        QMessageBox {
+            background-color: white;
+            border-radius: 8px;
+        }
+        QMessageBox QLabel {
+            color: #2d3748;
+            font-size: 15px;
+        }
+        QMessageBox QPushButton {
+            background-color: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 20px;
+            font-size: 14px;
+        }
+        QMessageBox QPushButton:hover {
+            background-color: #3182ce;
+        }
+    )");
+    msgBox.exec();
+}
+
+void ForgotPasswordPage::keyPressEvent(QKeyEvent *event) {
+    if (event->key() == Qt::Key_Enter || event->key() == Qt::Key_Return) {
+        // 根据当前步骤调用对应的函数
+        if (step == 0 || step == 1) {
+            onNextClicked();
+        } else if (step == 2) {
+            onResetClicked();
+        }
+        event->accept();
+        return;
+    }
+    QDialog::keyPressEvent(event);
 }
