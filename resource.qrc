@@ -17,5 +17,6 @@
         <file>img/text.png</file>
         <file>img/star_empty.png</file>
         <file>img/star_filled.png</file>
+        <file>img/check.png</file>
     </qresource>
 </RCC>

@@ -264,6 +264,7 @@ void LoginPage::setupStyles() {
         #mainContainer {
             background-color: white;
             border-radius:  15px;
+            border: 1px solid #e0e0e0;
         }
 
         #minimizeBtn, #closeBtn {
@@ -295,6 +296,7 @@ void LoginPage::setupStyles() {
             background-color: white;
             border-top-right-radius: 8px;
             border-bottom-right-radius: 8px;
+            border: 1px solid #e0e0e0;
         }
 
         #roleWidget {

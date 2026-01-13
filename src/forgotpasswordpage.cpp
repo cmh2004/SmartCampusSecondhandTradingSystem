@@ -34,11 +34,15 @@ ForgotPasswordPage::ForgotPasswordPage(QWidget *parent)
 
 void ForgotPasswordPage::setupUI() {
     QWidget *container = new QWidget(this);
+    container->setObjectName("container");
     container->setStyleSheet(R"(
         QWidget {
             background-color: white;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        #container {
+            border: 1px solid #e0e0e0;
         }
     )");
     QVBoxLayout *outerLayout = new QVBoxLayout(this);
@@ -243,7 +247,7 @@ void ForgotPasswordPage::setupUI() {
         QCheckBox::indicator:checked {
             background-color: #4299e1;
             border-color: #4299e1;
-            image: url(:/icons/check.png); /* 可选：添加对勾图标，需自行准备 */
+            image: url(:/icons/img/check.png);
         }
         QCheckBox::indicator:hover {
             border-color: #94a3b8;
