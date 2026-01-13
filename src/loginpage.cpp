@@ -6,44 +6,9 @@
 #include <QFontDatabase>
 #include <QShortcut>
 #include "ForgotPasswordPage.h"
-#include "LoginPage.h"
-#include "RegisterPage.h"
-
-// 自定义圆形头像标签
-class AvatarLabel : public QLabel {
-public:
-    AvatarLabel(QWidget *parent = nullptr) : QLabel(parent) {
-        setFixedSize(80, 80);
-        setAlignment(Qt::AlignCenter);
-    }
-
-protected:
-    void paintEvent(QPaintEvent *event) override {
-        QPainter painter(this);
-        painter.setRenderHint(QPainter::Antialiasing);
-
-        // 绘制圆形背景
-        QPainterPath path;
-        path.addEllipse(rect());
-        painter.setClipPath(path);
-
-        // 使用渐变色背景
-        QLinearGradient gradient(0, 0, width(), height());
-        gradient.setColorAt(0, QColor(0, 150, 255));
-        gradient.setColorAt(1, QColor(150, 100, 220));
-        painter.fillRect(rect(), gradient);
-
-        // 绘制默认头像图标
-        painter.setPen(Qt::white);
-        painter.setFont(QFont("Arial", 30, QFont::Bold));
-        painter.drawText(rect(), Qt::AlignCenter, "S");
-
-        // 绘制白色边框
-        painter.setClipping(false);
-        painter.setPen(QPen(Qt::white, 2));
-        painter.drawEllipse(rect().adjusted(1, 1, -1, -1));
-    }
-};
+#include "loginpage.h"
+#include "registerpage.h"
+#include "commonwidgets.h"
 
 LoginPage::LoginPage(QWidget *parent) : QDialog(parent), isDragging(false), selectedRole("user") {
     setWindowFlags(Qt::FramelessWindowHint);

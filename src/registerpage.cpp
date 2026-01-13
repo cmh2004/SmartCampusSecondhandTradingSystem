@@ -5,7 +5,7 @@
 #include <QShortcut>
 #include <QTimer>
 #include <QRegularExpression>
-#include "RegisterPage.h"
+#include "registerpage.h"
 
 RegisterPage::RegisterPage(QWidget *parent) : QDialog(parent), isDragging(false), isPasswordVisible(false) {
     setWindowFlags(Qt::FramelessWindowHint);

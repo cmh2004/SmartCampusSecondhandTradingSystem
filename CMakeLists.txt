@@ -14,21 +14,24 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Charts)
 
 set(PROJECT_SOURCES
     src/main.cpp
+    src/loginpage.cpp
+    src/loginpage.h
+    src/registerpage.cpp
+    src/registerpage.h
+    src/forgotpasswordpage.h
+    src/forgotpasswordpage.cpp
+    src/commonwidgets.h
+    src/commonwidgets.cpp
+
     src/user/mainwindow.cpp
     src/user/mainwindow.h
     src/user/mainwindow.ui
-    src/LoginPage.cpp
-    src/LoginPage.h
-    src/RegisterPage.cpp
-    src/RegisterPage.h
     src/user/GoodsDetailDialog.cpp
     src/user/GoodsDetailDialog.h
     src/user/ChatDialog.cpp
     src/user/ChatDialog.h
     src/user/DisputeSubmitDialog.cpp
     src/user/DisputeSubmitDialog.h
-    src/forgotpasswordpage.h
-    src/forgotpasswordpage.cpp
     src/user/paymentdialog.h
     src/user/paymentdialog.cpp
     src/user/reviewdialog.h
@@ -39,6 +42,7 @@ set(PROJECT_SOURCES
     src/user/creditscoredialog.cpp
     src/user/reportsubmitdialog.h
     src/user/reportsubmitdialog.cpp
+
     src/admin/adminmainwindow.h
     src/admin/adminmainwindow.cpp
 )

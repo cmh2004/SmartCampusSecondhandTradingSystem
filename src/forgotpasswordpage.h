@@ -31,7 +31,6 @@ private slots:
 
 private:
     void setupUI();
-    void showMessageBox(QWidget *parent, const QString &title, const QString &text, QMessageBox::Icon icon);
 
 private:
     // UI控件

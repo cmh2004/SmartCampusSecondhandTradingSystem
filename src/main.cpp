@@ -1,10 +1,11 @@
 #include "user/mainwindow.h"
 #include "admin/adminmainwindow.h"
-#include "LoginPage.h"
+#include "loginpage.h"
 #include <QApplication>
 
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
+    a.setWindowIcon(QIcon(":/icons/img/app.png"));
 
     // 显示登录页
     LoginPage loginPage;

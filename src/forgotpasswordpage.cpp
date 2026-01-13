@@ -5,6 +5,7 @@
 #include <QApplication>
 #include <QMouseEvent>
 #include "ForgotPasswordPage.h"
+#include "commonwidgets.h"
 
 static QPoint g_dragPos;
 
@@ -12,7 +13,7 @@ ForgotPasswordPage::ForgotPasswordPage(QWidget *parent)
     : QDialog(parent), countdownSeconds(60),step(0) {
     setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog);
     setWindowTitle("找回密码");
-    setFixedSize(450, 550);
+    setFixedSize(400, 525);
 
     setStyleSheet(R"(
         QDialog {
@@ -50,7 +51,7 @@ void ForgotPasswordPage::setupUI() {
     outerLayout->addWidget(container);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(container);
-    mainLayout->setContentsMargins(40, 40, 40, 40);
+    mainLayout->setContentsMargins(30, 30, 30, 30);
     mainLayout->setSpacing(25);
 
     // 顶部区域：标题 + 自定义关闭按钮
@@ -502,38 +503,6 @@ void ForgotPasswordPage::onShowPasswordChanged(int state) {
     QLineEdit::EchoMode mode = visible ? QLineEdit::Normal : QLineEdit::Password;
     newPasswordEdit->setEchoMode(mode);
     confirmPasswordEdit->setEchoMode(mode);
-}
-
-void ForgotPasswordPage::showMessageBox(QWidget *parent, const QString &title, const QString &text, QMessageBox::Icon icon) {
-    // 1. 不使用当前透明对话框作为父窗口，改用应用程序顶级窗口（避免继承属性）
-    QWidget *msgParent = QApplication::activeWindow();
-    if (!msgParent) msgParent = nullptr;
-
-    // 2. 手动创建 QMessageBox，重置样式表
-    QMessageBox msgBox(icon, title, text, QMessageBox::Ok, msgParent);
-    // 重置背景为白色，避免透明继承
-    msgBox.setStyleSheet(R"(
-        QMessageBox {
-            background-color: white;
-            border-radius: 8px;
-        }
-        QMessageBox QLabel {
-            color: #2d3748;
-            font-size: 15px;
-        }
-        QMessageBox QPushButton {
-            background-color: #4299e1;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 20px;
-            font-size: 14px;
-        }
-        QMessageBox QPushButton:hover {
-            background-color: #3182ce;
-        }
-    )");
-    msgBox.exec();
 }
 
 void ForgotPasswordPage::keyPressEvent(QKeyEvent *event) {
