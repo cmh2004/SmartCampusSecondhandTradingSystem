@@ -40,7 +40,6 @@ void ForgotPasswordPage::setupUI() {
         QWidget {
             background-color: white;
             border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
         #container {
             border: 1px solid #e0e0e0;
@@ -126,7 +125,6 @@ void ForgotPasswordPage::setupUI() {
             border-color: #4299e1;
             background-color: white;
             outline: none;
-            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
         }
         QLineEdit:disabled {
             background-color: #fafafa;
@@ -155,7 +153,6 @@ void ForgotPasswordPage::setupUI() {
             border-color: #4299e1;
             background-color: white;
             outline: none;
-            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
         }
     )");
 
@@ -203,7 +200,6 @@ void ForgotPasswordPage::setupUI() {
             border-color: #4299e1;
             background-color: white;
             outline: none;
-            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
         }
     )");
     newPasswordEdit->hide(); // 默认隐藏
@@ -225,7 +221,6 @@ void ForgotPasswordPage::setupUI() {
             border-color: #4299e1;
             background-color: white;
             outline: none;
-            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
         }
     )");
     confirmPasswordEdit->hide(); // 默认隐藏

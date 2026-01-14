@@ -191,7 +191,6 @@ QWidget* AdminMainWindow::createDashboardPage() {
             background-color: white;
             border-radius: 12px;
             border-left: 5px solid %1;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         )").arg(card.color.name()));
 
         QVBoxLayout *cardLayout = new QVBoxLayout(cardWidget);

@@ -5,6 +5,8 @@
 
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
+    QFont font("Microsoft YaHei", 9); // 字体：微软雅黑，默认字号9
+    a.setFont(font);
     a.setWindowIcon(QIcon(":/icons/img/app.png"));
 
     // 显示登录页

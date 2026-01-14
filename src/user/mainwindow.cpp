@@ -148,7 +148,6 @@ void MainWindow::setupUI() {
             border-radius: 10px;
             padding: 15px;
             border: 1px solid #e2e8f0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
         #searchEdit {
@@ -162,7 +161,6 @@ void MainWindow::setupUI() {
         #searchEdit:focus {
             border-color: #3b82f6;
             outline: none;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
         #searchEdit::placeholder {
@@ -192,9 +190,6 @@ void MainWindow::setupUI() {
             color: #1e293b;
             padding: 10px 5px;
             background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
 
         /* 分类区域样式 */
@@ -203,7 +198,6 @@ void MainWindow::setupUI() {
             border-radius: 12px;
             border: 1px solid #e2e8f0;
             padding: 15px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
         #categoryTitle {
@@ -246,7 +240,6 @@ void MainWindow::setupUI() {
             border-radius: 12px;
             border: 1px solid #e2e8f0;
             padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
         /* 商品表格样式 */
@@ -681,7 +674,6 @@ QWidget* MainWindow::createUserCenterPage() {
         }
         QPushButton:hover {
             background-color: #3182CE;
-            box-shadow: 0 2px 4px rgba(66, 153, 225, 0.3);
         }
         QPushButton:pressed {
             background-color: #2B6CB0;
@@ -700,7 +692,6 @@ QWidget* MainWindow::createUserCenterPage() {
         }
         QPushButton:hover {
             background-color: #8E44AD;
-            box-shadow: 0 2px 4px rgba(155, 89, 182, 0.3);
         }
         QPushButton:pressed {
             background-color: #7D3C98;
@@ -1567,13 +1558,13 @@ void MainWindow::loadOrderExamples() {
                     item->setForeground(QColor(230, 126, 34));  // 橙色
                     item->setBackground(QColor(253, 237, 236)); // 浅红色背景
                 }
-                item->setFont(QFont("", -1, QFont::Bold)); // 加粗
+                item->setFont(QFont("Microsoft YaHei", -1, QFont::Bold)); // 加粗
             }
 
             // 价格列右对齐
             if (col == 2) {
                 item->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
-                item->setFont(QFont("", -1, QFont::Bold));
+                item->setFont(QFont("Microsoft YaHei", -1, QFont::Bold));
             }
 
             ordersTable->setItem(row, col, item);
