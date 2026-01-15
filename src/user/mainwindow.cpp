@@ -19,9 +19,12 @@
 #include "reportsubmitdialog.h"
 #include "disputesubmitdialog.h"  // 售后纠纷对话框
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),isDragging(false) {
+    // 设置无边框窗口
+    setWindowFlags(Qt::FramelessWindowHint);
     setWindowTitle("校园二手商品智能交易系统");
     setMinimumSize(1200, 800);
+    setWindowIcon(QIcon(":/icons/img/app.png"));
 
     setupUI();
     loadMockData();
@@ -36,12 +39,36 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 void MainWindow::setupUI() {
     // 创建主窗口部件
     mainWidget = new QWidget(this);
-    setCentralWidget(mainWidget);
+    mainWidget->setObjectName("mainContainer");
+    mainWidget->setStyleSheet(R"(
+        #mainContainer {
+            background-color: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+    )");
+
+    // 为整个容器添加阴影效果
+    QGraphicsDropShadowEffect *shadowEffect = new QGraphicsDropShadowEffect(this);
+    shadowEffect->setBlurRadius(20);
+    shadowEffect->setColor(QColor(0, 0, 0, 30));
+    shadowEffect->setOffset(0, 5);
+    mainWidget->setGraphicsEffect(shadowEffect);
+
+    // 创建主布局
+    QVBoxLayout *windowLayout = new QVBoxLayout(mainWidget);
+    windowLayout->setContentsMargins(0, 0, 0, 0);
+    windowLayout->setSpacing(0);
+
+    // 添加自定义标题栏
+    setupCustomTitleBar();
+    windowLayout->addWidget(customTitleBar);
 
     // 创建主标签页
     mainTabWidget = new QTabWidget(mainWidget);
     mainTabWidget->setTabPosition(QTabWidget::North);
     mainTabWidget->setTabShape(QTabWidget::Rounded);
+    mainTabWidget->tabBar()->hide();
 
     // 创建各个页面
     homePage = createHomePage();
@@ -50,16 +77,16 @@ void MainWindow::setupUI() {
     ordersPage = createOrdersPage();
     userCenterPage = createUserCenterPage();
 
-    mainTabWidget->addTab(homePage, QIcon(":/icons/img/home.png"), "首页");
-    mainTabWidget->addTab(publishPage, QIcon(":/icons/img/publish.png"), "发布商品");
-    mainTabWidget->addTab(messagesPage, QIcon(":/icons/img/message.png"), "消息");
-    mainTabWidget->addTab(ordersPage, QIcon(":/icons/img/order.png"), "我的订单");
-    mainTabWidget->addTab(userCenterPage, QIcon(":/icons/img/person.png"), "个人中心");
+    mainTabWidget->addTab(homePage, "");
+    mainTabWidget->addTab(publishPage, "");
+    mainTabWidget->addTab(messagesPage, "");
+    mainTabWidget->addTab(ordersPage, "");
+    mainTabWidget->addTab(userCenterPage, "");
 
-    // 设置主布局
-    QVBoxLayout *mainLayout = new QVBoxLayout(mainWidget);
-    mainLayout->setContentsMargins(5, 5, 5, 5);
-    mainLayout->addWidget(mainTabWidget);
+    windowLayout->addWidget(mainTabWidget, 1);
+
+    // 设置主窗口的中心部件
+    setCentralWidget(mainWidget);
 
     // 设置状态栏
     QStatusBar *statusBar = this->statusBar();
@@ -71,23 +98,41 @@ void MainWindow::setupUI() {
         QMainWindow {
             background-color: #f5f7fa;
         }
-        QTabWidget::pane {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background-color: white;
-            margin-top: 5px;
+        QStatusBar {
+            background-color: #f8f9fa;
+            border-top: 1px solid #e2e8f0;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            padding: 5px;
         }
-        QTabBar::tab {
-            padding: 10px 20px;
-            background-color: #ecf0f1;
-            border-radius: 6px 6px 0 0;
-            margin-right: 3px;
+        QStatusBar::item {
+            border: none;
+        }
+        /* 窗口控制按钮样式 */
+        QPushButton#minimizeBtn, QPushButton#maximizeBtn, QPushButton#closeBtn {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 4px;
             font-size: 14px;
-        }
-        QTabBar::tab:selected {
-            background-color: white;
-            border-bottom: 3px solid #3498db;
             font-weight: bold;
+            padding: 0;
+            margin: 0;
+        }
+        QPushButton#minimizeBtn:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        QPushButton#maximizeBtn:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        QPushButton#closeBtn:hover {
+            background-color: #e81123;
+            color: white;
+        }
+        QTabWidget::pane {
+            border: none;
+            background-color: white;
+            border-radius: 0 0 12px 12px;
         }
         QTableWidget {
             background-color: white;
@@ -147,7 +192,6 @@ void MainWindow::setupUI() {
             background-color: white;
             border-radius: 10px;
             padding: 15px;
-            border: 1px solid #e2e8f0;
         }
 
         #searchEdit {
@@ -372,6 +416,244 @@ void MainWindow::setupUI() {
             font-weight: bold;
         }
     )");
+}
+
+void MainWindow::setupCustomTitleBar() {
+    // 创建自定义标题栏
+    customTitleBar = new QWidget();
+    customTitleBar->setFixedHeight(60);  // 标题栏高度
+    customTitleBar->setObjectName("titleBar");
+    customTitleBar->setStyleSheet(R"(
+        #titleBar {
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                        stop:0 #1e90ff, stop:1 #00bbcf);
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+    )");
+
+    QHBoxLayout *titleLayout = new QHBoxLayout(customTitleBar);
+    titleLayout->setContentsMargins(20, 0, 6, 0);
+    titleLayout->setSpacing(15);
+    setWindowFlags(windowFlags() | Qt::CustomizeWindowHint);
+
+    // 左侧：图标和标题
+    QLabel *iconLabel = new QLabel();
+    iconLabel->setPixmap(QPixmap(":/icons/img/logo.png").scaled(48, 48, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+
+    titleLabel = new QLabel("校园二手商品智能交易系统");
+    titleLabel->setStyleSheet(R"(
+        QLabel {
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            padding-left: 10px;
+        }
+    )");
+
+    // 中间：标签页按钮
+    QWidget *tabButtonsWidget = new QWidget();
+    QHBoxLayout *tabButtonsLayout = new QHBoxLayout(tabButtonsWidget);
+    tabButtonsLayout->setContentsMargins(30, 0, 0, 0);
+    tabButtonsLayout->setSpacing(5);
+
+    // 创建标签按钮
+    QStringList tabNames = {"首页", "发布商品", "消息", "我的订单", "个人中心"};
+    QStringList tabIcons = {":/icons/img/home.png", ":/icons/img/publish.png",
+                            ":/icons/img/message.png", ":/icons/img/order.png",
+                            ":/icons/img/person.png"};
+
+    QList<QPushButton*> tabButtons;
+    for (int i = 0; i < tabNames.size(); ++i) {
+        QPushButton *tabBtn = new QPushButton(tabNames[i]);
+        tabBtn->setObjectName("tabButton");
+        tabBtn->setCheckable(true);
+        tabBtn->setIcon(QIcon(tabIcons[i]));
+        tabBtn->setIconSize(QSize(20, 20));
+        tabBtn->setFixedSize(110, 36);
+
+        tabButtons.append(tabBtn);
+        tabButtonsLayout->addWidget(tabBtn);
+    }
+    // 设置第一个按钮为选中状态
+    if (!tabButtons.isEmpty()) {
+        tabButtons[0]->setChecked(true);
+    }
+
+    // 连接标签页切换信号，更新按钮状态
+    for (int i = 0; i < tabButtons.size(); ++i) {
+        connect(tabButtons[i], &QPushButton::clicked, this, [this, i, tabButtons]() {
+            // 先更新所有按钮状态
+            for (int j = 0; j < tabButtons.size(); ++j) {
+                tabButtons[j]->setChecked(j == i);
+            }
+            // 然后切换标签页
+            mainTabWidget->setCurrentIndex(i);
+        });
+    }
+
+    tabButtonsLayout->addStretch();
+
+    // 右侧：窗口控制按钮
+    QWidget *windowControls = new QWidget();
+    QHBoxLayout *controlsLayout = new QHBoxLayout(windowControls);
+    controlsLayout->setContentsMargins(0, 0, 0, 0);
+    controlsLayout->setSpacing(5);
+
+    minimizeBtn = new QPushButton("－");
+    minimizeBtn->setObjectName("minimizeBtn");
+    minimizeBtn->setFixedSize(40, 40);
+    minimizeBtn->setToolTip("最小化");
+
+    maximizeBtn = new QPushButton("□");
+    maximizeBtn->setObjectName("maximizeBtn");
+    maximizeBtn->setFixedSize(40, 40);
+    maximizeBtn->setToolTip("最大化");
+
+    closeBtn = new QPushButton("×");
+    closeBtn->setObjectName("closeBtn");
+    closeBtn->setFixedSize(40, 40);
+    closeBtn->setToolTip("关闭");
+
+    controlsLayout->addWidget(minimizeBtn);
+    controlsLayout->addWidget(maximizeBtn);
+    controlsLayout->addWidget(closeBtn);
+
+    // 连接窗口控制按钮信号
+    connect(minimizeBtn, &QPushButton::clicked, this, &QMainWindow::showMinimized);
+    connect(maximizeBtn, &QPushButton::clicked, this, [this]() {
+        if (isMaximized()) {
+            showNormal();
+            maximizeBtn->setText("□");
+        } else {
+            showMaximized();
+            maximizeBtn->setText("❐");
+        }
+    });
+    connect(closeBtn, &QPushButton::clicked, this, &QMainWindow::close);
+
+    // 添加所有部件到标题栏布局
+    titleLayout->addWidget(iconLabel);
+    titleLayout->addWidget(titleLabel);
+    titleLayout->addWidget(tabButtonsWidget, 1);  // 标签按钮占用剩余空间
+    titleLayout->addWidget(windowControls);
+
+    // 设置标签按钮样式
+    QString tabButtonStyle = R"(
+        QPushButton#tabButton {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        QPushButton#tabButton:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        QPushButton#tabButton:checked {
+            background-color: white;
+            color: #1e90ff;
+        }
+        QPushButton#tabButton:checked:hover {
+            background-color: #f0f8ff;
+        }
+    )";
+
+    QString windowButtonStyle = R"(
+        QPushButton#minimizeBtn, QPushButton#maximizeBtn, QPushButton#closeBtn {
+            background-color: transparent;
+            border: none;
+            border-radius: 0;
+            padding: 0;
+            margin: 0;
+            min-width: 32px;
+            min-height: 32px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        QPushButton#minimizeBtn:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+
+        QPushButton#maximizeBtn:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+
+        QPushButton#closeBtn:hover {
+            background-color: #ff3b30;
+            color: white;
+            border-radius: 4px;
+        }
+
+        QPushButton#closeBtn:pressed {
+            background-color: #d70015;
+        }
+
+        QPushButton#minimizeBtn:pressed, QPushButton#maximizeBtn:pressed {
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+    )";
+
+    customTitleBar->setStyleSheet(customTitleBar->styleSheet() + tabButtonStyle + windowButtonStyle);
+}
+
+// 鼠标按下事件 - 用于窗口拖拽
+void MainWindow::mousePressEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        // 将鼠标位置转换为标题栏的局部坐标
+        QPoint titleBarPos = customTitleBar->mapFromParent(event->pos());
+
+        // 检查是否在标题栏区域内点击
+        if (customTitleBar->rect().contains(titleBarPos)) {
+            isDragging = true;
+            dragStartPosition = event->globalPosition().toPoint() - frameGeometry().topLeft();
+            event->accept();
+        }
+    }
+}
+
+// 鼠标移动事件 - 实现窗口拖拽
+void MainWindow::mouseMoveEvent(QMouseEvent *event) {
+    if (isDragging && (event->buttons() & Qt::LeftButton)) {
+        QPoint targetPos = event->globalPosition().toPoint() - dragStartPosition;
+
+        // 获取当前屏幕
+        QScreen *screen = QApplication::screenAt(targetPos);
+        if (!screen) {
+            screen = QApplication::primaryScreen();
+        }
+
+        QRect screenRect = screen->availableGeometry();
+        QSize windowSize = size();
+
+        // 限制窗口在屏幕内
+        targetPos.setX(qMax(screenRect.left(),
+                            qMin(targetPos.x(),
+                                 screenRect.right() - windowSize.width())));
+        targetPos.setY(qMax(screenRect.top(),
+                            qMin(targetPos.y(),
+                                 screenRect.bottom() - windowSize.height())));
+
+        move(targetPos);
+        event->accept();
+        return;
+    }
+    QMainWindow::mouseMoveEvent(event);
+}
+
+// 鼠标释放事件
+void MainWindow::mouseReleaseEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        isDragging = false;
+        event->accept();
+    }
 }
 
 QWidget* MainWindow::createHomePage() {
@@ -1183,8 +1465,6 @@ void MainWindow::loadMockData() {
 void MainWindow::onCategoryClicked(QListWidgetItem* item) {
     QString category = item->text();
     welcomeLabel->setText(QString("当前分类: %1").arg(category));
-    // 这里应该根据分类筛选商品
-    QMessageBox::information(this, "提示", QString("筛选分类: %1").arg(category));
 }
 
 void MainWindow::onSearchClicked() {

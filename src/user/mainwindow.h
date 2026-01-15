@@ -15,7 +15,9 @@
 #include <QTreeWidget>
 #include <QTextEdit>
 #include <QFormLayout>
+#include <QMouseEvent>
 #include <QStatusBar>
+#include <QApplication>
 
 // 前向声明
 class GoodsDetailDialog;
@@ -31,8 +33,13 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
+protected:
+    void mousePressEvent(QMouseEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
 
 private slots:
     void onCategoryClicked(QListWidgetItem* item);
@@ -65,6 +72,7 @@ private:
     void setupUI();
     void loadMockData();
 
+    void setupCustomTitleBar();
     QWidget* createHomePage();
     QWidget* createPublishPage();
     QWidget* createUserCenterPage();
@@ -119,6 +127,17 @@ private:
 
     // 工具栏
     QToolBar *mainToolBar;
+
+    // 自定义标题栏控件
+    QWidget *customTitleBar;
+    QLabel *titleLabel;
+    QPushButton *minimizeBtn;
+    QPushButton *maximizeBtn;
+    QPushButton *closeBtn;
+
+    // 用于窗口拖拽
+    bool isDragging;
+    QPoint dragStartPosition;
 
     CreditScoreDialog *creditScoreDialog = nullptr;  // 信用分对话框
     ReportSubmitDialog *reportDialog = nullptr;
