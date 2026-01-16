@@ -42,6 +42,16 @@ set(PROJECT_SOURCES
     src/user/creditscoredialog.cpp
     src/user/reportsubmitdialog.h
     src/user/reportsubmitdialog.cpp
+    src/user/homepage.h
+    src/user/homepage.cpp
+    src/user/publishpage.h
+    src/user/publishpage.cpp
+    src/user/usercenterpage.h
+    src/user/usercenterpage.cpp
+    src/user/messagespage.h
+    src/user/messagespage.cpp
+    src/user/orderspage.h
+    src/user/orderspage.cpp
 
     src/admin/adminmainwindow.h
     src/admin/adminmainwindow.cpp
