@@ -1,11 +1,9 @@
-#include "PublishPage.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QLabel>
-#include <QPushButton>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QGraphicsDropShadowEffect>
+#include "PublishPage.h"
 
 PublishPage::PublishPage(QWidget *parent) : QWidget(parent) {
     setupUI();
@@ -16,8 +14,46 @@ void PublishPage::setupUI() {
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(20);
 
+    QWidget *titleWidget = new QWidget(); // 标题容器，方便统一控制
+    QHBoxLayout *titleLayout = new QHBoxLayout(titleWidget);
+    titleLayout->setContentsMargins(0, 0, 0, 0); // 底部间距，与表单拉开距离
+    titleLayout->setAlignment(Qt::AlignCenter); // 标题居中
+
     QLabel *titleLabel = new QLabel("发布新商品");
-    titleLabel->setStyleSheet("font-size: 24px; font-weight: bold; color: #2c3e50;");
+    // 基础字体样式
+    QFont titleFont;
+    titleFont.setFamily("Microsoft YaHei"); // 适配中文的字体
+    titleFont.setPointSize(16);
+    titleFont.setWeight(QFont::Bold);
+    titleLabel->setFont(titleFont);
+    titleLabel->setStyleSheet(R"(
+        QLabel {
+            color: #2c3e50;
+            letter-spacing: 2px; /* 字间距，更舒展 */
+            padding: 4px 0; /* 上下内边距，增加点击/视觉区域 */
+        }
+    )");
+
+    // 添加文字阴影，提升层次感
+    QGraphicsDropShadowEffect *shadowEffect = new QGraphicsDropShadowEffect(this);
+    shadowEffect->setColor(QColor(0, 0, 0, 20)); // 半透明阴影，不刺眼
+    shadowEffect->setOffset(0, 2); // 阴影偏移（x,y）
+    shadowEffect->setBlurRadius(5); // 阴影模糊度
+    titleLabel->setGraphicsEffect(shadowEffect);
+
+    // 底部装饰线（单独的Label实现）
+    QLabel *titleLine = new QLabel();
+    titleLine->setFixedSize(120, 3); // 装饰线尺寸
+    titleLine->setStyleSheet("background-color: #3498db; border-radius: 1.5px;"); // 与提交按钮同色系，视觉统一
+
+    // 标题布局：标题 + 底部装饰线（垂直布局）
+    QVBoxLayout *titleContentLayout = new QVBoxLayout();
+    titleContentLayout->setSpacing(4); // 标题与装饰线的间距
+    titleContentLayout->setAlignment(Qt::AlignCenter);
+    titleContentLayout->addWidget(titleLabel);
+    titleContentLayout->addWidget(titleLine, 0, Qt::AlignCenter); // 装饰线居中
+
+    titleLayout->addLayout(titleContentLayout);
 
     // 表单容器
     QWidget *formContainer = new QWidget();
@@ -30,7 +66,7 @@ void PublishPage::setupUI() {
     nameLayout->setContentsMargins(0, 0, 0, 0);
 
     QLabel *nameLabel = new QLabel("商品名称:");
-    nameLabel->setFixedWidth(100);
+    nameLabel->setFixedWidth(70);
     goodsNameEdit = new QLineEdit();
     goodsNameEdit->setPlaceholderText("请输入商品名称（最多50字）");
 
@@ -43,7 +79,7 @@ void PublishPage::setupUI() {
     categoryLayout->setContentsMargins(0, 0, 0, 0);
 
     QLabel *categoryLabel = new QLabel("商品分类:");
-    categoryLabel->setFixedWidth(100);
+    categoryLabel->setFixedWidth(70);
     goodsCategoryCombo = new QComboBox();
     goodsCategoryCombo->addItems({"书籍教材", "电子产品", "服饰鞋包", "生活用品",
                                   "体育器材", "学习工具", "美妆个护", "其他"});
@@ -57,7 +93,7 @@ void PublishPage::setupUI() {
     priceLayout->setContentsMargins(0, 0, 0, 0);
 
     QLabel *priceLabel = new QLabel("期望价格:");
-    priceLabel->setFixedWidth(100);
+    priceLabel->setFixedWidth(70);
     goodsPriceEdit = new QLineEdit();
     goodsPriceEdit->setPlaceholderText("单位：元");
 
@@ -72,6 +108,7 @@ void PublishPage::setupUI() {
     QWidget *descRow = new QWidget();
     QVBoxLayout *descLayout = new QVBoxLayout(descRow);
     descLayout->setContentsMargins(0, 0, 0, 0);
+    descLayout->setSpacing(12);
 
     QLabel *descLabel = new QLabel("商品描述:");
     goodsDescEdit = new QTextEdit();
@@ -122,7 +159,7 @@ void PublishPage::setupUI() {
     formLayout->addWidget(submitBtn);
 
     // 添加到主布局
-    mainLayout->addWidget(titleLabel);
+    mainLayout->addWidget(titleWidget);
     mainLayout->addWidget(formContainer);
     mainLayout->addStretch();
 
