@@ -368,7 +368,7 @@ void MainWindow::setupUI() {
             font-size: 22px;
             font-weight: 700;
             color: #1e293b;
-            padding: 10px 5px;
+            padding: 2px 5px;
             background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
         }
 

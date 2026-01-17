@@ -3,6 +3,8 @@
 #include <QHeaderView>
 #include <QDateTime>
 #include <QMessageBox>
+#include <QScrollArea>
+#include <QMouseEvent>
 #include "HomePage.h"
 
 HomePage::HomePage(QWidget *parent) : QWidget(parent) {
@@ -72,30 +74,51 @@ void HomePage::setupUI() {
     categoryLayout->addWidget(categoryTitle);
     categoryLayout->addWidget(categoryList, 1);
 
-    // 右侧商品表格区域
+    // 右侧商品网格区域
     QWidget *goodsWidget = new QWidget();
     goodsWidget->setObjectName("goodsWidget");
     QVBoxLayout *goodsLayout = new QVBoxLayout(goodsWidget);
     goodsLayout->setContentsMargins(0, 0, 0, 0);
 
-    goodsTable = new QTableWidget(0, 5);
-    goodsTable->setObjectName("goodsTable");
-    QStringList headers = {"商品图片", "名称", "价格", "发布时间", "状态"};
-    goodsTable->setHorizontalHeaderLabels(headers);
-    goodsTable->verticalHeader()->setVisible(false);
-    goodsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    goodsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    goodsTable->setAlternatingRowColors(true);
-    goodsTable->setShowGrid(false);
+    // 创建滚动区域用于商品网格
+    QScrollArea *scrollArea = new QScrollArea();
+    scrollArea->setObjectName("goodsScrollArea");
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setStyleSheet(R"(
+        QScrollArea {
+            border: 2px solid #f5f5f5;
+            background-color: white;
+        }
+        QScrollBar:vertical {
+            border: none;
+            background: #f1f5f9;
+            width: 8px;
+            border-radius: 4px;
+        }
+        QScrollBar::handle:vertical {
+            background: #cbd5e1;
+            border-radius: 4px;
+            min-height: 20px;
+        }
+        QScrollBar::handle:vertical:hover {
+            background: #94a3b8;
+        }
+    )");
 
-    // 设置列宽
-    goodsTable->setColumnWidth(0, 90);
-    goodsTable->setColumnWidth(1, 250);
-    goodsTable->setColumnWidth(2, 110);
-    goodsTable->setColumnWidth(3, 150);
-    goodsTable->horizontalHeader()->setStretchLastSection(true);
+    // 网格容器
+    goodsGridContainer = new QWidget();
+    goodsGridContainer->setObjectName("goodsGridContainer");
+    goodsGridContainer->setStyleSheet("#goodsGridContainer{background-color: #f3f4f6;}");
+    goodsGridLayout = new QGridLayout(goodsGridContainer);
+    goodsGridLayout->setContentsMargins(0, 0, 0, 0);
+    goodsGridLayout->setSpacing(3);
+    goodsGridLayout->setAlignment(Qt::AlignTop);
 
-    goodsLayout->addWidget(goodsTable, 1);
+    scrollArea->setWidget(goodsGridContainer);
+
+    goodsLayout->addWidget(scrollArea, 1);
 
     // 添加到内容区
     contentLayout->addWidget(categoryWidget);
@@ -109,54 +132,187 @@ void HomePage::setupUI() {
     // 连接信号槽
     connect(categoryList, &QListWidget::itemClicked, this, &HomePage::onCategoryClicked);
     connect(searchBtn, &QPushButton::clicked, this, &HomePage::onSearchClicked);
-    connect(goodsTable, &QTableWidget::cellDoubleClicked, this, &HomePage::onShowGoodsDetail);
 }
 
 void HomePage::loadMockData() {
-    // 模拟数据加载实现...
-    goodsTable->setRowCount(0);
+    // 清空现有商品
+    QLayoutItem* child;
+    while ((child = goodsGridLayout->takeAt(0)) != nullptr) {
+        delete child->widget();
+        delete child;
+    }
 
     QStringList goodsNames = {
         "二手iPhone 12 128GB", "大学物理教材", "篮球鞋 Nike Air",
-        "笔记本电脑戴尔", "英语四级词汇书", "小米手环6", "吉他雅马哈", "考研数学复习全书"
+        "笔记本电脑戴尔", "英语四级词汇书", "小米手环6", "吉他雅马哈", "考研数学复习全书",
+        "无线蓝牙耳机", "冬季羽绒服", "二手iPad Air", "Java编程思想",
+        "电竞游戏鼠标", "Office 365激活码", "尤克里里小吉他", "戴尔显示器"
     };
 
-    QStringList prices = {"2500", "35", "280", "3200", "15", "150", "800", "40"};
+    QStringList prices = {"2500", "35", "280", "3200", "15", "150", "800", "40",
+                          "120", "380", "1800", "78", "89", "25", "350", "600"};
+
+    QStringList categories = {"电子产品", "书籍教材", "服饰鞋包", "电子产品",
+                              "书籍教材", "电子产品", "其他", "书籍教材",
+                              "电子产品", "服饰鞋包", "电子产品", "书籍教材",
+                              "电子产品", "其他", "其他", "电子产品"};
+
+    // 列数（根据窗口大小调整，这里固定为4列）
+    int columns = 4;
 
     for (int i = 0; i < goodsNames.size(); i++) {
-        int row = goodsTable->rowCount();
-        goodsTable->insertRow(row);
-        goodsTable->setRowHeight(row, 90);
+        // 创建商品卡片
+        QWidget *goodsCard = createGoodsCard(
+            i + 1000, // 商品ID
+            goodsNames[i],
+            prices[i],
+            categories[i],
+            (i % 3 == 0) ? "待售" : (i % 3 == 1) ? "交易中" : "已售出"
+            );
 
-        // 商品图片
-        QLabel *imageLabel = new QLabel();
-        imageLabel->setPixmap(QPixmap(":/icons/img/buy.png").scaled(80, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        imageLabel->setAlignment(Qt::AlignCenter);
-        goodsTable->setCellWidget(row, 0, imageLabel);
+        // 计算行和列
+        int row = i / columns;
+        int col = i % columns;
 
-        // 商品名称
-        QTableWidgetItem *nameItem = new QTableWidgetItem(goodsNames[i]);
-        nameItem->setData(Qt::UserRole, i + 1000); // 模拟商品ID
-        goodsTable->setItem(row, 1, nameItem);
-
-        // 价格
-        goodsTable->setItem(row, 2, new QTableWidgetItem(QString("¥%1").arg(prices[i])));
-
-        // 发布时间
-        goodsTable->setItem(row, 3, new QTableWidgetItem(
-                                        QDateTime::currentDateTime().addDays(-i).toString("yyyy-MM-dd hh:mm")));
-
-        // 状态
-        QString status = (i % 3 == 0) ? "待售" : (i % 3 == 1) ? "交易中" : "已售出";
-        QTableWidgetItem *statusItem = new QTableWidgetItem(status);
-        goodsTable->setItem(row, 4, statusItem);
+        goodsGridLayout->addWidget(goodsCard, row, col);
     }
+}
+
+QWidget* HomePage::createGoodsCard(int goodsId, const QString& name,
+                                   const QString& price, const QString& category,
+                                   const QString& status) {
+    QWidget *card = new QWidget();
+    card->setObjectName("goodsCard");
+    card->setFixedSize(233, 282);
+    card->setCursor(Qt::PointingHandCursor);
+
+    QVBoxLayout *cardLayout = new QVBoxLayout(card);
+    cardLayout->setContentsMargins(12, 12, 12, 12);
+    cardLayout->setSpacing(10);
+
+    // 商品图片区域
+    QWidget *imageContainer = new QWidget();
+    imageContainer->setObjectName("imageContainer");
+    imageContainer->setFixedHeight(160);
+    QVBoxLayout *imageLayout = new QVBoxLayout(imageContainer);
+    imageLayout->setContentsMargins(0, 0, 0, 0);
+
+    QLabel *imageLabel = new QLabel();
+    imageLabel->setAlignment(Qt::AlignCenter);
+
+    // 根据类别选择不同的占位图
+    QString iconPath = ":/icons/img/buy.png"; // 默认图标
+
+    imageLabel->setPixmap(QPixmap(iconPath).scaled(100, 100, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    imageLayout->addWidget(imageLabel);
+
+    // 商品信息区域
+    QWidget *infoWidget = new QWidget();
+    QVBoxLayout *infoLayout = new QVBoxLayout(infoWidget);
+    infoLayout->setContentsMargins(0, 0, 0, 0);
+    infoLayout->setSpacing(6);
+
+    // 商品名称
+    QLabel *nameLabel = new QLabel(name);
+    nameLabel->setObjectName("goodsName");
+    nameLabel->setWordWrap(true);
+    nameLabel->setMaximumHeight(40);
+
+    // 商品价格
+    QLabel *priceLabel = new QLabel(QString("¥%1").arg(price));
+    priceLabel->setObjectName("goodsPrice");
+
+    // 状态标签
+    QLabel *statusLabel = new QLabel(status);
+    statusLabel->setObjectName("goodsStatus");
+    statusLabel->setAlignment(Qt::AlignCenter);
+    statusLabel->setFixedHeight(22);
+
+    // 设置状态颜色
+    QString statusStyle;
+    if (status == "待售") {
+        statusStyle = "color: #10B981; background-color: #D1FAE5;";
+    } else if (status == "交易中") {
+        statusStyle = "color: #F59E0B; background-color: #FEF3C7;";
+    } else {
+        statusStyle = "color: #6B7280; background-color: #F3F4F6;";
+    }
+    statusLabel->setStyleSheet(QString("border-radius: 4px; font-size: 11px; %1").arg(statusStyle));
+
+    infoLayout->addWidget(nameLabel);
+    infoLayout->addWidget(priceLabel);
+    infoLayout->addWidget(statusLabel);
+
+    cardLayout->addWidget(imageContainer);
+    cardLayout->addWidget(infoWidget);
+
+    // 存储商品ID
+    card->setProperty("goodsId", goodsId);
+
+    // 连接点击事件
+    connect(card, &QWidget::customContextMenuRequested, [this, card]() {
+        int goodsId = card->property("goodsId").toInt();
+        emit goodsDetailRequested(goodsId);
+    });
+
+    // 使用事件过滤器处理点击事件
+    card->installEventFilter(this);
+
+    // 设置卡片样式
+    card->setStyleSheet(R"(
+        #goodsCard {
+            background-color: white;
+            border-radius: 12px;
+            border: 1px solid #E5E7EB;
+        }
+        #goodsCard:hover {
+            border-color: #3B82F6;
+        }
+        #imageContainer {
+            background-color: #F9FAFB;
+            border-radius: 8px;
+        }
+        #goodsName {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1F2937;
+            line-height: 1.3;
+        }
+        #goodsPrice {
+            font-size: 18px;
+            font-weight: bold;
+            color: #3B82F6;
+        }
+    )");
+
+    return card;
+}
+
+bool HomePage::eventFilter(QObject *watched, QEvent *event) {
+    if (event->type() == QEvent::MouseButtonPress) {
+        QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
+        if (mouseEvent->button() == Qt::LeftButton) {
+            QWidget *widget = qobject_cast<QWidget*>(watched);
+            if (widget && widget->objectName() == "goodsCard") {
+                int goodsId = widget->property("goodsId").toInt();
+                emit goodsDetailRequested(goodsId);
+                return true;
+            }
+        }
+    }
+    return QWidget::eventFilter(watched, event);
 }
 
 void HomePage::onCategoryClicked(QListWidgetItem* item) {
     QString category = item->text();
+    // 移除emoji图标
+    category = category.mid(category.indexOf(" ") + 1);
     welcomeLabel->setText(QString("当前分类: %1").arg(category));
     emit categoryChanged(category);
+
+    // 这里应该根据分类筛选商品
+    // 暂时用模拟数据
+    loadMockData();
 }
 
 void HomePage::onSearchClicked() {
@@ -166,14 +322,8 @@ void HomePage::onSearchClicked() {
         return;
     }
     emit searchRequested(keyword);
-}
 
-void HomePage::onShowGoodsDetail(int row, int column) {
-    if (row < 0 || column < 0) return;
-
-    QTableWidgetItem *nameItem = goodsTable->item(row, 1);
-    if (!nameItem) return;
-
-    int goodsId = nameItem->data(Qt::UserRole).toInt();
-    emit goodsDetailRequested(goodsId);
+    // 这里应该执行搜索逻辑
+    // 暂时用模拟数据
+    loadMockData();
 }

@@ -2,12 +2,12 @@
 #define HOMEPAGE_H
 
 #include <QWidget>
-#include <QTableWidget>
 #include <QListWidget>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QComboBox>
 #include <QLabel>
+#include <QGridLayout>
 
 class HomePage : public QWidget {
     Q_OBJECT
@@ -16,10 +16,12 @@ public:
     explicit HomePage(QWidget *parent = nullptr);
     void loadMockData();
 
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 private slots:
     void onCategoryClicked(QListWidgetItem* item);
     void onSearchClicked();
-    void onShowGoodsDetail(int row, int column);
 
 signals:
     void goodsDetailRequested(int goodsId);
@@ -32,13 +34,19 @@ signals:
 
 private:
     void setupUI();
+    QWidget* createGoodsCard(int goodsId, const QString& name,
+                             const QString& price, const QString& category,
+                             const QString& status);
 
     QListWidget *categoryList;
-    QTableWidget *goodsTable;
     QLineEdit *searchEdit;
     QPushButton *searchBtn;
     QComboBox *sortCombo;
     QLabel *welcomeLabel;
+
+    // 网格布局相关
+    QWidget *goodsGridContainer;
+    QGridLayout *goodsGridLayout;
 };
 
 #endif // HOMEPAGE_H
