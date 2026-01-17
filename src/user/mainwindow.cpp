@@ -1,6 +1,5 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QHeaderView>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QApplication>
@@ -111,9 +110,6 @@ void MainWindow::setupUI() {
                                          "• 商品: " + goodsName + "\n"
                                                            "• 状态: 待支付\n\n"
                                                            "请及时联系卖家完成交易。");
-
-                // 跳转到订单页面
-                mainTabWidget->setCurrentIndex(3); // 订单页索引
             }
         });
 
@@ -179,8 +175,6 @@ void MainWindow::setupUI() {
         // 1. 将商品信息保存到数据库
         // 2. 刷新首页的商品列表
         // 3. 可能跳转到首页
-        mainTabWidget->setCurrentIndex(0); // 跳转到首页
-        homePage->loadMockData(); // 刷新首页数据
     });
 
     // 连接MessagesPage信号
@@ -197,8 +191,6 @@ void MainWindow::setupUI() {
     connect(ordersPage, &OrdersPage::paymentRequested, this, &MainWindow::onShowPayment);
     connect(ordersPage, &OrdersPage::reviewRequested, this, &MainWindow::onShowReview);
     connect(ordersPage, &OrdersPage::disputeRequested, this, &MainWindow::onShowDisputeSubmit);
-    connect(ordersPage, &OrdersPage::cancelOrderRequested, this, &MainWindow::onCancelOrder);
-    connect(ordersPage, &OrdersPage::confirmReceiptRequested, this, &MainWindow::onConfirmReceipt);
     connect(ordersPage, &OrdersPage::exportOrdersRequested, this, [this]() {
         QMessageBox::information(this, "导出订单", "订单导出功能开发中...");
         // 实际应该导出订单数据
@@ -416,56 +408,6 @@ void MainWindow::setupUI() {
             font-weight: 500;
             border-left: 3px solid #3b82f6;
             outline: none;
-        }
-
-        /* 商品区域样式 */
-        #goodsWidget {
-            background-color: white;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            padding: 20px;
-        }
-
-        /* 商品表格样式 */
-        #goodsTable {
-            background-color: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            gridline-color: transparent;
-            alternate-background-color: #f8fafc;
-            font-size: 13px;
-            outline: none;
-        }
-
-        #goodsTable::item {
-            padding: 12px 8px;
-            border-bottom: 1px solid #f1f5f9;
-            outline: none;
-        }
-
-        #goodsTable::item:selected {
-            background-color: #eff6ff;
-            color: #1e293b;
-            border-radius: 4px;
-            outline: none;
-        }
-
-        QHeaderView::section {
-            background-color: #f8fafc;
-            padding: 14px 8px;
-            border: none;
-            border-bottom: 2px solid #e2e8f0;
-            font-weight: 600;
-            color: #475569;
-            font-size: 13px;
-        }
-
-        QHeaderView::section:first {
-            border-top-left-radius: 8px;
-        }
-
-        QHeaderView::section:last {
-            border-top-right-radius: 8px;
         }
 
         /* 滚动条美化 */
@@ -771,22 +713,22 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event) {
     if (isDragging && (event->buttons() & Qt::LeftButton)) {
         QPoint targetPos = event->globalPosition().toPoint() - dragStartPosition;
 
-        // 获取当前屏幕
-        QScreen *screen = QApplication::screenAt(targetPos);
-        if (!screen) {
-            screen = QApplication::primaryScreen();
-        }
+        // // 获取当前屏幕
+        // QScreen *screen = QApplication::screenAt(targetPos);
+        // if (!screen) {
+        //     screen = QApplication::primaryScreen();
+        // }
 
-        QRect screenRect = screen->availableGeometry();
-        QSize windowSize = size();
+        // QRect screenRect = screen->availableGeometry();
+        // QSize windowSize = size();
 
-        // 限制窗口在屏幕内
-        targetPos.setX(qMax(screenRect.left(),
-                            qMin(targetPos.x(),
-                                 screenRect.right() - windowSize.width())));
-        targetPos.setY(qMax(screenRect.top(),
-                            qMin(targetPos.y(),
-                                 screenRect.bottom() - windowSize.height())));
+        // // 限制窗口在屏幕内
+        // targetPos.setX(qMax(screenRect.left(),
+        //                     qMin(targetPos.x(),
+        //                          screenRect.right() - windowSize.width())));
+        // targetPos.setY(qMax(screenRect.top(),
+        //                     qMin(targetPos.y(),
+        //                          screenRect.bottom() - windowSize.height())));
 
         move(targetPos);
         event->accept();
@@ -944,34 +886,6 @@ void MainWindow::onReportSubmitted(int targetId, QString targetType) {
                                      "管理员将在24小时内处理。\n"
                                      "处理结果将通过系统消息通知您。")
                                  .arg(typeName).arg(targetId));
-}
-
-// 取消订单函数
-void MainWindow::onCancelOrder(int orderId) {
-    QMessageBox::StandardButton reply = QMessageBox::question(
-        this, "确认取消",
-        QString("确定要取消订单 #%1 吗？").arg(orderId),
-        QMessageBox::Yes | QMessageBox::No
-        );
-
-    if (reply == QMessageBox::Yes) {
-        // 这里应该更新数据库中的订单状态
-        QMessageBox::information(this, "取消成功", "订单已取消");
-    }
-}
-
-// 确认收货函数
-void MainWindow::onConfirmReceipt(int orderId) {
-    QMessageBox::StandardButton reply = QMessageBox::question(
-        this, "确认收货",
-        QString("确认已收到订单 #%1 的商品吗？\n\n"
-                "确认后订单将变为【已完成】状态。").arg(orderId),
-        QMessageBox::Yes | QMessageBox::No
-        );
-
-    if (reply == QMessageBox::Yes) {
-        QMessageBox::information(this, "确认成功", "订单状态已更新为【已完成】");
-    }
 }
 
 void MainWindow::onShowDisputeSubmit(int orderId) {

@@ -1,4 +1,3 @@
-#include "MessagesPage.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -6,7 +5,9 @@
 #include <QListWidgetItem>
 #include <QDateTime>
 #include <QScrollBar>
+#include <QFrame>
 #include <QMessageBox>
+#include "MessagesPage.h"
 
 MessagesPage::MessagesPage(QWidget *parent) : QWidget(parent) {
     setupUI();
@@ -21,12 +22,14 @@ void MessagesPage::setupUI() {
     // 左侧聊天列表
     QWidget *chatListWidget = new QWidget();
     chatListWidget->setFixedWidth(250);
+    chatListWidget->setStyleSheet("background-color: #f8fafc;");
     QVBoxLayout *listLayout = new QVBoxLayout(chatListWidget);
     listLayout->setContentsMargins(0, 0, 0, 0);
     listLayout->setSpacing(0);
 
     // 列表标题
-    QLabel *listTitle = new QLabel("聊天列表");
+    QLabel *listTitle = new QLabel("💬 聊天列表");
+    listTitle->setFixedHeight(60);
     listTitle->setStyleSheet(R"(
         QLabel {
             font-weight: bold;
@@ -75,6 +78,7 @@ void MessagesPage::setupUI() {
 
     // 右侧聊天区域
     QWidget *chatAreaWidget = new QWidget();
+     chatAreaWidget->setStyleSheet("background-color: #f8fafc;");
     QVBoxLayout *chatLayout = new QVBoxLayout(chatAreaWidget);
     chatLayout->setContentsMargins(0, 0, 0, 0);
     chatLayout->setSpacing(0);
@@ -101,6 +105,23 @@ void MessagesPage::setupUI() {
     reportBtn->setObjectName("warningBtn");
     reportBtn->setFixedSize(70, 30);
     reportBtn->setEnabled(false);
+    reportBtn->setStyleSheet(R"(
+        QPushButton {
+            background-color: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        QPushButton:hover {
+            background-color: #fee2e2;
+            border-color: #fca5a5;
+        }
+        QPushButton:pressed {
+            background-color: #fecaca;
+        }
+    )");
 
     headerLayout->addWidget(currentChatLabel);
     headerLayout->addStretch();
@@ -113,17 +134,24 @@ void MessagesPage::setupUI() {
         QTextEdit {
             border: none;
             background-color: white;
-            padding: 20px;
             font-size: 14px;
             color: #334155;
+            border-radius: 0 0 12px 0;
+            padding: 20px;
         }
     )");
 
-    chatArea->setText("选择一个聊天开始对话");
+    chatArea->setText(R"(
+        <div style="text-align: center; padding: 60px 20px; color: #94a3b8; font-size: 15px;">
+            <div style="font-size: 48px; margin-bottom: 15px;">💬</div>
+            <div style="font-weight: 500; color: #64748b; margin-bottom: 8px;">选择一个聊天开始对话</div>
+            <div style="color: #94a3b8; font-size: 13px;">与对方进行安全、便捷的沟通</div>
+        </div>
+    )");
 
     // 消息输入区域
     QWidget *inputWidget = new QWidget();
-    inputWidget->setMinimumHeight(120);
+    inputWidget->setMinimumHeight(130);
     inputWidget->setStyleSheet("background-color: #F8FAFC; border-top: 1px solid #E2E8F0;");
 
     QVBoxLayout *inputLayout = new QVBoxLayout(inputWidget);
@@ -150,15 +178,55 @@ void MessagesPage::setupUI() {
     QHBoxLayout *btnLayout = new QHBoxLayout();
     btnLayout->setContentsMargins(0, 10, 0, 0);
 
-    QPushButton *fileBtn = new QPushButton("📎 文件");
+    QPushButton *fileBtn = new QPushButton("文件");
     fileBtn->setObjectName("secondaryBtn");
     fileBtn->setFixedSize(80, 30);
     fileBtn->setEnabled(false);
+    fileBtn->setToolTip("发送文件");
 
     QPushButton *sendBtn = new QPushButton("发送");
     sendBtn->setObjectName("primaryBtn");
     sendBtn->setFixedSize(80, 30);
     sendBtn->setEnabled(false);
+
+    fileBtn->setStyleSheet(R"(
+        QPushButton {
+            background-color: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        QPushButton:hover {
+            background-color: #e2e8f0;
+            border-color: #cbd5e1;
+        }
+        QPushButton:pressed {
+            background-color: #cbd5e1;
+        }
+    )");
+
+    sendBtn->setStyleSheet(R"(
+        QPushButton {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        QPushButton:hover {
+            background-color: #2563eb;
+        }
+        QPushButton:pressed {
+            background-color: #1d4ed8;
+        }
+        QPushButton:disabled {
+            background-color: #cbd5e1;
+            color: #94a3b8;
+        }
+    )");
 
     btnLayout->addWidget(fileBtn);
     btnLayout->addStretch();
@@ -171,7 +239,15 @@ void MessagesPage::setupUI() {
     chatLayout->addWidget(chatArea, 1);
     chatLayout->addWidget(inputWidget);
 
+    QFrame *separator = new QFrame();
+    separator->setFrameShape(QFrame::VLine);  // 设置为垂直线
+    separator->setFrameShadow(QFrame::Sunken);  // 设置阴影效果
+    separator->setLineWidth(1);  // 设置线宽
+    separator->setMidLineWidth(0);  // 设置中线宽度
+    separator->setStyleSheet("background-color: #e2e8f0; border: none;");  // 设置颜色
+
     mainLayout->addWidget(chatListWidget);
+    mainLayout->addWidget(separator);
     mainLayout->addWidget(chatAreaWidget, 1);
 
     // 连接信号槽
@@ -278,9 +354,7 @@ void MessagesPage::onChatItemClicked(QListWidgetItem *item) {
     if (parent) {
         QList<QPushButton*> buttons = parent->findChildren<QPushButton*>();
         for (QPushButton *btn : buttons) {
-            if (btn->text() == "发送") {
-                btn->setEnabled(true);
-            } else if (btn->text() == "文件") {
+            if (btn->text() == "发送"||btn->text() == "文件"||btn->text() == "举报") {
                 btn->setEnabled(true);
             }
         }

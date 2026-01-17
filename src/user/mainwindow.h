@@ -43,14 +43,12 @@ private slots:
     void onShowCreditScore();  // 显示信用分详情
 
     void onReportGoods(int goodsId);      // 举报商品
-     void onReportUser(const QString &userId);    // 举报用户
+    void onReportUser(const QString &userId);    // 举报用户
     void onReportOrder(int orderId);      // 举报订单
     void onReportSubmitted(int targetId, QString targetType); // 举报提交后的处理
 
     void onShowDisputeSubmit(int orderId);  // 显示售后纠纷对话框
     void onDisputeSubmitted(int orderId);   // 纠纷提交后的处理
-    void onCancelOrder(int orderId);  // 取消订单
-    void onConfirmReceipt(int orderId);  // 确认收货
 
 private:
     void setupUI();

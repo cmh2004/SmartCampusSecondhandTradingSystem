@@ -1,4 +1,3 @@
-#include "OrdersPage.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -6,6 +5,7 @@
 #include <QMessageBox>
 #include <QDateTime>
 #include <QTableWidgetItem>
+#include "OrdersPage.h"
 
 OrdersPage::OrdersPage(QWidget *parent) : QWidget(parent) {
     setupUI();
@@ -17,17 +17,7 @@ void OrdersPage::setupUI() {
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(20);
 
-    // 1. 页面标题
-    QLabel *titleLabel = new QLabel("我的订单");
-    titleLabel->setStyleSheet(R"(
-        font-size: 24px;
-        font-weight: bold;
-        color: #1E293B;
-        margin-bottom: 10px;
-    )");
-    mainLayout->addWidget(titleLabel);
-
-    // 2. 订单筛选区域
+    // 订单筛选区域
     QWidget *filterWidget = new QWidget();
     QHBoxLayout *filterLayout = new QHBoxLayout(filterWidget);
     filterLayout->setContentsMargins(0, 0, 0, 0);
@@ -96,7 +86,7 @@ void OrdersPage::setupUI() {
 
     mainLayout->addWidget(filterWidget);
 
-    // 3. 订单表格
+    // 订单表格
     ordersTable = new QTableWidget(0, 7);
     ordersTable->setHorizontalHeaderLabels({"订单号", "商品", "价格", "状态", "下单时间", "卖家", "操作"});
 
@@ -111,7 +101,6 @@ void OrdersPage::setupUI() {
         QTableWidget::item {
             padding: 12px 8px;
             border-bottom: 1px solid #F1F5F9;
-            color: #475569;
             font-size: 13px;
         }
         QTableWidget::item:selected {
@@ -139,10 +128,10 @@ void OrdersPage::setupUI() {
     // 设置列宽
     ordersTable->setColumnWidth(0, 100);  // 订单号
     ordersTable->setColumnWidth(1, 250);  // 商品
-    ordersTable->setColumnWidth(2, 100);  // 价格
-    ordersTable->setColumnWidth(3, 100);  // 状态
+    ordersTable->setColumnWidth(2, 110);  // 价格
+    ordersTable->setColumnWidth(3, 110);  // 状态
     ordersTable->setColumnWidth(4, 150);  // 下单时间
-    ordersTable->setColumnWidth(5, 120);  // 卖家
+    ordersTable->setColumnWidth(5, 130);  // 卖家
     ordersTable->horizontalHeader()->setStretchLastSection(true);  // 操作列自适应
 
     ordersTable->verticalHeader()->setVisible(false);
@@ -152,7 +141,7 @@ void OrdersPage::setupUI() {
 
     mainLayout->addWidget(ordersTable, 1);
 
-    // 4. 底部统计信息
+    // 底部统计信息
     QWidget *statsWidget = new QWidget();
     QHBoxLayout *statsLayout = new QHBoxLayout(statsWidget);
     statsLayout->setContentsMargins(0, 10, 0, 0);
@@ -164,13 +153,13 @@ void OrdersPage::setupUI() {
     statsLayout->addStretch();
 
     exportBtn = new QPushButton("导出订单");
-    exportBtn->setObjectName("secondaryBtn");
+    exportBtn->setObjectName("primaryBtn");
     exportBtn->setFixedSize(100, 30);
     statsLayout->addWidget(exportBtn);
 
     mainLayout->addWidget(statsWidget);
 
-    // 5. 连接信号槽
+    // 连接信号槽
     connect(filterBtn, &QPushButton::clicked, this, &OrdersPage::onFilterOrders);
     connect(refreshBtn, &QPushButton::clicked, this, &OrdersPage::onRefreshOrders);
     connect(exportBtn, &QPushButton::clicked, this, &OrdersPage::exportOrdersRequested);
@@ -258,12 +247,12 @@ void OrdersPage::createActionButtons(int row, const QString &status, int orderId
     QWidget *actionWidget = new QWidget();
     QHBoxLayout *actionLayout = new QHBoxLayout(actionWidget);
     actionLayout->setContentsMargins(5, 2, 5, 2);
-    actionLayout->setSpacing(5);
+    actionLayout->setSpacing(15);
 
     // 按钮样式
     QString buttonStyle = R"(
         QPushButton {
-            padding: 4px 8px;
+            padding: 2px 8px;
             border-radius: 4px;
             font-size: 12px;
             font-weight: 500;
