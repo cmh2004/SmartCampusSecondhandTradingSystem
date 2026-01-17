@@ -41,7 +41,6 @@ void MainWindow::setupUI() {
             background-color: white;
             border-radius: 12px;
             border: 1px solid #d1d5db;
-            outline: 1px solid #cbd5e1;
         }
     )");
 
@@ -225,7 +224,7 @@ void MainWindow::setupUI() {
 
     // 设置主窗口的中心部件
     setCentralWidget(mainWidget);
-    setContentsMargins(1, 1, 1, 1);
+    setContentsMargins(1, 0, 1, 1);
     mainWidget->setContentsMargins(0, 0, 0, 0);
 
     // 设置状态栏
@@ -393,6 +392,7 @@ void MainWindow::setupUI() {
             border: none;
             background-color: transparent;
             font-size: 14px;
+            outline: none;
         }
 
         #categoryList::item {
@@ -401,11 +401,13 @@ void MainWindow::setupUI() {
             margin: 2px 0;
             color: #475569;
             border-left: 3px solid transparent;
+            outline: none;
         }
 
         #categoryList::item:hover {
             background-color: #f8fafc;
             color: #3b82f6;
+            outline: none;
         }
 
         #categoryList::item:selected {
@@ -413,6 +415,7 @@ void MainWindow::setupUI() {
             color: #1d4ed8;
             font-weight: 500;
             border-left: 3px solid #3b82f6;
+            outline: none;
         }
 
         /* 商品区域样式 */
@@ -431,17 +434,20 @@ void MainWindow::setupUI() {
             gridline-color: transparent;
             alternate-background-color: #f8fafc;
             font-size: 13px;
+            outline: none;
         }
 
         #goodsTable::item {
             padding: 12px 8px;
             border-bottom: 1px solid #f1f5f9;
+            outline: none;
         }
 
         #goodsTable::item:selected {
             background-color: #eff6ff;
             color: #1e293b;
             border-radius: 4px;
+            outline: none;
         }
 
         QHeaderView::section {
@@ -522,17 +528,20 @@ void MainWindow::setupUI() {
             border-radius: 8px;
             background-color: white;
             gridline-color: #f1f5f9;
+            outline: none;
         }
 
         QTableWidget::item {
             padding: 12px 8px;
             border-bottom: 1px solid #f1f5f9;
+            outline: none;
         }
 
         QTableWidget::item:selected {
             background-color: #e3f2fd;
             color: #1976d2;
             border-radius: 4px;
+            outline: none;
         }
 
         QHeaderView::section {
@@ -566,8 +575,8 @@ void MainWindow::setupCustomTitleBar() {
         #titleBar {
             background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                                         stop:0 #1e90ff, stop:1 #00bbcf);
-            border-top-left-radius: 12px;
-            border-top-right-radius: 12px;
+            border-top-left-radius: 0px;
+            border-top-right-radius: 0px;
             border-bottom: 1px solid #e2e8f0;
         }
     )");

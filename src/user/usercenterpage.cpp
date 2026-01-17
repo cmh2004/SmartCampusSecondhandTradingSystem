@@ -274,11 +274,13 @@ void UserCenterPage::createMyPublishTab() {
             border: 1px solid #F3F4F6;
             border-radius: 8px;
             background-color: white;
+            outline: none;
         }
         QTableWidget::item {
             padding: 12px 8px;
             border-bottom: 1px solid #F7FAFC;
             color: #4A5568;
+            outline: none;
         }
         QHeaderView::section {
             background-color: #F7FAFC;
@@ -328,20 +330,24 @@ void UserCenterPage::createMyCollectionTab() {
             border: 1px solid #F3F4F6;
             border-radius: 8px;
             background-color: white;
+            outline: none;
         }
         QListWidget::item {
             padding: 15px 20px;
             border-bottom: 1px solid #F7FAFC;
             color: #4A5568;
             font-size: 14px;
+            outline: none;
         }
         QListWidget::item:hover {
             background-color: #F9FAFB;
+            outline: none;
         }
         QListWidget::item:selected {
             background-color: #EBF8FF;
             color: #2B6CB0;
             border: none;
+            outline: none;
         }
     )");
 

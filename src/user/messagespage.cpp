@@ -43,23 +43,28 @@ void MessagesPage::setupUI() {
         QListWidget {
             border: none;
             background-color: white;
+            outline: none;
         }
         QListWidget::item {
             padding: 12px 15px;
             border-bottom: 1px solid #F1F5F9;
             color: #475569;
+            outline: none;
         }
         QListWidget::item:hover {
             background-color: #F8FAFC;
             color: #3B82F6;
+            outline: none;
         }
         QListWidget::item:selected {
             background-color: #EFF6FF;
             color: #1D4ED8;
             font-weight: 500;
+            outline: none;
         }
         QListWidget::item:selected:hover {
             background-color: #DBEAFE;
+            outline: none;
         }
     )");
 
