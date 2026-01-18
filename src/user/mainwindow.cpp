@@ -200,10 +200,6 @@ void MainWindow::setupUI() {
             this, &MainWindow::onShowProfileEdit);
     connect(userCenterPage, &UserCenterPage::creditScoreRequested,
             this, &MainWindow::onShowCreditScore);
-    connect(userCenterPage, &UserCenterPage::menuTabChanged, this, [this](int index) {
-        QMessageBox::information(this, "菜单切换", QString("切换到菜单项: %1").arg(index));
-        // 实际应该更新界面显示
-    });
 
     mainTabWidget->addTab(homePage, "");
     mainTabWidget->addTab(publishPage, "");

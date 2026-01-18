@@ -19,7 +19,6 @@ public:
 signals:
     void editProfileRequested();
     void creditScoreRequested();
-    void menuTabChanged(int index);
 
 private slots:
     void onEditProfile();
@@ -31,7 +30,10 @@ private:
     void createMyCollectionTab();
     void createReviewTab();
     void createHistoryTab();
-    void setupMenuTabs() ;
+    void setupMenuTabs();
+
+    void addReviewItem(const QString &date, const QString &orderId,
+                       const QString &item, int rating, const QString &comment);
 
     QLabel *userAvatarLabel;
     QLabel *userNameLabel;
@@ -50,7 +52,7 @@ private:
 
     QTableWidget *myGoodsTable;
     QListWidget *collectionList;
-    QTextEdit *reviewEdit;
+    QListWidget *reviewList;
 };
 
 #endif // USERCENTERPAGE_H
