@@ -45,7 +45,7 @@ void GoodsDetailDialog::setupUI() {
     scrollLayout->addWidget(imageSection);
 
     // 基本信息卡片
-    QGroupBox *basicInfoGroup = new QGroupBox("基本信息");
+    QGroupBox *basicInfoGroup = new QGroupBox("");
     QGridLayout *basicLayout = new QGridLayout();
 
     goodsTitleLabel = new QLabel("二手iPhone 12 128GB");
@@ -155,7 +155,7 @@ void GoodsDetailDialog::setupUI() {
 
     buyBtn = new QPushButton("立即购买");
     buyBtn->setObjectName("primaryBtn");
-    buyBtn->setFixedHeight(45);
+    buyBtn->setFixedHeight(40);
 
     contactBtn = new QPushButton("联系卖家");
     contactBtn->setObjectName("secondaryBtn");
@@ -167,7 +167,7 @@ void GoodsDetailDialog::setupUI() {
     riskBtn->setObjectName("warningBtn");
 
     reportBtn = new QPushButton("举报商品");
-    reportBtn->setObjectName("secondaryBtn");
+    reportBtn->setObjectName("warningBtn");
 
     buttonLayout->addWidget(collectBtn);
     buttonLayout->addWidget(contactBtn);
@@ -214,7 +214,7 @@ void GoodsDetailDialog::setupUI() {
             background-color: #3498db;
             color: white;
             border-radius: 4px;
-            padding: 10px 20px;
+            padding: 8px 18px;
         }
         #primaryBtn:hover {
             background-color: #2980b9;
@@ -224,9 +224,10 @@ void GoodsDetailDialog::setupUI() {
             color: #34495e;
             border-radius: 4px;
             padding: 8px 16px;
+            border:1px solid #d5dbdb;
         }
         #secondaryBtn:hover {
-            background-color: #d5dbdb;
+            background-color: #ccd1d1;
         }
         #warningBtn {
             background-color: #e74c3c;
@@ -236,6 +237,39 @@ void GoodsDetailDialog::setupUI() {
         }
         #warningBtn:hover {
             background-color: #c0392b;
+        }
+        QTextEdit {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 6px;
+            background-color: white;
+        }
+        QTextEdit:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        QTabWidget::pane {
+            border: 1px solid #ddd;
+            background-color: white;
+            border-radius: 0 0 12px 12px;
+        }
+        QTabBar::tab {
+            padding: 8px 16px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+        }
+        QTabBar::tab:selected {
+            background-color: white;
+            border-bottom: 2px solid #3498db;
+            font-weight: bold;
+        }
+        QTabBar::tab:hover:!selected {
+            background-color: #e9ecef;
+        }
+        QScrollArea {
+            border: none;
         }
     )");
 }
@@ -270,37 +304,8 @@ void GoodsDetailDialog::loadAIAssessment(int goodsId) {
     // 这里可以调用AI服务进行估价
 }
 
-void GoodsDetailDialog::onContactSeller() {
-    QMessageBox::information(this, "联系卖家", "已打开与卖家的聊天窗口\n卖家联系方式: 138****1234");
-}
-
-void GoodsDetailDialog::onMakeOffer() {
-    bool ok;
-    QString price = QInputDialog::getText(this, "议价", "请输入您的出价:",
-                                          QLineEdit::Normal, priceLabel->text(), &ok);
-    if (ok && !price.isEmpty()) {
-        QMessageBox::information(this, "议价成功", QString("已向卖家发送出价: %1").arg(price));
-    }
-}
-
 void GoodsDetailDialog::onCollectGoods() {
     QMessageBox::information(this, "收藏", "商品已添加到收藏夹");
-}
-
-void GoodsDetailDialog::onReportGoods() {
-    QMessageBox::StandardButton reply = QMessageBox::question(this, "举报商品",
-                                                              "您确定要举报此商品吗？\n请选择举报原因:",
-                                                              QMessageBox::Yes | QMessageBox::No);
-
-    if (reply == QMessageBox::Yes) {
-        QStringList reasons = {"虚假信息", "价格欺诈", "商品侵权", "其他"};
-        bool ok;
-        QString reason = QInputDialog::getItem(this, "选择举报原因", "原因:",
-                                               reasons, 0, false, &ok);
-        if (ok && !reason.isEmpty()) {
-            QMessageBox::information(this, "举报成功", QString("已提交举报: %1\n管理员将在24小时内处理").arg(reason));
-        }
-    }
 }
 
 void GoodsDetailDialog::onAIAssessment() {

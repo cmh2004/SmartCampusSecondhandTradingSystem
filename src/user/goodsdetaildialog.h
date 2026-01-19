@@ -25,10 +25,7 @@ signals:
     void reportGoodsRequested(int goodsId);
 
 private slots:
-    void onContactSeller();
-    void onMakeOffer();
     void onCollectGoods();
-    void onReportGoods();
     void onAIAssessment();
     void onShowRiskAssessment();
 
