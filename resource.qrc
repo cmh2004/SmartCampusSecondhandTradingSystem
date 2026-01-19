@@ -19,5 +19,7 @@
         <file>img/star_filled.png</file>
         <file>img/check.png</file>
         <file>img/app.png</file>
+        <file>img/down.png</file>
+        <file>img/up.png</file>
     </qresource>
 </RCC>

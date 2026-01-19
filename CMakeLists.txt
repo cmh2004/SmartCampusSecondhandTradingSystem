@@ -28,8 +28,6 @@ set(PROJECT_SOURCES
     src/user/mainwindow.ui
     src/user/GoodsDetailDialog.cpp
     src/user/GoodsDetailDialog.h
-    src/user/ChatDialog.cpp
-    src/user/ChatDialog.h
     src/user/DisputeSubmitDialog.cpp
     src/user/DisputeSubmitDialog.h
     src/user/paymentdialog.h

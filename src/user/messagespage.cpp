@@ -10,8 +10,55 @@
 #include "MessagesPage.h"
 
 MessagesPage::MessagesPage(QWidget *parent) : QWidget(parent) {
+    chatData = QList<QMap<QString, QVariant>>();
     setupUI();
     loadChatHistory();
+}
+
+void MessagesPage::openOrCreateChat(int goodsId, const QString &sellerName) {
+    // 查找是否已经存在该商品的聊天
+    int existingChatId = findChatByGoodsId(goodsId);
+
+    if (existingChatId >= 0) {
+        // 如果已存在，直接选中该聊天
+        if (existingChatId < chatList->count()) {
+            chatList->setCurrentRow(existingChatId);
+            onChatItemClicked(chatList->item(existingChatId));
+        }
+    } else {
+        // 创建新聊天
+        createNewChat(goodsId, sellerName);
+    }
+}
+
+int MessagesPage::findChatByGoodsId(int goodsId) {
+    for (int i = 0; i < chatData.size(); i++) {
+        if (chatData[i]["goodsId"].toInt() == goodsId) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void MessagesPage::createNewChat(int goodsId, const QString &sellerName) {
+    // 创建聊天数据
+    QMap<QString, QVariant> newChat;
+    newChat["goodsId"] = goodsId;
+    newChat["sellerName"] = sellerName;
+    newChat["lastMessage"] = "开始对话";
+    newChat["lastTime"] = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm");
+
+    chatData.append(newChat);
+
+    // 添加到聊天列表
+    QString chatInfo = QString("%1 - 商品#%2\n%3").arg(sellerName).arg(goodsId).arg(newChat["lastTime"].toString());
+    QListWidgetItem *item = new QListWidgetItem(chatInfo, chatList);
+    item->setData(Qt::UserRole, sellerName);
+    item->setData(Qt::UserRole + 1, goodsId);
+
+    // 自动选中新创建的聊天
+    chatList->setCurrentItem(item);
+    onChatItemClicked(item);
 }
 
 void MessagesPage::setupUI() {
@@ -262,22 +309,30 @@ void MessagesPage::setupUI() {
 void MessagesPage::loadChatHistory() {
     // 清空现有数据
     chatList->clear();
+    chatData.clear();
 
-    // 模拟聊天数据
-    QList<QStringList> chatData = {
-        {"张三同学", "二手iPhone 12", "2024-03-20 10:30", "你好，这个手机还在吗？"},
-        {"李四同学", "大学物理教材", "2024-03-18 14:20", "书我已经收到了，很满意！"},
-        {"王五同学", "篮球鞋 Nike Air", "2024-03-19 16:45", "可以便宜一点吗？"},
-        {"赵六同学", "笔记本电脑戴尔", "2024-03-15 09:15", "电脑配置能再详细说一下吗？"},
-        {"钱七同学", "小米手环6", "2024-03-12 11:20", "手环还在保修期内吗？"},
-        {"孙八同学", "吉他雅马哈", "2024-03-10 08:45", "吉他的琴弦是新的吗？"}
+    // 模拟从数据库加载现有聊天数据
+    // 这里可以添加从数据库加载的逻辑
+
+    // 模拟数据
+    QList<QStringList> existingChats = {
+        {"王五同学", "1001", "2024-03-20 10:30", "你好，这个手机还在吗？"},
+        {"李四同学", "1002", "2024-03-18 14:20", "书我已经收到了，很满意！"}
     };
 
-    for (const auto &data : chatData) {
-        QString chatInfo = QString("%1 - %2\n%3").arg(data[0], data[1], data[2]);
+    for (const auto &data : existingChats) {
+        QMap<QString, QVariant> chat;
+        chat["sellerName"] = data[0];
+        chat["goodsId"] = data[1].toInt();
+        chat["lastTime"] = data[2];
+        chat["lastMessage"] = data[3];
+
+        chatData.append(chat);
+
+        QString chatInfo = QString("%1 - 商品#%2\n%3").arg(data[0]).arg(data[1]).arg(data[2]);
         QListWidgetItem *item = new QListWidgetItem(chatInfo, chatList);
-        item->setData(Qt::UserRole, data[0]); // 存储对方用户名
-        item->setData(Qt::UserRole + 1, data[3]); // 存储最后一条消息
+        item->setData(Qt::UserRole, data[0]);
+        item->setData(Qt::UserRole + 1, data[1].toInt());
     }
 }
 
@@ -340,21 +395,21 @@ void MessagesPage::onChatItemClicked(QListWidgetItem *item) {
     if (!item) return;
 
     QString chatWith = item->data(Qt::UserRole).toString();
-    QString lastMessage = item->data(Qt::UserRole + 1).toString();
+    int goodsId = item->data(Qt::UserRole + 1).toInt();
 
     // 更新聊天头部
-    currentChatLabel->setText(QString("与 %1 的对话").arg(chatWith));
+    currentChatLabel->setText(QString("与 %1 的对话 (商品#%2)").arg(chatWith).arg(goodsId));
 
     // 启用输入框和按钮
     messageEdit->setEnabled(true);
     messageEdit->setFocus();
 
-    // 启用发送按钮（通过查找父窗口的按钮）
+    // 启用发送按钮
     QWidget *parent = this->parentWidget();
     if (parent) {
         QList<QPushButton*> buttons = parent->findChildren<QPushButton*>();
         for (QPushButton *btn : buttons) {
-            if (btn->text() == "发送"||btn->text() == "文件"||btn->text() == "举报") {
+            if (btn->text() == "发送" || btn->text() == "文件" || btn->text() == "举报") {
                 btn->setEnabled(true);
             }
         }
@@ -362,16 +417,33 @@ void MessagesPage::onChatItemClicked(QListWidgetItem *item) {
 
     // 清空并加载聊天历史
     chatArea->clear();
-    chatArea->setText("");
 
-    // 添加模拟的聊天历史
-    addMessage(chatWith, "你好，我想咨询一下商品详情。", false);
-    addMessage(chatWith, lastMessage, false);
-    addMessage(chatWith, "这个商品还能便宜点吗？", false);
-    addMessage("我", "你好，有什么可以帮你的？", true);
-    addMessage("我", "价格已经是最低了，可以包邮哦。", true);
+    // 加载该聊天的消息历史
+    loadChatMessages(chatList->row(item));
 
     // 发射信号通知聊天被选中
-    int chatId = chatList->row(item);
-    emit chatSelected(chatId);
+    emit chatSelected(goodsId);
+}
+
+void MessagesPage::loadChatMessages(int chatIndex) {
+    if (chatIndex < 0 || chatIndex >= chatData.size()) {
+        return;
+    }
+
+    // 模拟加载聊天消息
+    // 在实际应用中，这里应该从数据库加载该聊天的所有消息
+
+    QString sellerName = chatData[chatIndex]["sellerName"].toString();
+
+    // 添加模拟消息
+    addMessage(sellerName, "你好，我想咨询一下商品详情。", false);
+    addMessage("我", "有什么问题请尽管问。", true);
+    addMessage(sellerName, "这个商品还能便宜点吗？", false);
+    addMessage("我", "价格已经是最低了，可以包邮哦。", true);
+
+    // 如果有最后一条消息，显示它
+    QString lastMessage = chatData[chatIndex]["lastMessage"].toString();
+    if (!lastMessage.isEmpty() && lastMessage != "开始对话") {
+        addMessage(sellerName, lastMessage, false);
+    }
 }

@@ -163,9 +163,6 @@ void GoodsDetailDialog::setupUI() {
     collectBtn = new QPushButton("收藏");
     collectBtn->setObjectName("secondaryBtn");
 
-    offerBtn = new QPushButton("我要议价");
-    offerBtn->setObjectName("secondaryBtn");
-
     riskBtn = new QPushButton("风险提醒");
     riskBtn->setObjectName("warningBtn");
 
@@ -174,7 +171,6 @@ void GoodsDetailDialog::setupUI() {
 
     buttonLayout->addWidget(collectBtn);
     buttonLayout->addWidget(contactBtn);
-    buttonLayout->addWidget(offerBtn);
     buttonLayout->addWidget(riskBtn);
     buttonLayout->addWidget(reportBtn);
     buttonLayout->addStretch();
@@ -189,11 +185,8 @@ void GoodsDetailDialog::setupUI() {
     });
 
     connect(contactBtn, &QPushButton::clicked, [this]() {
-        emit contactSellerRequested(goodsId);
-    });
-
-    connect(offerBtn, &QPushButton::clicked, [this]() {
-        emit makeOfferRequested(goodsId);
+        emit contactSellerRequested(goodsId, sellerLabel->text());
+        showMinimized();
     });
 
     connect(collectBtn, &QPushButton::clicked, this, &GoodsDetailDialog::onCollectGoods);

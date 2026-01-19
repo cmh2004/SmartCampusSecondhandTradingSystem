@@ -15,7 +15,6 @@ class UserCenterPage;
 class MessagesPage;
 class OrdersPage;
 class GoodsDetailDialog;
-class ChatDialog;
 class DisputeSubmitDialog;
 class PaymentDialog;
 class ReviewDialog;
@@ -53,6 +52,7 @@ private slots:
 private:
     void setupUI();
     void setupCustomTitleBar();
+    void setActiveTabButton(int index);  // 设置活动标签按钮
 
 private:
     QWidget *mainWidget;
@@ -71,6 +71,9 @@ private:
     QPushButton *minimizeBtn;
     QPushButton *maximizeBtn;
     QPushButton *closeBtn;
+
+    // 标签按钮列表
+    QList<QPushButton*> tabButtons;
 
     // 用于窗口拖拽
     bool isDragging;

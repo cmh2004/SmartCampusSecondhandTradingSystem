@@ -20,9 +20,8 @@ public:
     int getGoodsId() const { return goodsId; }
 
 signals:
-    void contactSellerRequested(int goodsId);
+    void contactSellerRequested(int goodsId,const QString &sellerName);
     void buyNowRequested(int goodsId);
-    void makeOfferRequested(int goodsId);
     void reportGoodsRequested(int goodsId);
 
 private slots:
@@ -65,7 +64,6 @@ private:
     QPushButton *contactBtn;
     QPushButton *buyBtn;
     QPushButton *collectBtn;
-    QPushButton *offerBtn;
     QPushButton *aiAssessmentBtn;
     QPushButton *riskBtn;
     QPushButton *reportBtn;

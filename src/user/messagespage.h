@@ -14,6 +14,7 @@ public:
     explicit MessagesPage(QWidget *parent = nullptr);
     void loadChatHistory();
     void addMessage(const QString &sender, const QString &message, bool isSelf = false);
+    void openOrCreateChat(int goodsId, const QString &sellerName);
 
 signals:
     void sendMessage(const QString &receiver,const QString &message);
@@ -25,11 +26,16 @@ private slots:
 
 private:
     void setupUI();
+    void createNewChat(int goodsId, const QString &sellerName);
+    int findChatByGoodsId(int goodsId);
+    void loadChatMessages(int chatIndex);
 
     QListWidget *chatList;
     QTextEdit *chatArea;
     QLineEdit *messageEdit;
     QLabel *currentChatLabel;
+
+    QList<QMap<QString, QVariant>> chatData;
 };
 
 #endif // MESSAGESPAGE_H

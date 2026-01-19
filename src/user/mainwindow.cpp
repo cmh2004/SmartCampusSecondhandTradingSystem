@@ -12,7 +12,6 @@
 #include "MessagesPage.h"
 #include "OrdersPage.h"
 #include "GoodsDetailDialog.h"
-#include "ChatDialog.h"
 #include "DisputeSubmitDialog.h"
 #include "paymentdialog.h"
 #include "reviewdialog.h"
@@ -79,13 +78,13 @@ void MainWindow::setupUI() {
         detailDialog->setAttribute(Qt::WA_DeleteOnClose);
 
         // 连接GoodsDetailDialog的所有信号
-        connect(detailDialog, &GoodsDetailDialog::contactSellerRequested, this, [this](int goodsId) {
-            // 这里应该根据商品ID获取卖家ID，暂时用模拟数据
-            QString sellerId = QString("seller_%1").arg(goodsId);
-            ChatDialog *chatDialog = new ChatDialog(this, goodsId, sellerId);
-            chatDialog->setWindowTitle(QString("与卖家聊天 - 商品ID: %1").arg(goodsId));
-            chatDialog->setAttribute(Qt::WA_DeleteOnClose);
-            chatDialog->show();
+        connect(detailDialog, &GoodsDetailDialog::contactSellerRequested, this, [this](int goodsId, const QString &sellerName) {
+            // 切换到消息页面
+            setActiveTabButton(2);
+            mainTabWidget->setCurrentIndex(2); // 消息页面索引
+
+            // 通知消息页面创建或进入对话
+            messagesPage->openOrCreateChat(goodsId, sellerName);
         });
 
         connect(detailDialog, &GoodsDetailDialog::buyNowRequested, this, [this](int goodsId) {
@@ -110,32 +109,6 @@ void MainWindow::setupUI() {
                                          "• 商品: " + goodsName + "\n"
                                                            "• 状态: 待支付\n\n"
                                                            "请及时联系卖家完成交易。");
-            }
-        });
-
-        connect(detailDialog, &GoodsDetailDialog::makeOfferRequested, this, [this](int goodsId) {
-            bool ok;
-            QString offerPrice = QInputDialog::getText(this, "议价",
-                                                       QString("请输入您的出价:"),
-                                                       QLineEdit::Normal, "0", &ok);
-
-            if (ok && !offerPrice.isEmpty()) {
-                // 验证价格是否为数字
-                bool isNumber;
-                double price = offerPrice.toDouble(&isNumber);
-
-                if (isNumber && price > 0) {
-                    // 打开聊天窗口
-                    ChatDialog *chatDialog = new ChatDialog(this, goodsId,
-                                                            QString("seller_%1").arg(goodsId));
-                    chatDialog->setAttribute(Qt::WA_DeleteOnClose);
-                    chatDialog->show();
-
-                    QMessageBox::information(this, "议价成功",
-                                             QString("已向卖家发送议价: ¥%1").arg(offerPrice));
-                } else {
-                    QMessageBox::warning(this, "错误", "请输入有效的价格数字");
-                }
             }
         });
 
@@ -501,7 +474,14 @@ void MainWindow::setupUI() {
         }
     )");
 
-    connect(mainTabWidget, &QTabWidget::currentChanged, this, &MainWindow::onTabChanged);
+    // 标签页切换信号连接
+    connect(mainTabWidget, &QTabWidget::currentChanged, this, [this](int index) {
+        // 更新按钮状态
+        setActiveTabButton(index);
+
+        // 执行原有的标签页切换逻辑
+        onTabChanged(index);
+    });
 }
 
 void MainWindow::setupCustomTitleBar() {
@@ -549,7 +529,9 @@ void MainWindow::setupCustomTitleBar() {
                             ":/icons/img/message.png", ":/icons/img/order.png",
                             ":/icons/img/person.png"};
 
-    QList<QPushButton*> tabButtons;
+    // 清空按钮列表
+    tabButtons.clear();
+
     for (int i = 0; i < tabNames.size(); ++i) {
         QPushButton *tabBtn = new QPushButton(tabNames[i]);
         tabBtn->setObjectName("tabButton");
@@ -568,11 +550,9 @@ void MainWindow::setupCustomTitleBar() {
 
     // 连接标签页切换信号，更新按钮状态
     for (int i = 0; i < tabButtons.size(); ++i) {
-        connect(tabButtons[i], &QPushButton::clicked, this, [this, i, tabButtons]() {
+        connect(tabButtons[i], &QPushButton::clicked, this, [this, i]() {
             // 先更新所有按钮状态
-            for (int j = 0; j < tabButtons.size(); ++j) {
-                tabButtons[j]->setChecked(j == i);
-            }
+            setActiveTabButton(i);
             // 然后切换标签页
             mainTabWidget->setCurrentIndex(i);
         });
@@ -915,6 +895,13 @@ void MainWindow::onDisputeSubmitted(int orderId) {
                                      "订单号: #%1\n"
                                      "管理员将在24小时内处理。\n"
                                      "处理结果将通过系统消息通知您。").arg(orderId));
+}
+
+void MainWindow::setActiveTabButton(int index) {
+    // 更新所有按钮状态
+    for (int i = 0; i < tabButtons.size(); i++) {
+        tabButtons[i]->setChecked(i == index);
+    }
 }
 
 MainWindow::~MainWindow() {}
