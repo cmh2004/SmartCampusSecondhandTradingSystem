@@ -47,7 +47,6 @@ private slots:
     void onReportSubmitted(int targetId, QString targetType); // 举报提交后的处理
 
     void onShowDisputeSubmit(int orderId);  // 显示售后纠纷对话框
-    void onDisputeSubmitted(int orderId);   // 纠纷提交后的处理
 
 private:
     void setupUI();

@@ -876,25 +876,12 @@ void MainWindow::onShowDisputeSubmit(int orderId) {
 
     // 连接提交成功的信号
     connect(disputeDialog, &DisputeSubmitDialog::finished, [this, orderId](int result) {
-        if (result == QDialog::Accepted) {
-            // 提交成功，更新订单状态
-            onDisputeSubmitted(orderId);
-        }
         disputeDialog = nullptr;
     });
 
     disputeDialog->show();
     disputeDialog->raise();
     disputeDialog->activateWindow();
-}
-
-void MainWindow::onDisputeSubmitted(int orderId) {
-    // 显示成功消息
-    QMessageBox::information(this, "提交成功",
-                             QString("售后纠纷申请已提交！\n\n"
-                                     "订单号: #%1\n"
-                                     "管理员将在24小时内处理。\n"
-                                     "处理结果将通过系统消息通知您。").arg(orderId));
 }
 
 void MainWindow::setActiveTabButton(int index) {

@@ -18,11 +18,13 @@ public:
 private slots:
     void onUploadEvidence();
     void onSubmitDispute();
-    void onDisputeTypeChanged(int index);
+    void onEvidenceItemSelected();
+    void onDescriptionTextChanged();
 
 private:
     void setupUI();
     void loadOrderInfo(int orderId);
+    void updateSubmitButtonState();
 
 private:
     int orderId;
@@ -40,10 +42,6 @@ private:
     QPushButton *uploadBtn;
     QPushButton *removeBtn;
     QPushButton *submitBtn;
-
-    // AI纠纷分析
-    QTextEdit *aiAnalysisText;
-    QPushButton *analyzeBtn;
 };
 
 #endif // DISPUTESUBMITDIALOG_H

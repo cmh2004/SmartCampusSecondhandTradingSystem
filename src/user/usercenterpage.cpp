@@ -347,7 +347,7 @@ void UserCenterPage::createMyPublishTab() {
         QTableWidgetItem *item = new QTableWidgetItem(goodsData[i]);
         if (i == 2) { // 状态列
             item->setForeground(QColor("#38A169")); // 绿色
-            item->setFont(QFont("", -1, QFont::Medium));
+            item->setFont(QFont("Microsoft YaHei", -1, QFont::Medium));
         }
         myGoodsTable->setItem(row, i, item);
     }
