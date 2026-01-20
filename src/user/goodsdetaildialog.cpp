@@ -11,7 +11,7 @@
 GoodsDetailDialog::GoodsDetailDialog(QWidget *parent, int goodsId)
     : QDialog(parent), goodsId(goodsId) {
     setWindowTitle("商品详情");
-    setMinimumSize(800, 600);
+    setMinimumSize(1200, 800);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
     setupUI();
@@ -31,85 +31,202 @@ void GoodsDetailDialog::setupUI() {
     scrollArea->setStyleSheet("border: none;");
 
     QWidget *scrollContent = new QWidget();
-    QVBoxLayout *scrollLayout = new QVBoxLayout(scrollContent);
+    QVBoxLayout *contentLayout = new QVBoxLayout(scrollContent);
+    contentLayout->setContentsMargins(20, 20, 20, 20);
+    contentLayout->setSpacing(20);
 
-    // 商品图片
-    QWidget *imageSection = new QWidget();
-    QHBoxLayout *imageLayout = new QHBoxLayout(imageSection);
+    // 上部分：图片 + 基本信息（左右布局）
+    QWidget *topSection = new QWidget();
+    QHBoxLayout *topLayout = new QHBoxLayout(topSection);
+    topLayout->setSpacing(20);
+    topLayout->setContentsMargins(0, 0, 0, 0);
+
+    // 左侧：图片区域
+    QWidget *leftPanel = new QWidget();
+    leftPanel->setFixedWidth(400);
+    QVBoxLayout *leftLayout = new QVBoxLayout(leftPanel);
+    leftLayout->setContentsMargins(0, 0, 0, 0);
+    leftLayout->setSpacing(10);
+
+    // 主图片
     goodsImageLabel = new QLabel();
-    goodsImageLabel->setFixedSize(150, 150);
+    goodsImageLabel->setFixedSize(380, 380);
     goodsImageLabel->setStyleSheet("border: 2px solid #ddd; border-radius: 8px;");
     goodsImageLabel->setAlignment(Qt::AlignCenter);
-    goodsImageLabel->setPixmap(QPixmap(":/icons/img/buy.png").scaled(150, 150, Qt::KeepAspectRatio));
-    imageLayout->addWidget(goodsImageLabel);
-    scrollLayout->addWidget(imageSection);
+    goodsImageLabel->setPixmap(QPixmap(":/icons/img/buy.png").scaled(380, 380, Qt::KeepAspectRatio));
+    leftLayout->addWidget(goodsImageLabel);
+
+    // 缩略图
+    QWidget *thumbnailContainer = new QWidget();
+    QHBoxLayout *thumbnailLayout = new QHBoxLayout(thumbnailContainer);
+    thumbnailLayout->setSpacing(8);
+    thumbnailLayout->setContentsMargins(0, 0, 0, 0);
+
+    for (int i = 0; i < 3; i++) {
+        QLabel *thumbnail = new QLabel();
+        thumbnail->setFixedSize(80, 80);
+        thumbnail->setStyleSheet("border: 1px solid #ddd; border-radius: 4px;");
+        thumbnail->setAlignment(Qt::AlignCenter);
+        thumbnail->setCursor(Qt::PointingHandCursor);
+        thumbnailLayout->addWidget(thumbnail);
+    }
+    thumbnailLayout->addStretch();
+    leftLayout->addWidget(thumbnailContainer);
+    leftLayout->addStretch();
+
+    // 右侧：商品信息区域
+    QWidget *rightPanel = new QWidget();
+    QVBoxLayout *rightLayout = new QVBoxLayout(rightPanel);
+    rightLayout->setContentsMargins(0, 0, 0, 0);
+    rightLayout->setSpacing(16);
+
+    // 商品标题
+    goodsTitleLabel = new QLabel("二手iPhone 12 128GB");
+    goodsTitleLabel->setStyleSheet("font-size: 22px; font-weight: bold; color: #333;");
+    goodsTitleLabel->setWordWrap(true);
+    rightLayout->addWidget(goodsTitleLabel);
+
+    // 价格区域
+    QWidget *priceWidget = new QWidget();
+    QHBoxLayout *priceRowLayout = new QHBoxLayout(priceWidget);
+    priceRowLayout->setContentsMargins(0, 0, 0, 0);
+
+    priceLabel = new QLabel("¥2500");
+    priceLabel->setStyleSheet("color: #e74c3c; font-size: 28px; font-weight: bold;");
+    priceRowLayout->addWidget(priceLabel);
+    priceRowLayout->addStretch();
+
+    rightLayout->addWidget(priceWidget);
 
     // 基本信息卡片
-    QGroupBox *basicInfoGroup = new QGroupBox("");
+    QGroupBox *basicInfoGroup = new QGroupBox("基本信息");
+    basicInfoGroup->setStyleSheet(R"(
+        QGroupBox {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-top: 10px;
+            padding-top: 10px;
+            background-color: white;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            left: 10px;
+            padding: 0 5px 0 5px;
+            font-weight: bold;
+            font-size:14px;
+            color: #333;
+        }
+    )");
+
     QGridLayout *basicLayout = new QGridLayout();
+    basicLayout->setVerticalSpacing(12);
+    basicLayout->setHorizontalSpacing(16);
 
-    goodsTitleLabel = new QLabel("二手iPhone 12 128GB");
-    goodsTitleLabel->setStyleSheet("font-size: 20px; font-weight: bold; color: #333;");
-    basicLayout->addWidget(goodsTitleLabel, 0, 0, 1, 3);
-
-    basicLayout->addWidget(new QLabel("价格:"), 1, 0);
-    priceLabel = new QLabel("¥2500");
-    priceLabel->setStyleSheet("color: #e74c3c; font-size: 24px; font-weight: bold;");
-    basicLayout->addWidget(priceLabel, 1, 1);
-
-    basicLayout->addWidget(new QLabel("原价:"), 2, 0);
-    originalPriceLabel = new QLabel("¥5999");
-    originalPriceLabel->setStyleSheet("color: #999; text-decoration: line-through;");
-    basicLayout->addWidget(originalPriceLabel, 2, 1);
-
-    basicLayout->addWidget(new QLabel("卖家:"), 3, 0);
+    // 第1行
+    basicLayout->addWidget(new QLabel("卖家:"), 0, 0);
     sellerLabel = new QLabel("张三同学");
-    sellerLabel->setStyleSheet("color: #3498db;");
-    basicLayout->addWidget(sellerLabel, 3, 1);
+    sellerLabel->setStyleSheet("color: #3498db; font-weight: 500;");
+    basicLayout->addWidget(sellerLabel, 0, 1);
 
-    basicLayout->addWidget(new QLabel("联系方式:"), 4, 0);
+    basicLayout->addWidget(new QLabel("商品状态:"), 0, 2);
+    conditionLabel = new QLabel("9成新");
+    QLabel *conditionBadge = new QLabel("在售");
+    conditionBadge->setStyleSheet("padding: 2px 8px; border-radius: 10px; font-size: 12px; background-color: #2ecc71; color: white;");
+    QHBoxLayout *conditionLayout = new QHBoxLayout();
+    conditionLayout->addWidget(conditionLabel);
+    conditionLayout->addWidget(conditionBadge);
+    conditionLayout->setSpacing(8);
+    basicLayout->addLayout(conditionLayout, 0, 3);
+
+    // 第2行
+    basicLayout->addWidget(new QLabel("联系方式:"), 1, 0);
     contactLabel = new QLabel("138****1234");
     contactLabel->setStyleSheet("color: #2c3e50;");
-    basicLayout->addWidget(contactLabel, 4, 1);
+    basicLayout->addWidget(contactLabel, 1, 1);
 
-    basicLayout->addWidget(new QLabel("位置:"), 5, 0);
-    locationLabel = new QLabel("学生宿舍10号楼");
-    basicLayout->addWidget(locationLabel, 5, 1);
-
-    basicLayout->addWidget(new QLabel("发布时间:"), 6, 0);
-    publishTimeLabel = new QLabel(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm"));
-    basicLayout->addWidget(publishTimeLabel, 6, 1);
-
-    basicLayout->addWidget(new QLabel("商品状态:"), 7, 0);
-    conditionLabel = new QLabel("9成新");
-    QLabel *conditionBadge = new QLabel("待售");
-    conditionBadge->setStyleSheet("padding: 2px 8px; border-radius: 10px; font-size: 12px; background-color: #2ecc71; color: white;");
-    basicLayout->addWidget(conditionBadge, 7, 1);
-
-    basicLayout->addWidget(new QLabel("商品分类:"), 8, 0);
+    basicLayout->addWidget(new QLabel("商品分类:"), 1, 2);
     categoryLabel = new QLabel("电子产品");
-    basicLayout->addWidget(categoryLabel, 8, 1);
+    basicLayout->addWidget(categoryLabel, 1, 3);
+
+    // 第3行
+    basicLayout->addWidget(new QLabel("位置:"), 2, 0);
+    locationLabel = new QLabel("学生宿舍10号楼");
+    basicLayout->addWidget(locationLabel, 2, 1);
+
+    basicLayout->addWidget(new QLabel("发布时间:"), 2, 2);
+    publishTimeLabel = new QLabel(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm"));
+    basicLayout->addWidget(publishTimeLabel, 2, 3);
 
     basicInfoGroup->setLayout(basicLayout);
-    scrollLayout->addWidget(basicInfoGroup);
+    rightLayout->addWidget(basicInfoGroup);
 
-    // 商品描述
-    QGroupBox *descGroup = new QGroupBox("商品描述");
-    QVBoxLayout *descLayout = new QVBoxLayout();
+    // 按钮区域
+    QWidget *buttonWidget = new QWidget();
+    QHBoxLayout *buttonLayout = new QHBoxLayout(buttonWidget);
+    buttonLayout->setSpacing(10);
+    buttonLayout->setContentsMargins(0, 10, 0, 0);
+
+    contactBtn = new QPushButton("联系卖家");
+    contactBtn->setObjectName("secondaryBtn");
+
+    collectBtn = new QPushButton("收藏");
+    collectBtn->setObjectName("secondaryBtn");
+
+    riskBtn = new QPushButton("风险提醒");
+    riskBtn->setObjectName("warningBtn");
+
+    reportBtn = new QPushButton("举报商品");
+    reportBtn->setObjectName("warningBtn");
+
+    buyBtn = new QPushButton("立即购买");
+    buyBtn->setObjectName("primaryBtn");
+    buyBtn->setFixedHeight(44);
+
+    buttonLayout->addWidget(collectBtn);
+    buttonLayout->addWidget(contactBtn);
+    buttonLayout->addWidget(riskBtn);
+    buttonLayout->addWidget(reportBtn);
+    buttonLayout->addStretch();
+    buttonLayout->addWidget(buyBtn);
+
+    rightLayout->addWidget(buttonWidget);
+    rightLayout->addStretch();
+
+    // 将左右两部分添加到顶部区域
+    topLayout->addWidget(leftPanel);
+    topLayout->addWidget(rightPanel);
+
+    contentLayout->addWidget(topSection);
+
+    // 下部分：商品详细描述
+    QWidget *descSection = new QWidget();
+    QVBoxLayout *descSectionLayout = new QVBoxLayout(descSection);
+    descSectionLayout->setContentsMargins(0, 0, 0, 0);
+
+    QLabel *descTitle = new QLabel("商品描述");
+    descTitle->setStyleSheet("font-size: 18px; font-weight: bold; color: #333; padding-bottom: 10px;");
+    descSectionLayout->addWidget(descTitle);
+
+    QGroupBox *descGroup = new QGroupBox("");
+    descGroup->setStyleSheet("QGroupBox { border: 1px solid #ddd; border-radius: 8px; padding: 15px; }");
+    QVBoxLayout *descLayout = new QVBoxLayout(descGroup);
+
     descriptionText = new QTextEdit();
     descriptionText->setReadOnly(true);
-    descriptionText->setMaximumHeight(200);
+    descriptionText->setMaximumHeight(300);
     descriptionText->setText("自用iPhone 12，使用一年，保护完好，无划痕。包含原装充电器、数据线。屏幕无划痕，电池健康度85%。");
     descLayout->addWidget(descriptionText);
-    descGroup->setLayout(descLayout);
-    scrollLayout->addWidget(descGroup);
 
+    descSectionLayout->addWidget(descGroup);
+    contentLayout->addWidget(descSection);
+
+    // 设置滚动区域内容
     scrollArea->setWidget(scrollContent);
     infoTab->setLayout(new QVBoxLayout());
     infoTab->layout()->addWidget(scrollArea);
-    detailTabs->addTab(infoTab, "商品信息");
+    detailTabs->addTab(infoTab, "商品详情");
 
-    // 标签2: AI智能评估
+    // 标签2: AI智能评估 - 完全保持原有代码不变
     QWidget *aiTab = new QWidget();
     QVBoxLayout *aiLayout = new QVBoxLayout(aiTab);
 
@@ -149,35 +266,6 @@ void GoodsDetailDialog::setupUI() {
 
     mainLayout->addWidget(detailTabs);
 
-    // 底部按钮区域
-    QWidget *buttonWidget = new QWidget();
-    QHBoxLayout *buttonLayout = new QHBoxLayout(buttonWidget);
-
-    buyBtn = new QPushButton("立即购买");
-    buyBtn->setObjectName("primaryBtn");
-    buyBtn->setFixedHeight(40);
-
-    contactBtn = new QPushButton("联系卖家");
-    contactBtn->setObjectName("secondaryBtn");
-
-    collectBtn = new QPushButton("收藏");
-    collectBtn->setObjectName("secondaryBtn");
-
-    riskBtn = new QPushButton("风险提醒");
-    riskBtn->setObjectName("warningBtn");
-
-    reportBtn = new QPushButton("举报商品");
-    reportBtn->setObjectName("warningBtn");
-
-    buttonLayout->addWidget(collectBtn);
-    buttonLayout->addWidget(contactBtn);
-    buttonLayout->addWidget(riskBtn);
-    buttonLayout->addWidget(reportBtn);
-    buttonLayout->addStretch();
-    buttonLayout->addWidget(buyBtn);
-
-    mainLayout->addWidget(buttonWidget);
-
     // 连接信号槽
     connect(buyBtn, &QPushButton::clicked, [this]() {
         emit buyNowRequested(goodsId);
@@ -196,7 +284,7 @@ void GoodsDetailDialog::setupUI() {
         emit reportGoodsRequested(goodsId);
     });
 
-    // 样式
+    // 样式表 - 保持原有样式，只微调
     setStyleSheet(R"(
         QGroupBox {
             font-weight: bold;
@@ -215,6 +303,8 @@ void GoodsDetailDialog::setupUI() {
             color: white;
             border-radius: 4px;
             padding: 8px 18px;
+            font-size: 14px;
+            font-weight: bold;
         }
         #primaryBtn:hover {
             background-color: #2980b9;
@@ -225,6 +315,7 @@ void GoodsDetailDialog::setupUI() {
             border-radius: 4px;
             padding: 8px 16px;
             border:1px solid #d5dbdb;
+            font-size: 14px;
         }
         #secondaryBtn:hover {
             background-color: #ccd1d1;
@@ -234,6 +325,7 @@ void GoodsDetailDialog::setupUI() {
             color: white;
             border-radius: 4px;
             padding: 8px 16px;
+            font-size: 14px;
         }
         #warningBtn:hover {
             background-color: #c0392b;
@@ -243,6 +335,8 @@ void GoodsDetailDialog::setupUI() {
             border-radius: 4px;
             padding: 6px;
             background-color: white;
+            font-size: 14px;
+            line-height: 1.6;
         }
         QTextEdit:focus {
             border-color: #3498db;
@@ -259,6 +353,7 @@ void GoodsDetailDialog::setupUI() {
             border: 1px solid #ddd;
             border-bottom: none;
             border-radius: 4px 4px 0 0;
+            font-size: 14px;
         }
         QTabBar::tab:selected {
             background-color: white;
@@ -270,6 +365,14 @@ void GoodsDetailDialog::setupUI() {
         }
         QScrollArea {
             border: none;
+            background-color: white;
+        }
+        QLabel {
+            font-size: 14px;
+        }
+        QLabel[title] {
+            font-size: 13px;
+            color: #666;
         }
     )");
 }

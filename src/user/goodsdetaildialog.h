@@ -41,7 +41,6 @@ private:
     QLabel *goodsImageLabel;
     QLabel *goodsTitleLabel;
     QLabel *priceLabel;
-    QLabel *originalPriceLabel;
     QLabel *sellerLabel;
     QLabel *contactLabel;
     QLabel *locationLabel;
