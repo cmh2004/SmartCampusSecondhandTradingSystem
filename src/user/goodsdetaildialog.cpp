@@ -226,7 +226,7 @@ void GoodsDetailDialog::setupUI() {
     infoTab->layout()->addWidget(scrollArea);
     detailTabs->addTab(infoTab, "商品详情");
 
-    // 标签2: AI智能评估 - 完全保持原有代码不变
+    // 标签2: AI智能评估
     QWidget *aiTab = new QWidget();
     QVBoxLayout *aiLayout = new QVBoxLayout(aiTab);
 
@@ -284,7 +284,7 @@ void GoodsDetailDialog::setupUI() {
         emit reportGoodsRequested(goodsId);
     });
 
-    // 样式表 - 保持原有样式，只微调
+    // 样式表
     setStyleSheet(R"(
         QGroupBox {
             font-weight: bold;

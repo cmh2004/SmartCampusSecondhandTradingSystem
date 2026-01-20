@@ -21,5 +21,6 @@
         <file>img/app.png</file>
         <file>img/down.png</file>
         <file>img/up.png</file>
+        <file>img/plus.png</file>
     </qresource>
 </RCC>

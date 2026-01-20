@@ -15,10 +15,6 @@
 #include <QChartView>
 #include <QGroupBox>
 #include <QWidget>
-#include <QtCharts/QChart>
-#include <QtCharts/QBarSeries>
-#include <QtCharts/QBarSet>
-#include <QtCharts/QPieSeries>
 
 class AdminMainWindow : public QMainWindow {
     Q_OBJECT
@@ -50,13 +46,11 @@ private:
     void setupUI();
 
     // 创建各个页面
-    QWidget* createDashboardPage();
     QWidget* createGoodsReviewPage();
     QWidget* createUserManagementPage();
     QWidget* createDisputeManagementPage();
 
     // 加载数据
-    void loadDashboardData();
     void loadGoodsReviewData();
     void loadUserManagementData();
     void loadDisputeData();
@@ -64,16 +58,6 @@ private:
 private:
     // 主标签页
     QTabWidget *mainTabWidget;
-
-    // 仪表盘页面组件
-    QLabel *totalUsersLabel;
-    QLabel *totalGoodsLabel;
-    QLabel *totalOrdersLabel;
-    QLabel *pendingReviewsLabel;
-    QLabel *pendingDisputesLabel;
-    QProgressBar *platformGrowthBar;
-    QChartView *revenueChartView;
-    QChartView *categoryChartView;
 
     // 商品审核页面组件
     QTableWidget *goodsReviewTable;

@@ -9,7 +9,7 @@
 ProfileEditDialog::ProfileEditDialog(QWidget *parent)
     : QDialog(parent) {
     setWindowTitle("编辑个人资料");
-    setFixedSize(500, 700);
+    setFixedSize(500, 650);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
     setupUI();
@@ -109,6 +109,9 @@ void ProfileEditDialog::setupUI() {
 
     // 样式
     setStyleSheet(R"(
+        QDialog {
+            background-color: white;
+        }
         QGroupBox {
             font-weight: bold;
             border: 1px solid #ddd;
@@ -131,12 +134,45 @@ void ProfileEditDialog::setupUI() {
             color: white;
             border-radius: 4px;
             padding: 10px 20px;
+            border: none;
+            font-weight: bold;
         }
+        #primaryBtn:hover {
+            background-color: #2980b9;
+        }
+        #primaryBtn:pressed {
+            background-color: #1c6ca1;
+            padding-top: 11px;
+            padding-bottom: 9px;
+        }
+        #primaryBtn:disabled {
+            background-color: #bdc3c7;
+            color: #95a5a6;
+        }
+
         #secondaryBtn {
             background-color: #ecf0f1;
             color: #34495e;
             border-radius: 4px;
             padding: 8px 16px;
+            border: 1px solid #d5dbdb;
+            font-weight: bold;
+        }
+        #secondaryBtn:hover {
+            background-color: #d5dbdb;
+            border-color: #bdc3c7;
+            color: #2c3e50;
+        }
+        #secondaryBtn:pressed {
+            background-color: #c2c9cc;
+            border-color: #aeb6bf;
+            padding-top: 9px;
+            padding-bottom: 7px;
+        }
+        #secondaryBtn:disabled {
+            background-color: #f8f9fa;
+            color: #bdc3c7;
+            border-color: #ecf0f1;
         }
     )");
 }

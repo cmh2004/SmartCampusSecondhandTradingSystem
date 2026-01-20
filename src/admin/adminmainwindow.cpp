@@ -17,7 +17,7 @@ AdminMainWindow::AdminMainWindow(QWidget *parent) : QMainWindow(parent) {
     setMinimumSize(1200, 800);
 
     setupUI();
-    loadDashboardData();
+    loadGoodsReviewData();
 
     // 连接信号
     connect(mainTabWidget, &QTabWidget::currentChanged, this, &AdminMainWindow::onTabChanged);
@@ -35,21 +35,17 @@ void AdminMainWindow::setupUI() {
     // 系统菜单
     QMenu *systemMenu = menuBar->addMenu("系统");
     QAction *logoutAction = systemMenu->addAction("退出登录");
-    QAction *exitAction = systemMenu->addAction("退出系统");
     connect(logoutAction, &QAction::triggered, this, &AdminMainWindow::onLogoutClicked);
-    connect(exitAction, &QAction::triggered, this, &QWidget::close);
 
     // 主标签页
     mainTabWidget = new QTabWidget(mainWidget);
     mainTabWidget->setTabPosition(QTabWidget::North);
 
     // 创建各个页面
-    QWidget *dashboardPage = createDashboardPage();
     QWidget *goodsReviewPage = createGoodsReviewPage();
     QWidget *userManagementPage = createUserManagementPage();
     QWidget *disputeManagementPage = createDisputeManagementPage();
 
-    mainTabWidget->addTab(dashboardPage, "仪表盘");
     mainTabWidget->addTab(goodsReviewPage, "商品审核");
     mainTabWidget->addTab(userManagementPage, "用户管理");
     mainTabWidget->addTab(disputeManagementPage, "纠纷处理");
@@ -156,110 +152,6 @@ void AdminMainWindow::setupUI() {
     )");
 }
 
-QWidget* AdminMainWindow::createDashboardPage() {
-    QWidget *page = new QWidget();
-    QVBoxLayout *mainLayout = new QVBoxLayout(page);
-    mainLayout->setContentsMargins(20, 20, 20, 20);
-    mainLayout->setSpacing(20);
-
-    // 顶部统计卡片
-    QWidget *statsWidget = new QWidget();
-    QHBoxLayout *statsLayout = new QHBoxLayout(statsWidget);
-    statsLayout->setContentsMargins(0, 0, 0, 0);
-    statsLayout->setSpacing(15);
-
-    struct StatCard {
-        QString title;
-        QString value;
-        QString icon;
-        QColor color;
-    };
-
-    QList<StatCard> statCards = {
-        {"总用户数", "1,234", "👥", QColor(52, 152, 219)},
-        {"商品总数", "5,678", "📦", QColor(46, 204, 113)},
-        {"交易总额", "¥89,012", "💰", QColor(155, 89, 182)},
-        {"待审核商品", "23", "⏳", QColor(241, 196, 15)},
-        {"待处理纠纷", "12", "⚖️", QColor(230, 126, 34)},
-        {"平台增长率", "15.6%", "📈", QColor(231, 76, 60)}
-    };
-
-    for (const auto &card : statCards) {
-        QWidget *cardWidget = new QWidget();
-        cardWidget->setFixedSize(200, 120);
-        cardWidget->setStyleSheet(QString(R"(
-            background-color: white;
-            border-radius: 12px;
-            border-left: 5px solid %1;
-        )").arg(card.color.name()));
-
-        QVBoxLayout *cardLayout = new QVBoxLayout(cardWidget);
-        cardLayout->setContentsMargins(15, 15, 15, 15);
-
-        QLabel *iconLabel = new QLabel(card.icon);
-        iconLabel->setStyleSheet("font-size: 24px;");
-
-        QLabel *titleLabel = new QLabel(card.title);
-        titleLabel->setStyleSheet("color: #666; font-size: 14px;");
-
-        QLabel *valueLabel = new QLabel(card.value);
-        valueLabel->setStyleSheet(QString("color: %1; font-size: 28px; font-weight: bold;").arg(card.color.name()));
-
-        if (card.title == "平台增长率") {
-            platformGrowthBar = new QProgressBar();
-            platformGrowthBar->setRange(0, 100);
-            platformGrowthBar->setValue(15);
-            platformGrowthBar->setTextVisible(true);
-            platformGrowthBar->setFormat("%p%");
-            platformGrowthBar->setStyleSheet(R"(
-                QProgressBar {
-                    height: 8px;
-                    border-radius: 4px;
-                    background-color: #ecf0f1;
-                }
-                QProgressBar::chunk {
-                    border-radius: 4px;
-                    background-color: #e74c3c;
-                }
-            )");
-            cardLayout->addWidget(platformGrowthBar);
-        }
-
-        cardLayout->addWidget(iconLabel);
-        cardLayout->addWidget(valueLabel);
-        cardLayout->addWidget(titleLabel);
-        statsLayout->addWidget(cardWidget);
-    }
-
-    mainLayout->addWidget(statsWidget);
-
-    // 图表区域
-    QWidget *chartWidget = new QWidget();
-    QHBoxLayout *chartLayout = new QHBoxLayout(chartWidget);
-    chartLayout->setContentsMargins(0, 0, 0, 0);
-    chartLayout->setSpacing(20);
-
-    // 收入趋势图
-    QGroupBox *revenueGroup = new QGroupBox("平台收入趋势");
-    QVBoxLayout *revenueLayout = new QVBoxLayout(revenueGroup);
-    revenueChartView = new QChartView();
-    revenueChartView->setMinimumHeight(300);
-    revenueLayout->addWidget(revenueChartView);
-
-    // 商品分类分布图
-    QGroupBox *categoryGroup = new QGroupBox("商品分类分布");
-    QVBoxLayout *categoryLayout = new QVBoxLayout(categoryGroup);
-    categoryChartView = new QChartView();
-    categoryChartView->setMinimumHeight(300);
-    categoryLayout->addWidget(categoryChartView);
-
-    chartLayout->addWidget(revenueGroup, 1);
-    chartLayout->addWidget(categoryGroup, 1);
-    mainLayout->addWidget(chartWidget, 1);
-
-    return page;
-}
-
 QWidget* AdminMainWindow::createGoodsReviewPage() {
     QWidget *page = new QWidget();
     QVBoxLayout *mainLayout = new QVBoxLayout(page);
@@ -317,6 +209,7 @@ QWidget* AdminMainWindow::createGoodsReviewPage() {
     goodsReviewTable->verticalHeader()->setVisible(false);
     goodsReviewTable->setAlternatingRowColors(true);
     goodsReviewTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    goodsReviewTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     // 设置列宽
     goodsReviewTable->setColumnWidth(0, 80);
@@ -376,6 +269,7 @@ QWidget* AdminMainWindow::createUserManagementPage() {
     userTable->verticalHeader()->setVisible(false);
     userTable->setAlternatingRowColors(true);
     userTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    userTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     // 设置列宽
     userTable->setColumnWidth(0, 80);
@@ -437,6 +331,7 @@ QWidget* AdminMainWindow::createDisputeManagementPage() {
     disputeTable->verticalHeader()->setVisible(false);
     disputeTable->setAlternatingRowColors(true);
     disputeTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    disputeTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     // 设置列宽
     disputeTable->setColumnWidth(0, 80);
@@ -465,10 +360,9 @@ void AdminMainWindow::onLogoutClicked() {
 void AdminMainWindow::onTabChanged(int index) {
     // 根据标签页切换加载数据
     switch(index) {
-    case 0: loadDashboardData(); break;
-    case 1: loadGoodsReviewData(); break;
-    case 2: loadUserManagementData(); break;
-    case 3: loadDisputeData(); break;
+    case 0: loadGoodsReviewData(); break;
+    case 1: loadUserManagementData(); break;
+    case 2: loadDisputeData(); break;
     }
 }
 
@@ -499,7 +393,7 @@ void AdminMainWindow::loadGoodsReviewData() {
             if (col == 5) { // 状态列
                 if (items[col] == "待审核") {
                     item->setForeground(QColor(230, 126, 34)); // 橙色
-                    item->setFont(QFont("", -1, QFont::Bold));
+                    item->setFont(QFont("Microsoft YaHei", -1, QFont::Bold));
                 } else if (items[col] == "已通过") {
                     item->setForeground(QColor(46, 204, 113)); // 绿色
                 } else if (items[col] == "已拒绝") {
@@ -630,13 +524,6 @@ void AdminMainWindow::onFilterDisputes() {
                                  .arg(type).arg(status).arg(date));
 
     loadDisputeData();
-}
-
-// 数据加载函数
-void AdminMainWindow::loadDashboardData() {
-
-    // 这里应该实现图表数据的加载
-    // 暂时用空实现
 }
 
 void AdminMainWindow::loadUserManagementData() {

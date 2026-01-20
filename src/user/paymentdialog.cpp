@@ -16,6 +16,8 @@ PaymentDialog::PaymentDialog(QWidget *parent, int orderId, double amount)
 
 void PaymentDialog::setupUI() {
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(15);
 
     // 订单信息
     QGroupBox *orderGroup = new QGroupBox("订单信息");
@@ -103,6 +105,9 @@ void PaymentDialog::setupUI() {
 
     // 样式
     setStyleSheet(R"(
+        QDialog {
+            background-color: white;
+        }
         QGroupBox {
             font-weight: bold;
             border: 1px solid #ddd;
@@ -116,7 +121,7 @@ void PaymentDialog::setupUI() {
             padding: 0 5px 0 5px;
         }
         QRadioButton {
-            padding: 8px;
+            padding: 4px;
             font-size: 14px;
         }
         QRadioButton::indicator {
@@ -128,12 +133,45 @@ void PaymentDialog::setupUI() {
             color: white;
             border-radius: 4px;
             padding: 10px 20px;
+            border: none;
+            font-weight: bold;
         }
+        #primaryBtn:hover {
+            background-color: #2980b9;
+        }
+        #primaryBtn:pressed {
+            background-color: #1c6ca1;
+            padding-top: 11px;
+            padding-bottom: 9px;
+        }
+        #primaryBtn:disabled {
+            background-color: #bdc3c7;
+            color: #95a5a6;
+        }
+
         #secondaryBtn {
             background-color: #ecf0f1;
             color: #34495e;
             border-radius: 4px;
             padding: 8px 16px;
+            border: 1px solid #d5dbdb;
+            font-weight: bold;
+        }
+        #secondaryBtn:hover {
+            background-color: #d5dbdb;
+            border-color: #bdc3c7;
+            color: #2c3e50;
+        }
+        #secondaryBtn:pressed {
+            background-color: #c2c9cc;
+            border-color: #aeb6bf;
+            padding-top: 9px;
+            padding-bottom: 7px;
+        }
+        #secondaryBtn:disabled {
+            background-color: #f8f9fa;
+            color: #bdc3c7;
+            border-color: #ecf0f1;
         }
     )");
 }

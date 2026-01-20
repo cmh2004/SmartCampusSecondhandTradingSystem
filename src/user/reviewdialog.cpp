@@ -1,12 +1,12 @@
 #include <QVBoxLayout>
-#include <QHBoxLayout>
+#include <QScrollArea>
 #include <QFileDialog>
 #include "reviewdialog.h"
 
 ReviewDialog::ReviewDialog(QWidget *parent, int orderId, QString sellerName)
     : QDialog(parent), orderId(orderId), sellerName(sellerName) {
     setWindowTitle("评价订单");
-    setFixedSize(500, 700);
+    setFixedSize(600, 800);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
     setupUI();
@@ -105,29 +105,95 @@ void ReviewDialog::setupUI() {
     uploadImageBtn = new QPushButton("选择图片");
     uploadImageBtn->setObjectName("primaryBtn");
 
-    imagePreview = new QLabel();
-    imagePreview->setFixedSize(150, 150);
-    imagePreview->setStyleSheet("border: 1px dashed #ccc; border-radius: 4px;");
-    imagePreview->setAlignment(Qt::AlignCenter);
-    imagePreview->setText("暂无图片");
-
-    connect(uploadImageBtn, &QPushButton::clicked, [this]() {
-        QString fileName = QFileDialog::getOpenFileName(this, "选择评价图片",
-                                                        "", "Images (*.png *.jpg *.jpeg)");
-        if (!fileName.isEmpty()) {
-            QPixmap pixmap(fileName);
-            imagePreview->setPixmap(pixmap.scaled(150, 150, Qt::KeepAspectRatio));
-        }
-    });
-
+    // 创建水平布局来放置按钮和图片预览
     QHBoxLayout *imageBtnLayout = new QHBoxLayout();
+    imageBtnLayout->addStretch();
     imageBtnLayout->addWidget(uploadImageBtn);
-    imageBtnLayout->addWidget(imagePreview);
     imageBtnLayout->addStretch();
 
+    // 创建滚动区域用于显示多张图片预览
+    QScrollArea *imageScrollArea = new QScrollArea();
+    imageScrollArea->setFixedHeight(180);
+    imageScrollArea->setWidgetResizable(true);
+    imageScrollArea->setStyleSheet("border: none; background-color: transparent;");
+
+    // 创建滚动区域的内容部件
+    QWidget *imageContainer = new QWidget();
+    imageContainerLayout = new QHBoxLayout(imageContainer); // 将 layout 改为成员变量以便访问
+    imageContainerLayout->setSpacing(10);
+    imageContainerLayout->setContentsMargins(5, 5, 5, 5);
+    imageContainerLayout->setAlignment(Qt::AlignLeft);
+
+    // 添加初始的"添加图片"按钮
+    QLabel *addImageLabel = createImagePreviewLabel(true);
+    imageContainerLayout->addWidget(addImageLabel);
+
+    imageScrollArea->setWidget(imageContainer);
+
     imageLayout->addLayout(imageBtnLayout);
+    imageLayout->addWidget(imageScrollArea);
     imageGroup->setLayout(imageLayout);
     mainLayout->addWidget(imageGroup);
+
+    // 连接信号槽
+    connect(uploadImageBtn, &QPushButton::clicked, [this]() {
+        QStringList fileNames = QFileDialog::getOpenFileNames(this, "选择评价图片",
+                                                              "", "Images (*.png *.jpg *.jpeg *.bmp)");
+        if (!fileNames.isEmpty()) {
+            // 检查是否已存在"添加图片"按钮
+            bool hasAddButton = false;
+            for (int i = 0; i < imageContainerLayout->count(); i++) {
+                QLayoutItem *item = imageContainerLayout->itemAt(i);
+                if (item && item->widget()) {
+                    QLabel *label = qobject_cast<QLabel*>(item->widget());
+                    if (label && label->property("isAddButton").toBool()) {
+                        hasAddButton = true;
+                        break;
+                    }
+                }
+            }
+
+            // 如果没有"添加图片"按钮，先添加一个
+            if (!hasAddButton) {
+                QLabel *addLabel = createImagePreviewLabel(true);
+                imageContainerLayout->addWidget(addLabel);
+            }
+
+            // 添加新选择的图片
+            for (const QString &fileName : fileNames) {
+                QPixmap pixmap(fileName);
+                if (!pixmap.isNull()) {
+                    QLabel *imageLabel = createImagePreviewLabel(false);
+                    imageLabel->setPixmap(pixmap.scaled(150, 150, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                    imageLabel->setProperty("imagePath", fileName);
+
+                    // 在"添加图片"按钮之前插入
+                    int insertIndex = imageContainerLayout->count() - 2;
+                    if (insertIndex < 0) insertIndex = 0;
+                    imageContainerLayout->insertWidget(insertIndex, imageLabel);
+
+                    // 保存图片路径
+                    uploadedImages.append(fileName);
+                }
+            }
+
+            // 限制最多5张图片
+            if (uploadedImages.size() >= 5) {
+                // 移除"添加图片"按钮
+                for (int i = imageContainerLayout->count() - 1; i >= 0; i--) {
+                    QLayoutItem *item = imageContainerLayout->itemAt(i);
+                    if (item && item->widget()) {
+                        QLabel *label = qobject_cast<QLabel*>(item->widget());
+                        if (label && label->property("isAddButton").toBool()) {
+                            imageContainerLayout->removeWidget(label);
+                            delete label;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    });
 
     // 按钮
     QWidget *buttonWidget = new QWidget();
@@ -151,6 +217,9 @@ void ReviewDialog::setupUI() {
 
     // 样式
     setStyleSheet(R"(
+        QDialog {
+            background-color: white;
+        }
         QGroupBox {
             font-weight: bold;
             border: 1px solid #ddd;
@@ -167,6 +236,11 @@ void ReviewDialog::setupUI() {
             background: transparent;
             border: none;
         }
+        QRadioButton::indicator {
+            width: 0px;
+            height: 0px;
+            border: none;
+        }
         #primaryBtn {
             background-color: #3498db;
             color: white;
@@ -178,6 +252,48 @@ void ReviewDialog::setupUI() {
             color: #34495e;
             border-radius: 4px;
             padding: 8px 16px;
+        }
+        QScrollArea {
+            border: none;
+            background-color: transparent;
+        }
+        QScrollBar:vertical {
+            border: none;
+            background-color: #f5f5f5;
+            width: 10px;
+            border-radius: 5px;
+        }
+        QScrollBar::handle:vertical {
+            background-color: #bdc3c7;
+            border-radius: 5px;
+            min-height: 30px;
+        }
+        QScrollBar::handle:vertical:hover {
+            background-color: #95a5a6;
+        }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            border: none;
+            background: none;
+            height: 0px;
+        }
+        QScrollBar:horizontal {
+            border: none;
+            background-color: #f5f5f5;
+            height: 10px;
+            border-radius: 5px;
+        }
+        QScrollBar::handle:horizontal {
+            background-color: #bdc3c7;
+            border-radius: 5px;
+            min-width: 30px;
+        }
+        QScrollBar::handle:horizontal:hover {
+            background-color: #95a5a6;
+        }
+        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+            border: none;
+            background: none;
+            width: 0px;
         }
     )");
 }
@@ -212,4 +328,78 @@ void ReviewDialog::onSubmitReview() {
         QMessageBox::information(this, "评价成功", "感谢您的评价！\n评价已提交成功。");
         accept();
     }
+}
+
+QLabel* ReviewDialog::createImagePreviewLabel(bool isAddButton) {
+    QLabel *label = new QLabel();
+    label->setFixedSize(150, 150);
+    label->setStyleSheet(isAddButton ?
+                             "border: 2px dashed #3498db; border-radius: 8px; background-color: #f8f9fa;" :
+                             "border: 2px solid #e0e0e0; border-radius: 8px; background-color: white;"
+                         );
+    label->setAlignment(Qt::AlignCenter);
+
+    if (isAddButton) {
+        label->setProperty("isAddButton", true);
+
+        // 创建添加图标
+        QLabel *addIcon = new QLabel(label);
+        addIcon->setPixmap(QPixmap(":/icons/img/plus.png").scaled(110, 110, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        addIcon->setAlignment(Qt::AlignCenter);
+        addIcon->setGeometry(0, 0, 150, 150);
+    } else {
+        label->setProperty("isAddButton", false);
+
+        // 添加删除按钮
+        QPushButton *deleteBtn = new QPushButton(label);
+        deleteBtn->setFixedSize(26, 26);
+        deleteBtn->setStyleSheet(R"(
+            QPushButton {
+                background-color: rgba(231, 76, 60, 0.9);
+                color: white;
+                border-radius: 12px;
+                border: 2px solid white;
+                font-weight: bold;
+                padding:3px;
+            }
+            QPushButton:hover {
+                background-color: rgba(192, 57, 43, 0.9);
+            }
+        )");
+        deleteBtn->setText("×");
+        deleteBtn->setFont(QFont("Arial", 12, QFont::Bold));
+        deleteBtn->move(120, 3);
+
+        // 删除按钮点击事件
+        connect(deleteBtn, &QPushButton::clicked, [this, label]() {
+            // 从列表中移除图片路径
+            QString imagePath = label->property("imagePath").toString();
+            uploadedImages.removeAll(imagePath);
+
+            // 从布局中移除并删除标签
+            imageContainerLayout->removeWidget(label);
+            delete label;
+
+            // 检查是否需要重新添加"添加图片"按钮
+            bool hasAddButton = false;
+            for (int i = 0; i < imageContainerLayout->count(); i++) {
+                QLayoutItem *item = imageContainerLayout->itemAt(i);
+                if (item && item->widget()) {
+                    QLabel *existingLabel = qobject_cast<QLabel*>(item->widget());
+                    if (existingLabel && existingLabel->property("isAddButton").toBool()) {
+                        hasAddButton = true;
+                        break;
+                    }
+                }
+            }
+
+            // 如果图片少于5张且没有添加按钮，则添加一个
+            if (uploadedImages.size() < 5 && !hasAddButton) {
+                QLabel *addLabel = createImagePreviewLabel(true);
+                imageContainerLayout->addWidget(addLabel);
+            }
+        });
+    }
+
+    return label;
 }

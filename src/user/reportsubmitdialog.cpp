@@ -184,6 +184,9 @@ void ReportSubmitDialog::setupUI() {
 
     // 设置样式
     setStyleSheet(R"(
+        QDialog {
+            background-color: white;
+        }
         QGroupBox {
             font-weight: bold;
             border: 1px solid #ddd;

@@ -10,6 +10,7 @@
 #include <QGroupBox>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QHBoxLayout>
 #include <QCheckBox>
 
 class ReviewDialog : public QDialog {
@@ -26,6 +27,7 @@ private slots:
 
 private:
     void setupUI();
+    QLabel* createImagePreviewLabel(bool isAddButton);
 
     int orderId;
     QString sellerName;
@@ -42,6 +44,8 @@ private:
     // 上传图片
     QPushButton *uploadImageBtn;
     QLabel *imagePreview;
+    QHBoxLayout *imageContainerLayout;  // 图片容器布局
+    QVector<QString> uploadedImages;     // 存储上传的图片路径
 
     // 按钮
     QPushButton *submitBtn;

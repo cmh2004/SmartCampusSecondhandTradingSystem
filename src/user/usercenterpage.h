@@ -23,6 +23,7 @@ signals:
 private slots:
     void onEditProfile();
     void onShowCreditScore();
+    void onLogout();  // 退出登录槽函数
 
 private:
     void setupUI();

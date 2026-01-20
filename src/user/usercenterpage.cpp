@@ -1,5 +1,6 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QMessageBox>
 #include <QHeaderView>
 #include <QGraphicsDropShadowEffect>
 #include "UserCenterPage.h"
@@ -69,6 +70,7 @@ void UserCenterPage::setupUI() {
     QHBoxLayout *buttonLayout = new QHBoxLayout();
     QPushButton *editProfileBtn = new QPushButton("编辑资料");
     QPushButton *creditScoreBtn = new QPushButton("信用分详情");
+    QPushButton *logoutBtn = new QPushButton("退出登录");
 
     editProfileBtn->setFixedSize(120, 40);
     editProfileBtn->setStyleSheet(R"(
@@ -108,12 +110,34 @@ void UserCenterPage::setupUI() {
         }
     )");
 
+    logoutBtn->setFixedSize(120, 40);
+    logoutBtn->setStyleSheet(R"(
+        QPushButton {
+            background-color: #e74c3c;
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            border: none;
+            padding: 6px 12px;
+        }
+        QPushButton:hover {
+            background-color: #c0392b;
+        }
+        QPushButton:pressed {
+            background-color: #a93226;
+        }
+    )");
+
     connect(editProfileBtn, &QPushButton::clicked, this, &UserCenterPage::onEditProfile);
     connect(creditScoreBtn, &QPushButton::clicked, this, &UserCenterPage::onShowCreditScore);
+    connect(logoutBtn, &QPushButton::clicked, this, &UserCenterPage::onLogout);
 
     buttonLayout->addWidget(editProfileBtn);
     buttonLayout->addSpacing(20);
     buttonLayout->addWidget(creditScoreBtn);
+    buttonLayout->addSpacing(20);
+    buttonLayout->addWidget(logoutBtn);
     buttonLayout->addStretch();
 
     infoLayout->addWidget(userNameLabel);
@@ -656,4 +680,26 @@ void UserCenterPage::setupMenuTabs() {
     myCollectionWidget = new QWidget();
     myReviewWidget = new QWidget();
     myHistoryWidget = new QWidget();
+}
+
+void UserCenterPage::onLogout() {
+    // 显示确认对话框
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this,
+        "退出登录",
+        "确定要退出登录吗？\n退出后需要重新登录才能使用。",
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No
+        );
+
+    if (reply == QMessageBox::Yes) {
+
+        // 可以在这里清除用户信息（可选）
+        userNameLabel->setText("未登录");
+        userLevelLabel->setText("信用分: --");
+        userJoinLabel->setText("注册时间: --");
+
+        // 可以添加一个简单的退出提示
+        QMessageBox::information(this, "退出成功", "您已成功退出登录！");
+    }
 }
