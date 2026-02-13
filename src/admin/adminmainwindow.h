@@ -12,7 +12,6 @@
 #include <QListWidget>
 #include <QDateEdit>
 #include <QProgressBar>
-#include <QChartView>
 #include <QGroupBox>
 #include <QWidget>
 

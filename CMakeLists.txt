@@ -9,8 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Charts)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Charts)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Sql)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Sql)
 
 set(PROJECT_SOURCES
     src/main.cpp
@@ -22,6 +22,10 @@ set(PROJECT_SOURCES
     src/forgotpasswordpage.cpp
     src/commonwidgets.h
     src/commonwidgets.cpp
+    src/databasemanager.h
+    src/databasemanager.cpp
+    src/httpclient.h
+    src/httpclient.cpp
 
     src/user/mainwindow.cpp
     src/user/mainwindow.h
@@ -56,6 +60,8 @@ set(PROJECT_SOURCES
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+    find_package(Qt6 REQUIRED COMPONENTS Core Network Sql)
+
     qt_add_executable(SmartCampusSecondhandTradingSystem
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
@@ -79,7 +85,8 @@ else()
     endif()
 endif()
 
-target_link_libraries(SmartCampusSecondhandTradingSystem PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Charts)
+target_link_libraries(SmartCampusSecondhandTradingSystem PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network Qt${QT_VERSION_MAJOR}::Sql)
+target_link_libraries(SmartCampusSecondhandTradingSystem PRIVATE Qt6::Core)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
