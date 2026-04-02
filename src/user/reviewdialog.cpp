@@ -1,6 +1,8 @@
 #include <QVBoxLayout>
 #include <QScrollArea>
 #include <QFileDialog>
+#include <QJsonObject>
+#include "..\apiservice.h"
 #include "reviewdialog.h"
 
 ReviewDialog::ReviewDialog(QWidget *parent, int orderId, QString sellerName)
@@ -299,34 +301,34 @@ void ReviewDialog::setupUI() {
 }
 
 void ReviewDialog::onSubmitReview() {
-    // 获取评分
-    int rating = 5;
-    for (int i = 0; i < starButtons.size(); i++) {
-        if (starButtons[i]->isChecked()) {
-            rating = i + 1;
-            break;
-        }
-    }
-
+    // 获取评分、评论等
+    int rating = getRating();
     QString comment = reviewEdit->toPlainText().trimmed();
-
     if (comment.isEmpty()) {
         QMessageBox::warning(this, "提示", "请填写评价内容");
         return;
     }
 
-    QMessageBox::StandardButton reply = QMessageBox::question(
-        this, "确认提交",
-        QString("确定提交评价吗？\n评分: %1星\n评价内容: %2")
-            .arg(rating)
-            .arg(comment.left(50)),
-        QMessageBox::Yes | QMessageBox::No
-        );
+    // 上传图片
+    QStringList imageUrls;
+    for (const QString &path : uploadedImages) {
+        QJsonObject uploadResult = ApiService::instance()->uploadImage(path);
+        if (uploadResult.value("success").toBool()) {
+            QString url = uploadResult.value("data").toObject().value("file_url").toString();
+            imageUrls.append(url);
+        } else {
+            QMessageBox::warning(this, "图片上传失败", uploadResult.value("error").toString());
+            return; // 可选择继续或中止
+        }
+    }
 
-    if (reply == QMessageBox::Yes) {
-        emit reviewSubmitted(orderId, rating, comment);
-        QMessageBox::information(this, "评价成功", "感谢您的评价！\n评价已提交成功。");
+    // 提交评价，传递图片 URL 列表
+    QJsonObject result = ApiService::instance()->submitReview(orderId, rating, comment, imageUrls);
+    if (result.value("success").toBool()) {
+        QMessageBox::information(this, "成功", "评价提交成功");
         accept();
+    } else {
+        QMessageBox::warning(this, "失败", result.value("error").toString());
     }
 }
 
@@ -402,4 +404,13 @@ QLabel* ReviewDialog::createImagePreviewLabel(bool isAddButton) {
     }
 
     return label;
+}
+
+int ReviewDialog::getRating() const {
+    for (int i = 0; i < starButtons.size(); ++i) {
+        if (starButtons[i]->isChecked()) {
+            return i + 1;   // 索引0对应1星，索引1对应2星，...，索引4对应5星
+        }
+    }
+    return 5; // 默认5星（理论上总有一个被选中）
 }

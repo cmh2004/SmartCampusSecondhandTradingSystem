@@ -5,10 +5,14 @@
 #include <QMessageBox>
 #include <QScrollArea>
 #include <QMouseEvent>
+#include <QJsonArray>
+#include <QJsonObject>
 #include "HomePage.h"
+#include "..\apiservice.h"
 
 HomePage::HomePage(QWidget *parent) : QWidget(parent) {
     setupUI();
+    loadGoodsFromServer("", "全部", 0, 0, "newest", 1, 20);
 }
 
 void HomePage::setupUI() {
@@ -132,49 +136,41 @@ void HomePage::setupUI() {
     // 连接信号槽
     connect(categoryList, &QListWidget::itemClicked, this, &HomePage::onCategoryClicked);
     connect(searchBtn, &QPushButton::clicked, this, &HomePage::onSearchClicked);
+    connect(sortCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this](int index) {
+        loadGoodsFromServer(searchEdit->text().trimmed(),
+                            getCurrentCategory(),
+                            0, 0,
+                            getSortByValue(),
+                            1, 20);
+    });
 }
 
-void HomePage::loadMockData() {
-    // 清空现有商品
-    QLayoutItem* child;
-    while ((child = goodsGridLayout->takeAt(0)) != nullptr) {
-        delete child->widget();
-        delete child;
-    }
+void HomePage::loadGoodsFromServer(const QString &keyword, const QString &category,
+                                   double minPrice, double maxPrice, const QString &sortBy,
+                                   int page, int pageSize) {
+    QJsonArray goodsArray = ApiService::instance()->searchGoods(keyword, category, minPrice, maxPrice, sortBy, page, pageSize);
 
-    QStringList goodsNames = {
-        "二手iPhone 12 128GB", "大学物理教材", "篮球鞋 Nike Air",
-        "笔记本电脑戴尔", "英语四级词汇书", "小米手环6", "吉他雅马哈", "考研数学复习全书",
-        "无线蓝牙耳机", "冬季羽绒服", "二手iPad Air", "Java编程思想",
-        "电竞游戏鼠标", "Office 365激活码", "尤克里里小吉他", "戴尔显示器"
-    };
+    // 1. 清空现有商品网格
+    clearGoodsGrid();  // 该函数需在 HomePage 中实现
 
-    QStringList prices = {"2500", "35", "280", "3200", "15", "150", "800", "40",
-                          "120", "380", "1800", "78", "89", "25", "350", "600"};
+    // 2. 添加新商品卡片到网格
+    int columns = 4;  // 固定列数，可根据窗口宽度动态调整
+    for (int i = 0; i < goodsArray.size(); ++i) {
+        QJsonObject goods = goodsArray[i].toObject();
+        int goodsId = goods.value("goods_id").toInt();
+        QString name = goods.value("title").toString();
+        double price = goods.value("price").toDouble();
+        QString categoryName = goods.value("category").toString();
+        QString status = goods.value("status").toString(); // 待售等
 
-    QStringList categories = {"电子产品", "书籍教材", "服饰鞋包", "电子产品",
-                              "书籍教材", "电子产品", "其他", "书籍教材",
-                              "电子产品", "服饰鞋包", "电子产品", "书籍教材",
-                              "电子产品", "其他", "其他", "电子产品"};
-
-    // 列数（根据窗口大小调整，这里固定为4列）
-    int columns = 4;
-
-    for (int i = 0; i < goodsNames.size(); i++) {
         // 创建商品卡片
-        QWidget *goodsCard = createGoodsCard(
-            i + 1000, // 商品ID
-            goodsNames[i],
-            prices[i],
-            categories[i],
-            (i % 3 == 0) ? "待售" : (i % 3 == 1) ? "交易中" : "已售出"
-            );
+        QWidget *card = createGoodsCard(goodsId, name, QString::number(price), categoryName, status);
 
-        // 计算行和列
+        // 计算行列位置
         int row = i / columns;
         int col = i % columns;
-
-        goodsGridLayout->addWidget(goodsCard, row, col);
+        goodsGridLayout->addWidget(card, row, col);
     }
 }
 
@@ -310,9 +306,7 @@ void HomePage::onCategoryClicked(QListWidgetItem* item) {
     welcomeLabel->setText(QString("当前分类: %1").arg(category));
     emit categoryChanged(category);
 
-    // 这里应该根据分类筛选商品
-    // 暂时用模拟数据
-    loadMockData();
+    loadGoodsFromServer(searchEdit->text().trimmed(), category, 0, 0, getSortByValue(), 1, 20);
 }
 
 void HomePage::onSearchClicked() {
@@ -323,7 +317,44 @@ void HomePage::onSearchClicked() {
     }
     emit searchRequested(keyword);
 
-    // 这里应该执行搜索逻辑
-    // 暂时用模拟数据
-    loadMockData();
+    // 根据当前选择的分类和排序条件，执行搜索
+    QString currentCategory = categoryList->currentItem()->text();
+    // 移除 emoji 图标
+    currentCategory = currentCategory.mid(currentCategory.indexOf(" ") + 1);
+    QString sortBy = getSortByValue(); // 需要实现从 sortCombo 获取排序字段
+    loadGoodsFromServer(keyword, currentCategory, 0, 0, sortBy, 1, 20);
+}
+
+void HomePage::clearGoodsGrid() {
+    QLayoutItem *child;
+    while ((child = goodsGridLayout->takeAt(0)) != nullptr) {
+        if (child->widget()) {
+            delete child->widget();
+        }
+        delete child;
+    }
+}
+
+QString HomePage::getSortByValue() const {
+    int idx = sortCombo->currentIndex();
+    switch (idx) {
+        case 0: return "newest";      // 最新发布
+        case 1: return "price_asc";   // 价格最低
+        case 2: return "price_desc";  // 价格最高
+        case 3: return "view_count";  // 最热商品
+        default: return "newest";
+    }
+}
+
+QString HomePage::getCurrentCategory() const {
+    if (!categoryList->currentItem()) return "全部";
+    QString text = categoryList->currentItem()->text();
+    // 移除开头的 emoji 图标（如"📦 全部商品" -> "全部商品"）
+    int spacePos = text.indexOf(" ");
+    if (spacePos != -1) {
+        text = text.mid(spacePos + 1);
+    }
+    // 注意：服务端可能使用特定的分类名称，如"书籍教材"、"电子产品"等
+    // 如果 UI 中的文本与服务端一致，直接返回；否则需要映射
+    return text;
 }

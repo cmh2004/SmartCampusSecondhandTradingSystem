@@ -9,6 +9,7 @@
 #include "loginpage.h"
 #include "registerpage.h"
 #include "commonwidgets.h"
+#include "apiservice.h"
 
 LoginPage::LoginPage(QWidget *parent) : QDialog(parent), isDragging(false), selectedRole("user") {
     setWindowFlags(Qt::FramelessWindowHint);
@@ -399,21 +400,22 @@ void LoginPage::onLoginClicked() {
     QString username = usernameEdit->text().trimmed();
     QString password = passwordEdit->text().trimmed();
 
-    // if (username.isEmpty() || password.isEmpty()) {
-    //     QMessageBox::warning(this, "登录失败", "请输入账号和密码");
-    //     return;
-    // }
+    if (username.isEmpty() || password.isEmpty()) {
+        showMessageBox(this, "登录失败", "请输入账号和密码", QMessageBox::Warning);
+        return;
+    }
 
-    // 根据选择的角色进行验证
-    if (selectedRole == "admin") {
-        // 管理员验证逻辑
-        // if (!username.isEmpty() && !password.isEmpty()) {
-            accept(); // 登录成功
-        // }
+    // 调用登录 API
+    QJsonObject result = ApiService::instance()->login(username, password, selectedRole);
+    if (result.value("success").toBool()) {
+        // 登录成功，保存用户信息（可选）
+        QJsonObject data = result.value("data").toObject();
+        // 设置当前用户 ID 等
+        ApiService::instance()->setCurrentUserId(data.value("user_id").toInt());
+        selectedRole = data.value("role").toString();   // 保存实际角色
+        accept();
     } else {
-        // 普通用户验证逻辑
-        // if (!username.isEmpty() && !password.isEmpty()) {
-            accept(); // 登录成功
-        // }
+        QString error = result.value("error").toString();
+        showMessageBox(this, "登录失败", error, QMessageBox::Warning);
     }
 }

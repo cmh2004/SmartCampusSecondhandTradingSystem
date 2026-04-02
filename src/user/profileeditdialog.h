@@ -45,6 +45,8 @@ private:
     // 按钮
     QPushButton *saveBtn;
     QPushButton *cancelBtn;
+
+    QString m_newAvatarUrl;
 };
 
 #endif // PROFILEEDITDIALOG_H

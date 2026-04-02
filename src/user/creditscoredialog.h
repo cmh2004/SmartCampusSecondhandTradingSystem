@@ -39,7 +39,7 @@ private slots:
 
 private:
     void setupUI();
-    void loadScoreData(QString userId);
+    void loadScoreData();
     void createScoreMeter();
     void createProgressBars();
     int animationProgress() const { return m_animationProgress; }

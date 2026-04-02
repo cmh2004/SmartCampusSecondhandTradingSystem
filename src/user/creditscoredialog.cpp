@@ -3,6 +3,8 @@
 #include <QTableWidgetItem>
 #include <QTextEdit>
 #include <QProgressBar>
+#include <QJsonObject>
+#include "..\apiservice.h"
 #include "creditscoredialog.h"
 
 CreditScoreDialog::CreditScoreDialog(QWidget *parent, QString userId)
@@ -16,7 +18,7 @@ CreditScoreDialog::CreditScoreDialog(QWidget *parent, QString userId)
     setStyleSheet("QDialog { background-color: #f8fafc; }");
 
     setupUI();
-    loadScoreData(userId);
+    loadScoreData();
 }
 
 CreditScoreDialog::~CreditScoreDialog() {
@@ -452,11 +454,14 @@ void CreditScoreDialog::createProgressBars() {
     }
 }
 
-void CreditScoreDialog::loadScoreData(QString userId) {
-    this->userId = userId;
-
-    // 模拟数据
-    int score = 96;
+void CreditScoreDialog::loadScoreData() {
+    // 获取信用分
+    QJsonObject scoreResult = ApiService::instance()->getCreditScore(userId);
+    if (!scoreResult.value("success").toBool()) {
+        QMessageBox::warning(this, "加载失败", "获取信用分失败：" + scoreResult.value("error").toString());
+        return;
+    }
+    int score = scoreResult.value("data").toObject().value("credit_score").toInt();
     m_targetScore = score;
 
     // 创建分数动画
@@ -501,57 +506,56 @@ void CreditScoreDialog::loadScoreData(QString userId) {
     createProgressBars();
 
     // 填充历史记录表格
+    // 获取历史记录
+    QJsonArray history = ApiService::instance()->getCreditHistory(userId, 1, 20);
     scoreHistoryTable->setRowCount(0);
-    QList<QList<QVariant>> historyData = {
-        {"2024-03-20 10:30", "完成交易 + 好评", "+10", "96"},
-        {"2024-03-18 14:20", "纠纷解决", "+5", "86"},
-        {"2024-03-15 09:15", "按时发货", "+3", "81"},
-        {"2024-03-10 16:45", "差评扣分", "-8", "78"},
-        {"2024-03-05 11:20", "及时回复消息", "+2", "86"},
-        {"2024-03-01 09:30", "商品发布", "+1", "84"}
-    };
-
     scoreHistoryTable->setRowHeight(0, 50);
 
-    for (int row = 0; row < historyData.size(); ++row) {
+    for (const QJsonValue &val : history) {
+        QJsonObject record = val.toObject();
+        int row = scoreHistoryTable->rowCount();
         scoreHistoryTable->insertRow(row);
-        const QList<QVariant> &data = historyData[row];
         scoreHistoryTable->setRowHeight(row, 50);
 
-        // 图标列
+        // 第0列：图标（根据变更值正负显示）
+        int changeValue = record.value("change_value").toInt();
         QLabel *iconLabel = new QLabel();
-        QString change = data[2].toString();
-        if (change.startsWith("+")) {
+        if (changeValue > 0) {
             iconLabel->setPixmap(QPixmap(":/icons/img/up.png").scaled(24, 24));
-        } else {
+        } else if (changeValue < 0) {
             iconLabel->setPixmap(QPixmap(":/icons/img/down.png").scaled(24, 24));
+        } else {
+            iconLabel->setText(""); // 无变化
         }
         iconLabel->setAlignment(Qt::AlignCenter);
         scoreHistoryTable->setCellWidget(row, 0, iconLabel);
 
-        // 时间列
-        QTableWidgetItem *timeItem = new QTableWidgetItem(data[0].toString());
-        timeItem->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        // 第1列：时间
+        QString timeStr = record.value("create_time").toString();
+        QTableWidgetItem *timeItem = new QTableWidgetItem(timeStr);
         scoreHistoryTable->setItem(row, 1, timeItem);
 
-        // 项目列
-        QTableWidgetItem *projectItem = new QTableWidgetItem(data[1].toString());
-        scoreHistoryTable->setItem(row, 2, projectItem);
+        // 第2列：变更项目（原因）
+        QString reason = record.value("reason").toString();
+        QTableWidgetItem *reasonItem = new QTableWidgetItem(reason);
+        scoreHistoryTable->setItem(row, 2, reasonItem);
 
-        // 变更分值列
-        QTableWidgetItem *changeItem = new QTableWidgetItem(data[2].toString());
+        // 第3列：变更分值
+        QString changeStr = (changeValue > 0 ? "+" : "") + QString::number(changeValue);
+        QTableWidgetItem *changeItem = new QTableWidgetItem(changeStr);
         changeItem->setTextAlignment(Qt::AlignCenter);
-        if (change.startsWith("+")) {
+        if (changeValue > 0) {
             changeItem->setForeground(QColor("#10b981"));
             changeItem->setFont(QFont("", 12, QFont::Bold));
-        } else {
+        } else if (changeValue < 0) {
             changeItem->setForeground(QColor("#ef4444"));
             changeItem->setFont(QFont("", 12, QFont::Bold));
         }
         scoreHistoryTable->setItem(row, 3, changeItem);
 
-        // 总分列
-        QTableWidgetItem *totalItem = new QTableWidgetItem(data[3].toString());
+        // 第4列：当前总分
+        int currentScore = record.value("current_score").toInt();
+        QTableWidgetItem *totalItem = new QTableWidgetItem(QString::number(currentScore));
         totalItem->setTextAlignment(Qt::AlignCenter);
         totalItem->setFont(QFont("", 12, QFont::Bold));
         totalItem->setForeground(QColor("#3b82f6"));

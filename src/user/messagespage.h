@@ -23,12 +23,14 @@ signals:
 private slots:
     void onSendMessage();
     void onChatItemClicked(QListWidgetItem *item);
+    void onNewMessage(const QJsonObject &message);
 
 private:
     void setupUI();
     void createNewChat(int goodsId, const QString &sellerName);
     int findChatByGoodsId(int goodsId);
-    void loadChatMessages(int chatIndex);
+    void loadChatMessages(const QString &sessionId, int page=1, int pageSize=10);
+    void updateChatListLastMessage(const QString &sessionId, const QString &lastMessage);
 
     QListWidget *chatList;
     QTextEdit *chatArea;

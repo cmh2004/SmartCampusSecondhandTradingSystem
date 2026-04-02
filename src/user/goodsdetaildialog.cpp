@@ -6,6 +6,8 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QLineEdit>
+#include <QNetworkRequest>
+#include "..\apiservice.h"
 #include "goodsdetaildialog.h"
 
 GoodsDetailDialog::GoodsDetailDialog(QWidget *parent, int goodsId)
@@ -378,27 +380,90 @@ void GoodsDetailDialog::setupUI() {
 }
 
 void GoodsDetailDialog::loadGoodsData(int goodsId) {
-    // 这里应该从数据库加载商品数据
-    // 目前使用模拟数据
-    this->goodsId = goodsId;
+    QJsonObject result = ApiService::instance()->getGoodsDetail(goodsId);
+    if (result.value("success").toBool()) {
+        QJsonObject data = result.value("data").toObject();
 
-    // 根据不同的商品ID显示不同的数据
-    switch(goodsId) {
-    case 0:
-        goodsTitleLabel->setText("二手iPhone 12 128GB");
-        priceLabel->setText("¥2500");
-        break;
-    case 1:
-        goodsTitleLabel->setText("大学物理教材");
-        priceLabel->setText("¥35");
-        break;
-    case 2:
-        goodsTitleLabel->setText("篮球鞋 Nike Air");
-        priceLabel->setText("¥280");
-        break;
-    default:
-        goodsTitleLabel->setText("商品名称");
-        priceLabel->setText("¥0");
+        // 基本信息
+        goodsTitleLabel->setText(data.value("name").toString());
+        priceLabel->setText(QString("¥%1").arg(data.value("price").toDouble()));
+        descriptionText->setText(data.value("description").toString());
+        categoryLabel->setText(QString::number(data.value("category_id").toInt())); // 或从分类表获取名称
+        publishTimeLabel->setText(data.value("publish_time").toString());
+        conditionLabel->setText(data.value("condition").toString()); // 需要服务端提供，若没有可暂时隐藏或显示默认
+
+        // 卖家信息
+        sellerLabel->setText(data.value("seller_name").toString());
+        contactLabel->setText("点击联系卖家"); // 或从卖家资料中获取联系方式
+        locationLabel->setText("校园内"); // 可从卖家信息中获取
+
+        // 商品图片
+        QJsonArray images = data.value("images").toArray();
+        if (!images.isEmpty()) {
+            // 主图
+            QString mainImageUrl = images[0].toObject().value("url").toString();
+            // 异步加载图片并设置到 goodsImageLabel
+            QNetworkAccessManager *nam = new QNetworkAccessManager(this);
+            connect(nam, &QNetworkAccessManager::finished, [this, nam](QNetworkReply *reply) {
+                if (reply->error() == QNetworkReply::NoError) {
+                    QPixmap pixmap;
+                    pixmap.loadFromData(reply->readAll());
+                    if (!pixmap.isNull()) {
+                        goodsImageLabel->setPixmap(pixmap.scaled(380, 380, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                    }
+                }
+                reply->deleteLater();
+                nam->deleteLater();
+            });
+            nam->get(QNetworkRequest(QUrl(mainImageUrl)));
+
+            // 缩略图
+            QList<QLabel*> thumbnails = findChildren<QLabel*>("thumbnail"); // 需在 setupUI 中给每个缩略图设置 objectName
+            for (int i = 0; i < qMin(images.size(), thumbnails.size()); ++i) {
+                QString thumbUrl = images[i].toObject().value("url").toString();
+                int idx = i;
+                QNetworkAccessManager *thumbNam = new QNetworkAccessManager(this);
+                connect(thumbNam, &QNetworkAccessManager::finished, [this, idx, thumbNam, thumbnails](QNetworkReply *reply) {
+                    if (reply->error() == QNetworkReply::NoError) {
+                        QPixmap pixmap;
+                        pixmap.loadFromData(reply->readAll());
+                        if (!pixmap.isNull()) {
+                            thumbnails[idx]->setPixmap(pixmap.scaled(80, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                        }
+                    }
+                    reply->deleteLater();
+                    thumbNam->deleteLater();
+                });
+                thumbNam->get(QNetworkRequest(QUrl(thumbUrl)));
+            }
+        }
+
+        // AI评估信息（需要额外调用 estimatePrice，或从商品数据中已有，这里假设从 data 中获取）
+        if (data.contains("min_price") && data.contains("max_price")) {
+            aiPriceRangeLabel->setText(QString("¥%1 - ¥%2")
+                                           .arg(data.value("min_price").toDouble())
+                                           .arg(data.value("max_price").toDouble()));
+        } else {
+            // 若无估价信息，可调用 ApiService::estimatePrice
+            QJsonObject estimate = ApiService::instance()->estimatePrice(data.value("description").toString(), "");
+            if (estimate.value("success").toBool()) {
+                QJsonObject estData = estimate.value("data").toObject();
+                aiPriceRangeLabel->setText(QString("¥%1 - ¥%2")
+                                               .arg(estData.value("min_price").toDouble())
+                                               .arg(estData.value("max_price").toDouble()));
+                aiRiskLevelLabel->setText(estData.value("risk_level").toString());
+            }
+        }
+
+        // 其他 AI 评估字段，若服务端返回则填充
+        aiConditionLabel->setText(data.value("ai_condition").toString());
+        aiBrandLabel->setText(data.value("brand").toString());
+        aiRiskLevelLabel->setText(data.value("risk_level").toString());
+        aiRecommendationLabel->setText(data.value("recommendation").toString());
+
+    } else {
+        QMessageBox::warning(this, "错误", "加载商品详情失败");
+        close();
     }
 }
 
@@ -408,7 +473,15 @@ void GoodsDetailDialog::loadAIAssessment(int goodsId) {
 }
 
 void GoodsDetailDialog::onCollectGoods() {
-    QMessageBox::information(this, "收藏", "商品已添加到收藏夹");
+    QJsonObject result = ApiService::instance()->addFavorite(goodsId);
+    if (result.value("success").toBool()) {
+        QMessageBox::information(this, "收藏", "商品已添加到收藏夹");
+        // 可以更新按钮状态为已收藏
+        collectBtn->setEnabled(false);
+        collectBtn->setText("已收藏");
+    } else {
+        QMessageBox::warning(this, "收藏失败", result.value("error").toString());
+    }
 }
 
 void GoodsDetailDialog::onAIAssessment() {

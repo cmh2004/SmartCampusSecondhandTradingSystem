@@ -1,6 +1,8 @@
 #include <QMessageBox>
 #include <QFileDialog>
+#include <QJsonObject>
 #include <QDateTime>
+#include "..\apiservice.h"
 #include "reportsubmitdialog.h"
 
 ReportSubmitDialog::ReportSubmitDialog(QWidget *parent, int targetId,
@@ -245,73 +247,23 @@ void ReportSubmitDialog::loadTargetInfo() {
 }
 
 void ReportSubmitDialog::onSubmitReport() {
-    QString description = descriptionEdit->toPlainText().trimmed();
-    QString reportType = reportTypeCombo->currentText();
 
+    QString reportType = reportTypeCombo->currentText();
+    QString description = descriptionEdit->toPlainText().trimmed();
     if (description.isEmpty()) {
         QMessageBox::warning(this, "提示", "请填写举报描述");
         return;
     }
-
-    if (description.length() < 10) {
-        QMessageBox::warning(this, "提示", "举报描述过短，请详细描述具体情况");
-        return;
-    }
-
-    // 验证联系方式格式（如果填写了）
-    QString contact = contactEdit->text().trimmed();
-    if (!contact.isEmpty()) {
-        if (contact.contains('@')) {
-            // 邮箱验证
-            QRegularExpression emailRegex(R"(^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$)");
-            if (!emailRegex.match(contact).hasMatch()) {
-                QMessageBox::warning(this, "提示", "邮箱格式不正确");
-                return;
-            }
-        } else {
-            // 手机号验证
-            QRegularExpression phoneRegex(R"(^1[3-9]\d{9}$)");
-            if (!phoneRegex.match(contact).hasMatch()) {
-                QMessageBox::warning(this, "提示", "手机号格式不正确");
-                return;
-            }
-        }
-    }
-
-    QString evidenceCount = QString::number(evidenceList->count());
-
-    QMessageBox::StandardButton reply = QMessageBox::question(
-        this, "确认提交",
-        QString("确定提交举报吗？\n\n"
-                "举报类型: %1\n"
-                "证据材料: %2份\n"
-                "联系方式: %3\n\n"
-                "提交后不可修改，管理员将在24小时内处理。")
-            .arg(reportType)
-            .arg(evidenceCount)
-            .arg(contact.isEmpty() ? "无" : contact),
-        QMessageBox::Yes | QMessageBox::No
-        );
-
-    if (reply == QMessageBox::Yes) {
-        // 这里应该提交举报到服务器
-        qDebug() << "提交举报:"
-                 << "targetId:" << targetId
-                 << "targetType:" << targetType
-                 << "reportType:" << reportType
-                 << "evidenceCount:" << evidenceCount;
-
-        emit reportSubmitted(targetId, targetType);
-
-        QMessageBox::information(this, "提交成功",
-                                 "举报已提交成功！\n\n"
-                                 "管理员将在24小时内处理，处理结果将通过系统消息通知您。\n"
-                                 "感谢您为维护平台秩序做出的贡献！");
-
+    // 将举报类型映射到服务端接受的类型ID
+    int reasonType = mapReasonType(reportType);
+    QJsonObject result = ApiService::instance()->submitReport(targetId, targetType, reasonType, description);
+    if (result.value("success").toBool()) {
+        QMessageBox::information(this, "成功", "举报已提交");
         accept();
+    } else {
+        QMessageBox::warning(this, "失败", result.value("error").toString());
     }
 }
-
 void ReportSubmitDialog::onUploadEvidence() {
     QStringList fileNames = QFileDialog::getOpenFileNames(this, "选择证据文件",
                                                           "",
@@ -393,4 +345,41 @@ void ReportSubmitDialog::onCancel() {
     } else {
         reject();
     }
+}
+
+int ReportSubmitDialog::mapReasonType(const QString &reasonText) const {
+    // 根据 targetType 选择不同的映射表
+    if (targetType == "goods") {
+        static const QMap<QString, int> goodsReasonMap = {
+            {"虚假信息/描述不符", 1},
+            {"价格欺诈/恶意抬价", 2},
+            {"违禁物品", 3},
+            {"商品侵权/盗版", 4},
+            {"重复发布/恶意刷屏", 5},
+            {"其他违规行为", 6}
+        };
+        return goodsReasonMap.value(reasonText, 0);
+    }
+    else if (targetType == "user") {
+        static const QMap<QString, int> userReasonMap = {
+            {"欺诈行为", 1},
+            {"恶意骚扰", 2},
+            {"虚假身份", 3},
+            {"违规交易", 4},
+            {"发布违规内容", 5},
+            {"其他违规行为", 6}
+        };
+        return userReasonMap.value(reasonText, 0);
+    }
+    else if (targetType == "order") {
+        static const QMap<QString, int> orderReasonMap = {
+            {"交易纠纷", 1},
+            {"不履行交易", 2},
+            {"恶意退款", 3},
+            {"虚假发货", 4},
+            {"其他违规行为", 5}
+        };
+        return orderReasonMap.value(reasonText, 0);
+    }
+    return 0;
 }

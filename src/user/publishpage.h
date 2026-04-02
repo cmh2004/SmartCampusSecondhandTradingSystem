@@ -21,6 +21,7 @@ signals:
 private slots:
     void onPublishGoods();
     void onUploadImage();
+    void onAIPriceEstimate();
 
 private:
     void setupUI();

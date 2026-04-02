@@ -15,6 +15,7 @@ class UserCenterPage : public QWidget {
 public:
     explicit UserCenterPage(QWidget *parent = nullptr);
     void updateUserInfo(const QString &name, int creditScore, const QString &joinDate);
+    void loadUserInfo();
 
 signals:
     void editProfileRequested();
@@ -32,7 +33,7 @@ private:
     void createReviewTab();
     void createHistoryTab();
     void setupMenuTabs();
-
+    void loadFavorites();
     void addReviewItem(const QString &date, const QString &orderId,
                        const QString &item, int rating, const QString &comment);
 

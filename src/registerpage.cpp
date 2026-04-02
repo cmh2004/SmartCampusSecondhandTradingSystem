@@ -5,7 +5,10 @@
 #include <QShortcut>
 #include <QTimer>
 #include <QRegularExpression>
+#include <QJsonObject>
 #include "registerpage.h"
+#include "apiservice.h"
+#include "commonwidgets.h"
 
 RegisterPage::RegisterPage(QWidget *parent) : QDialog(parent), isDragging(false), isPasswordVisible(false) {
     setWindowFlags(Qt::FramelessWindowHint);
@@ -18,7 +21,7 @@ RegisterPage::RegisterPage(QWidget *parent) : QDialog(parent), isDragging(false)
     // 连接信号槽
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::reject);
     connect(toLoginBtn, &QPushButton::clicked, this, &QDialog::accept);
-    connect(registerBtn, &QPushButton::clicked, this, &QDialog::accept);
+    connect(registerBtn, &QPushButton::clicked, this, &RegisterPage::onRegisterClicked);
     connect(togglePwdBtn, &QPushButton::clicked, this, &RegisterPage::onTogglePassword);
 
     // 回车键注册快捷键
@@ -334,5 +337,27 @@ void RegisterPage::mouseReleaseEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         isDragging = false;
         event->accept();
+    }
+}
+
+void RegisterPage::onRegisterClicked() {
+    QString username = usernameEdit->text().trimmed();
+    QString password = passwordEdit->text().trimmed();
+    QString nickname = nicknameEdit->text().trimmed();
+    QString email = emailEdit->text().trimmed();
+    // 可以加手机号，但当前界面没有，可以忽略或添加
+    QString phone = ""; // 未提供
+
+    if (username.isEmpty() || password.isEmpty()) {
+        showMessageBox(this, "提示", "请填写账号和密码", QMessageBox::Warning);
+        return;
+    }
+    // 密码强度验证等...
+    QJsonObject result = ApiService::instance()->registerUser(username, password, email, phone, nickname);
+    if (result.value("success").toBool()) {
+        showMessageBox(this, "成功", "注册成功！请登录", QMessageBox::Information);
+        accept(); // 关闭注册页面，回到登录页
+    } else {
+        showMessageBox(this, "失败", result.value("error").toString(), QMessageBox::Warning);
     }
 }

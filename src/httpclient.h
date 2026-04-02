@@ -6,6 +6,7 @@
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QTimer>
 #include <QMap>

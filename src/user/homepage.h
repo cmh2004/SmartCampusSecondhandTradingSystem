@@ -14,7 +14,9 @@ class HomePage : public QWidget {
 
 public:
     explicit HomePage(QWidget *parent = nullptr);
-    void loadMockData();
+    void loadGoodsFromServer(const QString &keyword, const QString &category,
+                                   double minPrice, double maxPrice, const QString &sortBy,
+                             int page, int pageSize);
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -37,6 +39,9 @@ private:
     QWidget* createGoodsCard(int goodsId, const QString& name,
                              const QString& price, const QString& category,
                              const QString& status);
+    void clearGoodsGrid();
+    QString getSortByValue() const;
+    QString getCurrentCategory() const;
 
     QListWidget *categoryList;
     QLineEdit *searchEdit;

@@ -38,7 +38,7 @@ private slots:
 
     // 纠纷处理相关
     void onViewDisputeDetail(int disputeId);
-    void onProcessDispute(int disputeId, QString decision);
+    void onProcessDispute(int disputeId, const QString& decision);
     void onFilterDisputes();
 
 private:

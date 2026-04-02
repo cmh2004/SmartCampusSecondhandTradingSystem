@@ -4,6 +4,8 @@
 #include <QMessageBox>
 #include <QApplication>
 #include <QInputDialog>
+#include <QJsonObject>
+#include "..\apiservice.h"
 #include <QGraphicsDropShadowEffect>
 #include "MainWindow.h"
 #include "HomePage.h"
@@ -88,27 +90,15 @@ void MainWindow::setupUI() {
         });
 
         connect(detailDialog, &GoodsDetailDialog::buyNowRequested, this, [this](int goodsId) {
-            // 获取商品信息
-            QString goodsName = QString("商品 #%1").arg(goodsId);
-
-            QString message = QString("确认购买商品？\n\n"
-                                      "商品: %1\n"
-                                      "商品ID: %2\n\n"
-                                      "购买后请及时联系卖家完成交易。")
-                                  .arg(goodsName)
-                                  .arg(goodsId);
-
-            QMessageBox::StandardButton reply = QMessageBox::question(
-                this, "确认购买", message,
-                QMessageBox::Yes | QMessageBox::No);
-
-            if (reply == QMessageBox::Yes) {
-                QMessageBox::information(this, "购买成功",
-                                         "订单已创建！\n\n"
-                                         "订单信息:\n"
-                                         "• 商品: " + goodsName + "\n"
-                                                           "• 状态: 待支付\n\n"
-                                                           "请及时联系卖家完成交易。");
+            QJsonObject result = ApiService::instance()->createOrder(goodsId,  QJsonObject());
+            if (result.value("success").toBool()) {
+                QMessageBox::information(this, "购买成功", "订单已创建！\n请及时支付。");
+                // 可选：切换到订单页面
+                setActiveTabButton(3);  // 订单页面索引
+                mainTabWidget->setCurrentIndex(3);
+                ordersPage->loadOrdersFromServer("", "", 1, 20);
+            } else {
+                QMessageBox::warning(this, "购买失败", result.value("error").toString());
             }
         });
 
@@ -179,7 +169,7 @@ void MainWindow::setupUI() {
     mainTabWidget->addTab(messagesPage, "");
     mainTabWidget->addTab(ordersPage, "");
     mainTabWidget->addTab(userCenterPage, "");
-    homePage->loadMockData();
+    homePage->loadGoodsFromServer("", "全部", 0, 0, "newest", 1, 20);
 
     windowLayout->addWidget(mainTabWidget, 1);
 
@@ -723,7 +713,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event) {
 
 void MainWindow::onTabChanged(int index) {
     if (index == 0) { // 首页
-        homePage->loadMockData();
+        homePage->loadGoodsFromServer("", "全部", 0, 0, "newest", 1, 20);
     }
 }
 
@@ -744,6 +734,7 @@ void MainWindow::onShowReview(int orderId, const QString &sellerName) {
 void MainWindow::onShowProfileEdit() {
     ProfileEditDialog *dialog = new ProfileEditDialog(this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dialog, &ProfileEditDialog::profileUpdated, userCenterPage, &UserCenterPage::loadUserInfo);
     dialog->show();
 }
 

@@ -20,7 +20,7 @@ public:
     explicit ReviewDialog(QWidget *parent = nullptr, int orderId = -1, QString sellerName = "");
 
 signals:
-    void reviewSubmitted(int orderId, int rating, QString comment);
+    void reviewSubmitted(int orderId, int rating, QString comment="");
 
 private slots:
     void onSubmitReview();
@@ -28,6 +28,7 @@ private slots:
 private:
     void setupUI();
     QLabel* createImagePreviewLabel(bool isAddButton);
+    int getRating() const;
 
     int orderId;
     QString sellerName;

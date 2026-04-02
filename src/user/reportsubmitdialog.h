@@ -32,6 +32,7 @@ private slots:
 private:
     void setupUI();
     void loadTargetInfo();
+    int mapReasonType(const QString &reasonText) const;
 
 private:
     int targetId;

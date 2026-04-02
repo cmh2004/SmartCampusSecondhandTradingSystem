@@ -3,6 +3,8 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QGraphicsDropShadowEffect>
+#include <QJsonObject>
+#include "..\apiservice.h"
 #include "PublishPage.h"
 
 PublishPage::PublishPage(QWidget *parent) : QWidget(parent) {
@@ -195,6 +197,8 @@ void PublishPage::setupUI() {
             border: none;
         }
     )");
+
+    connect(aiPriceBtn, &QPushButton::clicked, this, &PublishPage::onAIPriceEstimate);
 }
 
 void PublishPage::onPublishGoods() {
@@ -216,19 +220,23 @@ void PublishPage::onPublishGoods() {
         return;
     }
 
-    // 这里应该提交到服务器
-    QMessageBox::information(this, "成功", "商品发布成功，等待审核");
+    // 收集图片路径（如果有）
+    QStringList imagePaths;
+    // 如果 imagePreview 有图片，需要获取其路径，这里简化
 
-    // 发射信号通知父窗口
-    emit goodsPublished(name, category, priceValue, desc);
+    QJsonObject goodsData;
+    goodsData["name"] = name;
+    goodsData["price"] = priceValue;
+    goodsData["description"] = desc;
+    goodsData["category"] = category;  // 服务端可能需要 category_id，需要映射
 
-    // 清空表单
-    goodsNameEdit->clear();
-    goodsPriceEdit->clear();
-    goodsDescEdit->clear();
-    goodsCategoryCombo->setCurrentIndex(0);
-    imagePreview->clear();
-    imagePreview->setText("暂无图片");
+    QJsonObject result = ApiService::instance()->publishGoods(goodsData, imagePaths);
+    if (result.value("success").toBool()) {
+        QMessageBox::information(this, "成功", "商品发布成功，等待审核");
+        // 清空表单
+    } else {
+        QMessageBox::warning(this, "失败", result.value("error").toString());
+    }
 }
 
 void PublishPage::onUploadImage() {
@@ -248,5 +256,36 @@ void PublishPage::onUploadImage() {
         } else {
             QMessageBox::warning(this, "错误", "无法加载图片文件");
         }
+    }
+}
+
+void PublishPage::onAIPriceEstimate() {
+    QString description = goodsDescEdit->toPlainText().trimmed();
+    if (description.isEmpty()) {
+        QMessageBox::warning(this, "提示", "请先填写商品描述");
+        return;
+    }
+
+    // 如果有上传的图片，也可以传给 AI（可选）
+    QString imagePath;
+    QPixmap pix = imagePreview->pixmap();
+    if (&pix && !pix.isNull())  {
+        // 这里需要获取实际图片文件路径，但 `imagePreview` 只存了 pixmap，需要记录原始路径
+        // 简化：可以不上传图片，只根据描述估价
+    }
+
+    QJsonObject result = ApiService::instance()->estimatePrice(description, imagePath);
+    if (result.value("success").toBool()) {
+        QJsonObject data = result.value("data").toObject();
+        double minPrice = data.value("min_price").toDouble();
+        double maxPrice = data.value("max_price").toDouble();
+        double confidence = data.value("confidence").toDouble();
+        QString message = QString("AI 估价范围：¥%1 - ¥%2\n置信度：%3%")
+                              .arg(minPrice).arg(maxPrice).arg(confidence);
+        QMessageBox::information(this, "AI 估价结果", message);
+        // 可以自动填入价格输入框
+        goodsPriceEdit->setText(QString::number((minPrice + maxPrice) / 2));
+    } else {
+        QMessageBox::warning(this, "估价失败", result.value("error").toString());
     }
 }

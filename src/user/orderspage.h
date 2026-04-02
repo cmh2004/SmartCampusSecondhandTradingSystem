@@ -12,7 +12,7 @@ class OrdersPage : public QWidget {
 
 public:
     explicit OrdersPage(QWidget *parent = nullptr);
-    void loadOrderExamples();
+    void loadOrdersFromServer(const QString &status = "", const QString &keyword = "", int page = 1, int pageSize = 20);
 
 signals:
     void paymentRequested(int orderId, double amount);
@@ -40,6 +40,11 @@ private:
     QPushButton *filterBtn;
     QPushButton *refreshBtn;
     QPushButton *exportBtn;
+
+    QString m_currentStatus;
+    QString m_currentKeyword;
+    int m_currentPage;
+    int m_currentPageSize;
 };
 
 #endif // ORDERSPAGE_H

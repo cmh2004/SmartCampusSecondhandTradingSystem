@@ -6,7 +6,9 @@
 #include <QGroupBox>
 #include <QFont>
 #include <QPalette>
+#include <QJsonObject>
 #include <QListWidgetItem>
+#include "..\apiservice.h"
 #include "disputesubmitdialog.h"
 
 DisputeSubmitDialog::DisputeSubmitDialog(QWidget *parent, int orderId)
@@ -351,33 +353,36 @@ void DisputeSubmitDialog::onUploadEvidence() {
 }
 
 void DisputeSubmitDialog::onSubmitDispute() {
+    QString disputeType = disputeTypeCombo->currentText();
     QString description = descriptionEdit->toPlainText().trimmed();
     if (description.isEmpty()) {
-        QMessageBox::warning(this, "提示", "请填写纠纷描述！", QMessageBox::Ok);
+        QMessageBox::warning(this, "提示", "请填写纠纷描述");
         return;
     }
 
-    QString disputeType = disputeTypeCombo->currentText();
-    QString evidenceTip = evidenceList->count() > 0
-                              ? QString("（已上传 %1 份证据）").arg(evidenceList->count())
-                              : "（未上传证据）";
+    // 上传证据文件
+    QStringList evidenceUrls;
+    for (int i = 0; i < evidenceList->count(); ++i) {
+        QListWidgetItem *item = evidenceList->item(i);
+        QString filePath = item->data(Qt::UserRole).toString();
+        if (!filePath.isEmpty()) {
+            QJsonObject uploadResult = ApiService::instance()->uploadImage(filePath);
+            if (uploadResult.value("success").toBool()) {
+                QString url = uploadResult.value("data").toObject().value("file_url").toString();
+                evidenceUrls.append(url);
+            } else {
+                QMessageBox::warning(this, "证据上传失败", uploadResult.value("error").toString());
+                return; // 可选择继续或中止
+            }
+        }
+    }
 
-    QMessageBox msgBox(this);
-    msgBox.setWindowTitle("确认提交");
-    msgBox.setIcon(QMessageBox::Question);
-    msgBox.setText(QString("确定提交以下纠纷申请吗？%1").arg(evidenceTip));
-    msgBox.setDetailedText(QString("纠纷类型：%1\n描述：%2").arg(disputeType).arg(description));
-    msgBox.addButton("确认提交", QMessageBox::YesRole);
-    msgBox.addButton("取消", QMessageBox::NoRole);
-
-    if (msgBox.exec() == 0) { // 点击确认提交
-        QMessageBox::information(
-            this,
-            "提交成功",
-            "✅ 纠纷申请已提交！\n• 管理员将在24小时内处理\n• 处理结果将通过消息通知您",
-            QMessageBox::Ok
-            );
+    QJsonObject result = ApiService::instance()->submitDispute(orderId, disputeType, description, evidenceUrls);
+    if (result.value("success").toBool()) {
+        QMessageBox::information(this, "成功", "纠纷已提交");
         accept();
+    } else {
+        QMessageBox::warning(this, "失败", result.value("error").toString());
     }
 }
 

@@ -9,8 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Sql)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Sql)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Sql WebSockets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Sql WebSockets)
 
 set(PROJECT_SOURCES
     src/main.cpp
@@ -26,6 +26,8 @@ set(PROJECT_SOURCES
     src/databasemanager.cpp
     src/httpclient.h
     src/httpclient.cpp
+    src/websocketclient.h
+    src/websocketclient.cpp
 
     src/user/mainwindow.cpp
     src/user/mainwindow.h
@@ -66,6 +68,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         resource.qrc
+        src/apiservice.h src/apiservice.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET SmartCampusSecondhandTradingSystem APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -85,7 +88,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(SmartCampusSecondhandTradingSystem PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network Qt${QT_VERSION_MAJOR}::Sql)
+target_link_libraries(SmartCampusSecondhandTradingSystem PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network Qt${QT_VERSION_MAJOR}::Sql Qt6::WebSockets)
 target_link_libraries(SmartCampusSecondhandTradingSystem PRIVATE Qt6::Core)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

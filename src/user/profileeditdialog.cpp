@@ -3,7 +3,9 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QMessageBox>
+#include <QJsonObject>
 #include <QFileDialog>
+#include "..\apiservice.h"
 #include "profileeditdialog.h"
 
 ProfileEditDialog::ProfileEditDialog(QWidget *parent)
@@ -217,19 +219,46 @@ void ProfileEditDialog::onSaveProfile() {
             return;
         }
     }
+    QJsonObject updates;
+    updates["nickname"] = nickname;
+    updates["phone"] = phone;
+    updates["email"] = email;
+    updates["realName"] = realName;
+    updates["studentId"] = studentId;
+    if (!m_newAvatarUrl.isEmpty()) {
+        updates["avatar_url"] = m_newAvatarUrl;
+    }
 
-    QMessageBox::information(this, "保存成功", "个人资料已更新");
-    emit profileUpdated();
-    accept();
+    QJsonObject result = ApiService::instance()->updateUserProfile(updates);
+    if (result.value("success").toBool()) {
+        QMessageBox::information(this, "成功", "资料更新成功");
+        emit profileUpdated(); // 让 UserCenterPage 刷新
+        accept();
+    } else {
+        QMessageBox::warning(this, "失败", result.value("error").toString());
+    }
 }
 
 void ProfileEditDialog::onUploadAvatar() {
-    QString fileName = QFileDialog::getOpenFileName(this, "选择头像",
-                                                    "", "Images (*.png *.jpg *.jpeg)");
-    if (!fileName.isEmpty()) {
+    QString fileName = QFileDialog::getOpenFileName(this, "选择头像", "", "Images (*.png *.jpg *.jpeg)");
+    if (fileName.isEmpty()) return;
+
+    // 调用上传头像 API
+    QJsonObject result = ApiService::instance()->uploadAvatar(fileName);
+    if (result.value("success").toBool()) {
+        QJsonObject data = result.value("data").toObject();
+        QString avatarUrl = data.value("avatar_url").toString();
+
+        // 更新界面上的头像
         QPixmap pixmap(fileName);
         avatarLabel->setPixmap(pixmap.scaled(80, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation));
         avatarLabel->setScaledContents(true);
-        QMessageBox::information(this, "提示", "头像已更新，保存后生效");
+
+        // 可选：立即保存到用户资料（但实际应在用户点击“保存修改”时一并提交）
+        // 这里可以缓存新头像 URL，在保存时一并提交
+        m_newAvatarUrl = avatarUrl;  // 需要在类中添加成员变量
+        QMessageBox::information(this, "提示", "头像已上传，保存资料后生效");
+    } else {
+        QMessageBox::warning(this, "上传失败", result.value("error").toString());
     }
 }

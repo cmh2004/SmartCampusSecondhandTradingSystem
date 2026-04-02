@@ -23,6 +23,7 @@ protected:
 private:
     void setupUI();
     void setupStyles();
+    void onRegisterClicked();
 
 private slots:
     void onTogglePassword();    // 密码显示/隐藏切换槽函数

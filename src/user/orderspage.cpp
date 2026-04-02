@@ -5,11 +5,16 @@
 #include <QMessageBox>
 #include <QDateTime>
 #include <QTableWidgetItem>
+#include <QJsonArray>
+#include "PaymentDialog.h"
+#include "DisputeSubmitDialog.h"
+#include "ReviewDialog.h"
+#include "..\apiservice.h"
 #include "OrdersPage.h"
 
 OrdersPage::OrdersPage(QWidget *parent) : QWidget(parent) {
     setupUI();
-    loadOrderExamples();
+    loadOrdersFromServer("","",1,10);
 }
 
 void OrdersPage::setupUI() {
@@ -169,77 +174,42 @@ void OrdersPage::setupUI() {
             this, &OrdersPage::onFilterOrders);
 }
 
-void OrdersPage::loadOrderExamples() {
-    if (!ordersTable) return;
+void OrdersPage::loadOrdersFromServer(const QString &status, const QString &keyword, int page, int pageSize) {
+    // 保存当前筛选条件，便于刷新
+    m_currentStatus = status;
+    m_currentKeyword = keyword;
+    m_currentPage = page;
+    m_currentPageSize = pageSize;
 
+    // 调用 ApiService 获取订单列表
+    QJsonArray orders = ApiService::instance()->getOrderList(status, page, pageSize, keyword);
+
+    // 清空表格（保留表头）
     ordersTable->setRowCount(0);
 
-    // 订单数据
-    QList<QList<QVariant>> orderData = {
-        {1001, "二手iPhone 12 128GB", 2500.00, "待付款", "2024-03-20 10:30", "张三同学"},
-        {1002, "大学物理教材", 35.00, "已完成", "2024-03-18 14:20", "李四同学"},
-        {1003, "篮球鞋 Nike Air", 280.00, "待收货", "2024-03-19 16:45", "王五同学"},
-        {1004, "笔记本电脑戴尔", 3200.00, "已完成", "2024-03-15 09:15", "赵六同学"},
-        {1005, "小米手环6", 150.00, "已取消", "2024-03-12 11:20", "钱七同学"},
-        {1006, "吉他雅马哈", 800.00, "纠纷处理中", "2024-03-10 08:45", "孙八同学"}
-    };
+    for (const QJsonValue &val : orders) {
+        QJsonObject order = val.toObject();
+        int orderId = order.value("order_id").toInt();
+        QString goodsName = order.value("goods_title").toString();
+        double amount = order.value("deal_price").toDouble();
+        QString orderStatus = order.value("status").toString(); // 假设返回 "待付款", "已完成" 等
+        QString createTime = order.value("create_time").toString();
+        QString seller = order.value("seller_name").toString();
 
-    for (const auto &data : orderData) {
         int row = ordersTable->rowCount();
         ordersTable->insertRow(row);
         ordersTable->setRowHeight(row, 50);
 
-        // 订单号
-        QTableWidgetItem *orderIdItem = new QTableWidgetItem(QString::number(data[0].toInt()));
-        orderIdItem->setTextAlignment(Qt::AlignCenter);
-        orderIdItem->setData(Qt::UserRole, data[0].toInt()); // 存储订单ID
-        ordersTable->setItem(row, 0, orderIdItem);
+        // 设置各列数据
+        ordersTable->setItem(row, 0, new QTableWidgetItem(QString::number(orderId)));
+        ordersTable->setItem(row, 1, new QTableWidgetItem(goodsName));
+        ordersTable->setItem(row, 2, new QTableWidgetItem(QString("¥%1").arg(amount)));
+        ordersTable->setItem(row, 3, new QTableWidgetItem(orderStatus));
+        ordersTable->setItem(row, 4, new QTableWidgetItem(createTime));
+        ordersTable->setItem(row, 5, new QTableWidgetItem(seller));
 
-        // 商品名称
-        ordersTable->setItem(row, 1, new QTableWidgetItem(data[1].toString()));
-
-        // 价格
-        QTableWidgetItem *priceItem = new QTableWidgetItem(QString("¥%1").arg(data[2].toDouble(), 0, 'f', 2));
-        priceItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
-        priceItem->setFont(QFont("Arial", -1, QFont::Bold));
-        ordersTable->setItem(row, 2, priceItem);
-
-        // 状态
-        QString status = data[3].toString();
-        QTableWidgetItem *statusItem = new QTableWidgetItem(status);
-        statusItem->setTextAlignment(Qt::AlignCenter);
-        statusItem->setFont(QFont("Microsoft YaHei", -1, QFont::Bold));
-
-        // 根据状态设置颜色
-        if (status == "待付款") {
-            statusItem->setForeground(QColor(231, 76, 60));  // 红色
-            statusItem->setBackground(QColor(253, 237, 236)); // 浅红色背景
-        } else if (status == "已完成") {
-            statusItem->setForeground(QColor(46, 204, 113));  // 绿色
-            statusItem->setBackground(QColor(237, 247, 240)); // 浅绿色背景
-        } else if (status == "待收货") {
-            statusItem->setForeground(QColor(241, 196, 15));  // 黄色
-            statusItem->setBackground(QColor(254, 252, 232)); // 浅黄色背景
-        } else if (status == "已取消") {
-            statusItem->setForeground(QColor(149, 165, 166)); // 灰色
-            statusItem->setBackground(QColor(245, 246, 246)); // 浅灰色背景
-        } else if (status == "纠纷处理中") {
-            statusItem->setForeground(QColor(230, 126, 34));  // 橙色
-            statusItem->setBackground(QColor(253, 237, 236)); // 浅红色背景
-        }
-
-        ordersTable->setItem(row, 3, statusItem);
-
-        // 下单时间
-        ordersTable->setItem(row, 4, new QTableWidgetItem(data[4].toString()));
-
-        // 卖家
-        QTableWidgetItem *sellerItem = new QTableWidgetItem(data[5].toString());
-        sellerItem->setTextAlignment(Qt::AlignCenter);
-        ordersTable->setItem(row, 5, sellerItem);
-
-        // 操作按钮
-        createActionButtons(row, status, data[0].toInt());
+        // 根据状态创建操作按钮
+        createActionButtons(row, orderStatus, orderId);
     }
 }
 
@@ -249,7 +219,7 @@ void OrdersPage::createActionButtons(int row, const QString &status, int orderId
     actionLayout->setContentsMargins(5, 2, 5, 2);
     actionLayout->setSpacing(15);
 
-    // 按钮样式
+    // 按钮样式（沿用原样式）
     QString buttonStyle = R"(
         QPushButton {
             padding: 2px 8px;
@@ -259,166 +229,168 @@ void OrdersPage::createActionButtons(int row, const QString &status, int orderId
             border: 1px solid transparent;
             min-width: 60px;
         }
-        QPushButton:hover {
-            opacity: 0.9;
-        }
-        QPushButton:pressed {
-            opacity: 0.8;
-        }
+        QPushButton:hover { opacity: 0.9; }
+        QPushButton:pressed { opacity: 0.8; }
     )";
 
-    // 根据状态显示不同的操作按钮
+    // 根据状态创建不同按钮
     if (status == "待付款") {
         QPushButton *payBtn = new QPushButton("去支付");
         payBtn->setStyleSheet(buttonStyle + R"(
-            QPushButton {
-                background-color: #3B82F6;
-                color: white;
-            }
-            QPushButton:hover {
-                background-color: #2563EB;
-            }
+            QPushButton { background-color: #3B82F6; color: white; }
+            QPushButton:hover { background-color: #2563EB; }
         )");
-        payBtn->setProperty("orderId", orderId);
         connect(payBtn, &QPushButton::clicked, [this, orderId]() {
-            // 从数据中获取实际金额
+            // 获取订单金额（可以从表格中获取或从全局数据获取）
             double amount = 0;
             for (int i = 0; i < ordersTable->rowCount(); i++) {
                 QTableWidgetItem *idItem = ordersTable->item(i, 0);
                 if (idItem && idItem->text().toInt() == orderId) {
                     QTableWidgetItem *priceItem = ordersTable->item(i, 2);
                     if (priceItem) {
-                        QString priceText = priceItem->text();
-                        priceText = priceText.replace("¥", "").trimmed();
-                        amount = priceText.toDouble();
+                        amount = priceItem->text().replace("¥", "").toDouble();
                         break;
                     }
                 }
             }
-            emit paymentRequested(orderId, amount);
+
+            // 弹出支付对话框
+            PaymentDialog *dialog = new PaymentDialog(this, orderId, amount);
+            connect(dialog, &PaymentDialog::accepted, [this, orderId,amount]() {
+                // 支付成功，调用支付 API
+                QJsonObject result = ApiService::instance()->payOrder(orderId, "微信支付",amount);
+                if (result.value("success").toBool()) {
+                    QMessageBox::information(this, "支付成功", "订单已支付，等待发货");
+                    loadOrdersFromServer(m_currentStatus, m_currentKeyword, m_currentPage, m_currentPageSize);
+                } else {
+                    QMessageBox::warning(this, "支付失败", result.value("error").toString());
+                }
+            });
+            dialog->show();
         });
+        actionLayout->addWidget(payBtn);
 
         QPushButton *cancelBtn = new QPushButton("取消");
         cancelBtn->setStyleSheet(buttonStyle + R"(
-            QPushButton {
-                background-color: #6B7280;
-                color: white;
-            }
-            QPushButton:hover {
-                background-color: #4B5563;
-            }
+            QPushButton { background-color: #6B7280; color: white; }
+            QPushButton:hover { background-color: #4B5563; }
         )");
-        cancelBtn->setProperty("orderId", orderId);
         connect(cancelBtn, &QPushButton::clicked, [this, orderId]() {
-            onCancelOrder(orderId);
+            QMessageBox::StandardButton reply = QMessageBox::question(
+                this, "确认取消", QString("确定要取消订单 #%1 吗？").arg(orderId),
+                QMessageBox::Yes | QMessageBox::No);
+            if (reply == QMessageBox::Yes) {
+                QJsonObject result = ApiService::instance()->cancelOrder(orderId, "用户取消");
+                if (result.value("success").toBool()) {
+                    QMessageBox::information(this, "取消成功", "订单已取消");
+                    loadOrdersFromServer(m_currentStatus, m_currentKeyword, m_currentPage, m_currentPageSize);
+                } else {
+                    QMessageBox::warning(this, "取消失败", result.value("error").toString());
+                }
+            }
         });
-
-        actionLayout->addWidget(payBtn);
         actionLayout->addWidget(cancelBtn);
 
     } else if (status == "待收货") {
         QPushButton *confirmBtn = new QPushButton("确认收货");
         confirmBtn->setStyleSheet(buttonStyle + R"(
-            QPushButton {
-                background-color: #10B981;
-                color: white;
-            }
-            QPushButton:hover {
-                background-color: #059669;
-            }
+            QPushButton { background-color: #10B981; color: white; }
+            QPushButton:hover { background-color: #059669; }
         )");
-        confirmBtn->setProperty("orderId", orderId);
         connect(confirmBtn, &QPushButton::clicked, [this, orderId]() {
-            onConfirmReceipt(orderId);
+            QMessageBox::StandardButton reply = QMessageBox::question(
+                this, "确认收货", "请确认已收到商品，确认后订单将完成。",
+                QMessageBox::Yes | QMessageBox::No);
+            if (reply == QMessageBox::Yes) {
+                QJsonObject result = ApiService::instance()->confirmOrder(orderId);
+                if (result.value("success").toBool()) {
+                    QMessageBox::information(this, "收货成功", "订单已完成，感谢您的购买！");
+                    loadOrdersFromServer(m_currentStatus, m_currentKeyword, m_currentPage, m_currentPageSize);
+                } else {
+                    QMessageBox::warning(this, "操作失败", result.value("error").toString());
+                }
+            }
         });
+        actionLayout->addWidget(confirmBtn);
 
         QPushButton *disputeBtn = new QPushButton("售后");
         disputeBtn->setStyleSheet(buttonStyle + R"(
-            QPushButton {
-                background-color: #F59E0B;
-                color: white;
-            }
-            QPushButton:hover {
-                background-color: #D97706;
-            }
+            QPushButton { background-color: #F59E0B; color: white; }
+            QPushButton:hover { background-color: #D97706; }
         )");
-        disputeBtn->setProperty("orderId", orderId);
         connect(disputeBtn, &QPushButton::clicked, [this, orderId]() {
-            onShowDispute(orderId);
+            // 弹出纠纷对话框
+            DisputeSubmitDialog *dialog = new DisputeSubmitDialog(this, orderId);
+            connect(dialog, &DisputeSubmitDialog::accepted, [this]() {
+                loadOrdersFromServer(m_currentStatus, m_currentKeyword, m_currentPage, m_currentPageSize);
+            });
+            dialog->show();
         });
-
-        actionLayout->addWidget(confirmBtn);
         actionLayout->addWidget(disputeBtn);
 
     } else if (status == "已完成") {
         QPushButton *reviewBtn = new QPushButton("评价");
         reviewBtn->setStyleSheet(buttonStyle + R"(
-            QPushButton {
-                background-color: #8B5CF6;
-                color: white;
-            }
-            QPushButton:hover {
-                background-color: #7C3AED;
-            }
+            QPushButton { background-color: #8B5CF6; color: white; }
+            QPushButton:hover { background-color: #7C3AED; }
         )");
-        reviewBtn->setProperty("orderId", orderId);
-        // 从数据中获取卖家名称
-        QString sellerName;
-        for (int i = 0; i < ordersTable->rowCount(); i++) {
-            QTableWidgetItem *idItem = ordersTable->item(i, 0);
-            if (idItem && idItem->text().toInt() == orderId) {
-                QTableWidgetItem *sellerItem = ordersTable->item(i, 5);
-                if (sellerItem) {
-                    sellerName = sellerItem->text();
+        connect(reviewBtn, &QPushButton::clicked, [this, orderId]() {
+            // 获取卖家名称（从表格中获取）
+            QString sellerName;
+            for (int i = 0; i < ordersTable->rowCount(); i++) {
+                QTableWidgetItem *idItem = ordersTable->item(i, 0);
+                if (idItem && idItem->text().toInt() == orderId) {
+                    QTableWidgetItem *sellerItem = ordersTable->item(i, 5);
+                    if (sellerItem) sellerName = sellerItem->text();
                     break;
                 }
             }
-        }
-        reviewBtn->setProperty("sellerName", sellerName);
-        connect(reviewBtn, &QPushButton::clicked, [this, orderId, reviewBtn]() {
-            QString sellerName = reviewBtn->property("sellerName").toString();
-            emit reviewRequested(orderId, sellerName);
+            ReviewDialog *dialog = new ReviewDialog(this, orderId, sellerName);
+            connect(dialog, &ReviewDialog::reviewSubmitted, [this, orderId](int,int rating, const QString &comment) {
+                QJsonObject result = ApiService::instance()->submitReview(orderId, rating, comment);
+                if (result.value("success").toBool()) {
+                    QMessageBox::information(this, "评价成功", "感谢您的评价！");
+                    // 评价后订单状态不变，但可以不刷新，或者刷新以显示已评价
+                } else {
+                    QMessageBox::warning(this, "评价失败", result.value("error").toString());
+                }
+            });
+            dialog->show();
         });
+        actionLayout->addWidget(reviewBtn);
 
         QPushButton *disputeBtn = new QPushButton("售后");
         disputeBtn->setStyleSheet(buttonStyle + R"(
-            QPushButton {
-                background-color: #F59E0B;
-                color: white;
-            }
-            QPushButton:hover {
-                background-color: #D97706;
-            }
+            QPushButton { background-color: #F59E0B; color: white; }
+            QPushButton:hover { background-color: #D97706; }
         )");
-        disputeBtn->setProperty("orderId", orderId);
         connect(disputeBtn, &QPushButton::clicked, [this, orderId]() {
-            onShowDispute(orderId);
+            DisputeSubmitDialog *dialog = new DisputeSubmitDialog(this, orderId);
+            connect(dialog, &DisputeSubmitDialog::accepted, [this]() { loadOrdersFromServer(m_currentStatus, m_currentKeyword, m_currentPage, m_currentPageSize); });
+            dialog->show();
         });
-
-        actionLayout->addWidget(reviewBtn);
         actionLayout->addWidget(disputeBtn);
 
     } else if (status == "纠纷处理中") {
         QPushButton *viewBtn = new QPushButton("查看详情");
         viewBtn->setStyleSheet(buttonStyle + R"(
-            QPushButton {
-                background-color: #EF4444;
-                color: white;
-            }
-            QPushButton:hover {
-                background-color: #DC2626;
-            }
+            QPushButton { background-color: #EF4444; color: white; }
+            QPushButton:hover { background-color: #DC2626; }
         )");
-        viewBtn->setProperty("orderId", orderId);
         connect(viewBtn, &QPushButton::clicked, [this, orderId]() {
-            QMessageBox::information(this, "纠纷详情",
-                                     QString("订单 #%1 纠纷处理中\n\n"
-                                             "纠纷类型：商品质量问题\n"
-                                             "提交时间：2024-03-20 14:30\n"
-                                             "当前状态：管理员审核中\n"
-                                             "预计处理时间：1-3个工作日").arg(orderId));
+            // 显示纠纷详情（可以从服务端获取）
+            QJsonObject result = ApiService::instance()->getDisputeByOrder(orderId);
+            if (result.value("success").toBool()) {
+                QJsonObject dispute = result.value("data").toObject();
+                QString detail = QString("纠纷类型：%1\n描述：%2\n处理结果：%3")
+                                     .arg(dispute.value("type").toString())
+                                     .arg(dispute.value("description").toString())
+                                     .arg(dispute.value("handle_result").toString());
+                QMessageBox::information(this, "纠纷详情", detail);
+            } else {
+                QMessageBox::warning(this, "提示", "未找到相关纠纷信息");
+            }
         });
-
         actionLayout->addWidget(viewBtn);
     }
 
@@ -427,13 +399,28 @@ void OrdersPage::createActionButtons(int row, const QString &status, int orderId
 }
 
 void OrdersPage::onFilterOrders() {
+    // 获取当前筛选条件
     QString status = statusCombo->currentText();
     QString keyword = orderSearchEdit->text().trimmed();
-    filterOrders(status, keyword);
+
+    // 将状态文本转换为服务端接受的格式（例如 "待付款" -> "pending_payment"）
+    QString statusParam;
+    if (status == "全部订单") statusParam = "";
+    else if (status == "待付款") statusParam = "pending_payment";
+    else if (status == "待发货") statusParam = "paid";
+    else if (status == "待收货") statusParam = "shipped";
+    else if (status == "已完成") statusParam = "completed";
+    else if (status == "已取消") statusParam = "cancelled";
+    else if (status == "纠纷处理中") statusParam = "dispute";
+
+    // 将关键词作为额外参数传给 loadOrdersFromServer（但需要服务端支持按关键词搜索订单）
+    // 如果服务端不支持，可以在本地对返回结果再次过滤，但推荐服务端支持
+    // 这里我们假设 loadOrdersFromServer 已经支持 keyword 参数
+    loadOrdersFromServer(statusParam, keyword, 1, 20);
 }
 
 void OrdersPage::onRefreshOrders() {
-    loadOrderExamples();
+    loadOrdersFromServer(m_currentStatus, m_currentKeyword, m_currentPage, m_currentPageSize);
 }
 
 void OrdersPage::filterOrders(const QString &status, const QString &keyword) {

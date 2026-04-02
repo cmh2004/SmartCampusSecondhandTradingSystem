@@ -1,6 +1,7 @@
 #include "user/mainwindow.h"
 #include "admin/adminmainwindow.h"
 #include "loginpage.h"
+#include "apiservice.h"
 #include <QApplication>
 
 int main(int argc, char *argv[]) {
@@ -9,9 +10,10 @@ int main(int argc, char *argv[]) {
     a.setFont(font);
     a.setWindowIcon(QIcon(":/icons/img/app.png"));
 
+    ApiService::instance()->initialize("http://127.0.0.1:8080", "ws://127.0.0.1:8081");
+
     // 显示登录页
     LoginPage loginPage;
-
     if (loginPage.exec() == QDialog::Accepted) {
         // 获取选择的角色
         QString selectedRole = loginPage.getSelectedRole();

@@ -4,6 +4,7 @@
 #include <QHeaderView>
 #include <QGraphicsDropShadowEffect>
 #include "UserCenterPage.h"
+#include "..\apiservice.h"
 
 UserCenterPage::UserCenterPage(QWidget *parent) : QWidget(parent) {
     setupUI();
@@ -411,12 +412,7 @@ void UserCenterPage::createMyCollectionTab() {
         }
     )");
 
-    collectionList->addItems({
-        "📚 大学物理教材 - ¥35",
-        "👟 篮球鞋 Nike Air - ¥280",
-        "💻 笔记本电脑戴尔 - ¥3200",
-        "📱 二手iPhone 12 128GB - ¥2500"
-    });
+    loadFavorites();
 
     layout->addWidget(collectionList, 1);
 }
@@ -701,5 +697,51 @@ void UserCenterPage::onLogout() {
 
         // 可以添加一个简单的退出提示
         QMessageBox::information(this, "退出成功", "您已成功退出登录！");
+    }
+}
+
+void UserCenterPage::loadUserInfo() {
+    QJsonObject result = ApiService::instance()->getUserProfile();
+    if (result.value("success").toBool()) {
+        QJsonObject data = result.value("data").toObject();
+        userNameLabel->setText(data.value("nickname").toString());
+        int creditScore = data.value("credit_score").toInt();
+        userLevelLabel->setText(QString("信用分: %1").arg(creditScore));
+        userJoinLabel->setText(QString("注册时间: %1").arg(data.value("register_time").toString()));
+        // 头像加载
+        QString avatarUrl = data.value("avatar_url").toString();
+        if (!avatarUrl.isEmpty()) {
+            // 如果 avatarUrl 是相对路径，补全 base URL
+            if (!avatarUrl.startsWith("http")) {
+                avatarUrl = "http://127.0.0.1:8080" + avatarUrl;
+            }
+            // 异步加载图片
+            QNetworkAccessManager *nam = new QNetworkAccessManager(this);
+            connect(nam, &QNetworkAccessManager::finished, [this, nam](QNetworkReply *reply) {
+                if (reply->error() == QNetworkReply::NoError) {
+                    QPixmap pixmap;
+                    pixmap.loadFromData(reply->readAll());
+                    if (!pixmap.isNull()) {
+                        userAvatarLabel->setPixmap(pixmap.scaled(116, 116, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                    }
+                }
+                reply->deleteLater();
+                nam->deleteLater();
+            });
+            nam->get(QNetworkRequest(QUrl(avatarUrl)));
+        }
+    } else {
+        QMessageBox::warning(this, "提示", "加载用户信息失败");
+    }
+}
+
+void UserCenterPage::loadFavorites() {
+    QJsonArray favorites = ApiService::instance()->getFavorites(1, 20); // 页码、每页数量
+    collectionList->clear();
+    for (const QJsonValue &val : favorites) {
+        QJsonObject goods = val.toObject();
+        QString title = goods.value("title").toString();
+        double price = goods.value("price").toDouble();
+        collectionList->addItem(QString("%1 - ¥%2").arg(title).arg(price));
     }
 }

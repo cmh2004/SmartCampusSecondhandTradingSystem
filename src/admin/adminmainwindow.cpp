@@ -10,6 +10,8 @@
 #include <QToolBar>
 #include <QMenu>
 #include <QAction>
+#include <QInputDialog>
+#include "../apiservice.h"
 #include "adminmainwindow.h"
 
 AdminMainWindow::AdminMainWindow(QWidget *parent) : QMainWindow(parent) {
@@ -18,6 +20,8 @@ AdminMainWindow::AdminMainWindow(QWidget *parent) : QMainWindow(parent) {
 
     setupUI();
     loadGoodsReviewData();
+    loadUserManagementData();
+    loadDisputeData();
 
     // 连接信号
     connect(mainTabWidget, &QTabWidget::currentChanged, this, &AdminMainWindow::onTabChanged);
@@ -368,53 +372,47 @@ void AdminMainWindow::onTabChanged(int index) {
 
 // 数据加载函数
 void AdminMainWindow::loadGoodsReviewData() {
-    // 清空表格
     goodsReviewTable->setRowCount(0);
 
-    // 模拟数据
-    QStringList goodsData = {
-        "1001,二手iPhone 12 128GB,张三同学,¥2500,2024-03-20 10:30,待审核",
-        "1002,大学物理教材,李四同学,¥35,2024-03-19 14:20,已通过",
-        "1003,篮球鞋 Nike Air,王五同学,¥280,2024-03-18 09:15,待审核",
-        "1004,笔记本电脑戴尔,赵六同学,¥3200,2024-03-17 16:45,已拒绝",
-        "1005,小米手环6,钱七同学,¥150,2024-03-16 11:20,待审核"
-    };
+    // 调用 API 获取待审核商品（status = 0）
+    QJsonArray goodsList = ApiService::instance()->getPendingGoods(1, 20);
+    for (const QJsonValue &val : goodsList) {
+        QJsonObject goods = val.toObject();
+        int goodsId = goods.value("goods_id").toInt();
+        QString name = goods.value("name").toString();
+        QString seller = goods.value("seller_name").toString(); // 需确保服务端返回 seller_name
+        double price = goods.value("price").toDouble();
+        QString publishTime = goods.value("publish_time").toString();
+        QString statusText = goods.value("status").toString(); // 0=待审核, 1=已上架, 4=已拒绝
 
-    for (const QString &data : goodsData) {
-        QStringList items = data.split(',');
         int row = goodsReviewTable->rowCount();
         goodsReviewTable->insertRow(row);
-        goodsReviewTable->setRowHeight(row,40);
+        goodsReviewTable->setRowHeight(row, 40);
 
-        for (int col = 0; col < items.size(); col++) {
-            QTableWidgetItem *item = new QTableWidgetItem(items[col]);
+        goodsReviewTable->setItem(row, 0, new QTableWidgetItem(QString::number(goodsId)));
+        goodsReviewTable->setItem(row, 1, new QTableWidgetItem(name));
+        goodsReviewTable->setItem(row, 2, new QTableWidgetItem(seller));
+        goodsReviewTable->setItem(row, 3, new QTableWidgetItem(QString("¥%1").arg(price)));
+        goodsReviewTable->setItem(row, 4, new QTableWidgetItem(publishTime));
 
-            // 设置状态颜色
-            if (col == 5) { // 状态列
-                if (items[col] == "待审核") {
-                    item->setForeground(QColor(230, 126, 34)); // 橙色
-                    item->setFont(QFont("Microsoft YaHei", -1, QFont::Bold));
-                } else if (items[col] == "已通过") {
-                    item->setForeground(QColor(46, 204, 113)); // 绿色
-                } else if (items[col] == "已拒绝") {
-                    item->setForeground(QColor(231, 76, 60)); // 红色
-                }
-            }
+        // 状态列
+        QTableWidgetItem *statusItem = new QTableWidgetItem(statusText);
+        if (statusText == "待审核") statusItem->setForeground(QColor(230, 126, 34));
+        else if (statusText == "已上架") statusItem->setForeground(QColor(46, 204, 113));
+        else if (statusText == "已拒绝") statusItem->setForeground(QColor(231, 76, 60));
+        goodsReviewTable->setItem(row, 5, statusItem);
 
-            goodsReviewTable->setItem(row, col, item);
-        }
-
-        // 添加操作按钮
+        // 操作按钮
         QWidget *actionWidget = new QWidget();
         QHBoxLayout *actionLayout = new QHBoxLayout(actionWidget);
         actionLayout->setContentsMargins(5, 1, 5, 1);
         actionLayout->setSpacing(5);
 
-        if (items[5] == "待审核") {
+        if (statusText == "待审核") {
             QPushButton *approveBtn = new QPushButton("通过");
             approveBtn->setObjectName("successBtn");
             approveBtn->setFixedSize(60, 30);
-            approveBtn->setProperty("goodsId", items[0].toInt());
+            approveBtn->setProperty("goodsId", goodsId);
             connect(approveBtn, &QPushButton::clicked, [this, approveBtn]() {
                 onReviewGoods(approveBtn->property("goodsId").toInt(), true);
             });
@@ -422,7 +420,7 @@ void AdminMainWindow::loadGoodsReviewData() {
             QPushButton *rejectBtn = new QPushButton("拒绝");
             rejectBtn->setObjectName("warningBtn");
             rejectBtn->setFixedSize(60, 30);
-            rejectBtn->setProperty("goodsId", items[0].toInt());
+            rejectBtn->setProperty("goodsId", goodsId);
             connect(rejectBtn, &QPushButton::clicked, [this, rejectBtn]() {
                 onReviewGoods(rejectBtn->property("goodsId").toInt(), false);
             });
@@ -430,6 +428,10 @@ void AdminMainWindow::loadGoodsReviewData() {
             QPushButton *viewBtn = new QPushButton("查看");
             viewBtn->setObjectName("secondaryBtn");
             viewBtn->setFixedSize(60, 30);
+            connect(viewBtn, &QPushButton::clicked, [this, goodsId]() {
+                // 可打开商品详情对话框
+                QMessageBox::information(this, "查看详情", QString("商品ID: %1").arg(goodsId));
+            });
 
             actionLayout->addWidget(approveBtn);
             actionLayout->addWidget(rejectBtn);
@@ -438,22 +440,33 @@ void AdminMainWindow::loadGoodsReviewData() {
             QPushButton *viewBtn = new QPushButton("查看详情");
             viewBtn->setObjectName("secondaryBtn");
             viewBtn->setFixedSize(80, 30);
+            connect(viewBtn, &QPushButton::clicked, [this, goodsId,statusText]() {
+                QMessageBox::information(this, "查看详情", QString("商品ID: %1\n状态: %2").arg(goodsId).arg(statusText));
+            });
             actionLayout->addWidget(viewBtn);
         }
-
         actionLayout->addStretch();
         goodsReviewTable->setCellWidget(row, 6, actionWidget);
     }
 }
 
-// 商品审核相关
 void AdminMainWindow::onReviewGoods(int goodsId, bool approve) {
-    QString status = approve ? "已通过" : "已拒绝";
-    QMessageBox::information(this, "审核结果",
-                             QString("商品ID %1 已%2").arg(goodsId).arg(status));
-
-    // 重新加载数据
-    loadGoodsReviewData();
+    QString comment;
+    if (!approve) {
+        bool ok;
+        comment = QInputDialog::getText(this, "拒绝原因",
+                                        "请输入拒绝原因:",
+                                        QLineEdit::Normal,
+                                        "", &ok);
+        if (!ok) return;
+    }
+    QJsonObject result = ApiService::instance()->reviewGoods(goodsId, approve, comment);
+    if (result.value("success").toBool()) {
+        QMessageBox::information(this, "审核结果", result.value("message").toString());
+        loadGoodsReviewData(); // 刷新列表
+    } else {
+        QMessageBox::warning(this, "审核失败", result.value("error").toString());
+    }
 }
 
 void AdminMainWindow::onFilterGoods() {
@@ -480,14 +493,29 @@ void AdminMainWindow::onExportGoodsData() {
 
 // 用户管理相关
 void AdminMainWindow::onBlockUser(const QString &userId, bool block) {
-    QString action = block ? "封禁" : "解封";
-    QMessageBox::information(this, "用户状态变更",
-                             QString("用户ID %1 已%2").arg(userId).arg(action));
+    QString newStatus = block ? "0" : "1";
+    QJsonObject result = ApiService::instance()->updateUserStatus(userId, newStatus, block ? "管理员封禁" : "管理员解封");
+    if (result.value("success").toBool()) {
+        QMessageBox::information(this, "操作成功", result.value("message").toString());
+        loadUserManagementData(); // 刷新列表
+    } else {
+        QMessageBox::warning(this, "操作失败", result.value("error").toString());
+    }
 }
 
 void AdminMainWindow::onAdjustCreditScore(const QString &userId, int score) {
-    QMessageBox::information(this, "信用分调整",
-                             QString("用户ID %1 的信用分已调整为 %2").arg(userId).arg(score));
+    // 注意：服务端可能需要一个专门调整信用分的接口，或者通过 updateUser 修改 credit_score
+    // 这里假设 ApiService 有 updateUserStatus 或类似方法可以调整信用分
+    // 如果没有，需要扩展 ApiService
+    QJsonObject updates;
+    updates["credit_score"] = score;
+    QJsonObject result = ApiService::instance()->updateUserProfile(updates); // 可能需要根据 userId 调整
+    if (result.value("success").toBool()) {
+        QMessageBox::information(this, "调整成功", "信用分已更新");
+        loadUserManagementData();
+    } else {
+        QMessageBox::warning(this, "调整失败", result.value("error").toString());
+    }
 }
 
 void AdminMainWindow::onSearchUsers() {
@@ -509,9 +537,14 @@ void AdminMainWindow::onViewDisputeDetail(int disputeId) {
                              QString("查看纠纷ID %1 的详细信息").arg(disputeId));
 }
 
-void AdminMainWindow::onProcessDispute(int disputeId, QString decision) {
-    QMessageBox::information(this, "纠纷处理",
-                             QString("纠纷ID %1 已处理\n处理结果: %2").arg(disputeId).arg(decision));
+void AdminMainWindow::onProcessDispute(int disputeId, const QString &result) {
+    QJsonObject response = ApiService::instance()->processDispute(disputeId, result, "");
+    if (response.value("success").toBool()) {
+        QMessageBox::information(this, "处理成功", "纠纷已处理");
+        loadDisputeData();
+    } else {
+        QMessageBox::warning(this, "处理失败", response.value("error").toString());
+    }
 }
 
 void AdminMainWindow::onFilterDisputes() {
@@ -527,33 +560,143 @@ void AdminMainWindow::onFilterDisputes() {
 }
 
 void AdminMainWindow::loadUserManagementData() {
-    // 清空表格
     userTable->setRowCount(0);
+    QJsonArray users = ApiService::instance()->getUserList("", 1, 20);
+    for (const QJsonValue &val : users) {
+        QJsonObject user = val.toObject();
+        int userId = user.value("id").toInt();
+        QString username = user.value("account").toString();
+        QString studentId = user.value("student_id").toString(); // 需服务端返回
+        QString phone = user.value("phone").toString();
+        QString regTime = user.value("register_time").toString();
+        int creditScore = user.value("credit_score").toInt();
+        int status = user.value("status").toInt(); // 1=正常, 0=禁用
 
-    // 模拟数据
-    QStringList userData = {
-        "1001,张三,20210001,13800138001,2023-09-01 10:30,95,正常",
-        "1002,李四,20210002,13800138002,2023-09-02 14:20,88,正常",
-        "1003,王五,20210003,13800138003,2023-09-03 09:15,76,已封禁",
-        "1004,赵六,20210004,13800138004,2023-09-04 16:45,92,限制交易",
-        "1005,钱七,20210005,13800138005,2023-09-05 11:20,81,正常"
-    };
-
-    for (const QString &data : userData) {
-        QStringList items = data.split(',');
         int row = userTable->rowCount();
         userTable->insertRow(row);
+        userTable->setItem(row, 0, new QTableWidgetItem(QString::number(userId)));
+        userTable->setItem(row, 1, new QTableWidgetItem(username));
+        userTable->setItem(row, 2, new QTableWidgetItem(studentId));
+        userTable->setItem(row, 3, new QTableWidgetItem(phone));
+        userTable->setItem(row, 4, new QTableWidgetItem(regTime));
+        userTable->setItem(row, 5, new QTableWidgetItem(QString::number(creditScore)));
 
-        for (int col = 0; col < items.size(); col++) {
-            QTableWidgetItem *item = new QTableWidgetItem(items[col]);
-            userTable->setItem(row, col, item);
+        QString statusText = (status == 1) ? "正常" : "已封禁";
+        QTableWidgetItem *statusItem = new QTableWidgetItem(statusText);
+        if (status == 0) statusItem->setForeground(QColor(231, 76, 60));
+        userTable->setItem(row, 6, statusItem);
+
+        // 操作按钮
+        QWidget *actionWidget = new QWidget();
+        QHBoxLayout *actionLayout = new QHBoxLayout(actionWidget);
+        actionLayout->setContentsMargins(5, 1, 5, 1);
+        actionLayout->setSpacing(5);
+
+        if (status == 1) {
+            QPushButton *blockBtn = new QPushButton("封禁");
+            blockBtn->setObjectName("warningBtn");
+            blockBtn->setFixedSize(60, 30);
+            blockBtn->setProperty("userId", userId);
+            connect(blockBtn, &QPushButton::clicked, [this, blockBtn]() {
+                onBlockUser(blockBtn->property("userId").toString(), true);
+            });
+            actionLayout->addWidget(blockBtn);
+        } else {
+            QPushButton *unblockBtn = new QPushButton("解封");
+            unblockBtn->setObjectName("successBtn");
+            unblockBtn->setFixedSize(60, 30);
+            unblockBtn->setProperty("userId", userId);
+            connect(unblockBtn, &QPushButton::clicked, [this, unblockBtn]() {
+                onBlockUser(unblockBtn->property("userId").toString(), false);
+            });
+            actionLayout->addWidget(unblockBtn);
         }
+
+        QPushButton *adjustBtn = new QPushButton("调整信用");
+        adjustBtn->setObjectName("secondaryBtn");
+        adjustBtn->setFixedSize(80, 30);
+        adjustBtn->setProperty("userId", userId);
+        connect(adjustBtn, &QPushButton::clicked, [this, adjustBtn]() {
+            bool ok;
+            int newScore = QInputDialog::getInt(this, "调整信用分",
+                                                "输入新信用分 (0-100):",
+                                                50, 0, 100, 1, &ok);
+            if (ok) {
+                onAdjustCreditScore(adjustBtn->property("userId").toString(), newScore);
+            }
+        });
+        actionLayout->addWidget(adjustBtn);
+
+        actionLayout->addStretch();
+        userTable->setCellWidget(row, 7, actionWidget);
     }
 }
 
 void AdminMainWindow::loadDisputeData() {
-    // 类似loadGoodsReviewData的实现
-    // 暂时用空实现
+    disputeTable->setRowCount(0);
+    QJsonArray disputes = ApiService::instance()->getDisputeList("", 1, 20);
+    for (const QJsonValue &val : disputes) {
+        QJsonObject dispute = val.toObject();
+        int disputeId = dispute.value("id").toInt();
+        int orderId = dispute.value("order_id").toInt();
+        QString complainant = dispute.value("complainant_name").toString(); // 需服务端返回
+        QString defendant = dispute.value("defendant_name").toString();
+        QString type = dispute.value("type").toString();
+        QString createTime = dispute.value("create_time").toString();
+        int status = dispute.value("status").toInt(); // 0待处理,1处理中,2已解决,3已关闭
+        QString progress = dispute.value("handle_result").toString();
+
+        int row = disputeTable->rowCount();
+        disputeTable->insertRow(row);
+        disputeTable->setItem(row, 0, new QTableWidgetItem(QString::number(disputeId)));
+        disputeTable->setItem(row, 1, new QTableWidgetItem(QString::number(orderId)));
+        disputeTable->setItem(row, 2, new QTableWidgetItem(complainant));
+        disputeTable->setItem(row, 3, new QTableWidgetItem(defendant));
+        disputeTable->setItem(row, 4, new QTableWidgetItem(type));
+        disputeTable->setItem(row, 5, new QTableWidgetItem(createTime));
+
+        QString statusText;
+        if (status == 0) statusText = "待处理";
+        else if (status == 1) statusText = "处理中";
+        else if (status == 2) statusText = "已解决";
+        else statusText = "已关闭";
+        disputeTable->setItem(row, 6, new QTableWidgetItem(statusText));
+        disputeTable->setItem(row, 7, new QTableWidgetItem(progress));
+
+        // 操作按钮
+        QWidget *actionWidget = new QWidget();
+        QHBoxLayout *actionLayout = new QHBoxLayout(actionWidget);
+        actionLayout->setContentsMargins(5, 1, 5, 1);
+        actionLayout->setSpacing(5);
+
+        if (status == 0 || status == 1) {
+            QPushButton *processBtn = new QPushButton("处理");
+            processBtn->setObjectName("primaryBtn");
+            processBtn->setFixedSize(60, 30);
+            processBtn->setProperty("disputeId", disputeId);
+            connect(processBtn, &QPushButton::clicked, [this, processBtn]() {
+                bool ok;
+                QString result = QInputDialog::getText(this, "处理纠纷",
+                                                       "请输入处理结果:",
+                                                       QLineEdit::Normal,
+                                                       "", &ok);
+                if (ok && !result.isEmpty()) {
+                    onProcessDispute(processBtn->property("disputeId").toInt(), result);
+                }
+            });
+            actionLayout->addWidget(processBtn);
+        } else {
+            QPushButton *viewBtn = new QPushButton("查看详情");
+            viewBtn->setObjectName("secondaryBtn");
+            viewBtn->setFixedSize(80, 30);
+            connect(viewBtn, &QPushButton::clicked, [this, disputeId]() {
+                onViewDisputeDetail(disputeId);
+            });
+            actionLayout->addWidget(viewBtn);
+        }
+        actionLayout->addStretch();
+        disputeTable->setCellWidget(row, 8, actionWidget);
+    }
 }
 
 AdminMainWindow::~AdminMainWindow() {}

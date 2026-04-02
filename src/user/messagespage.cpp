@@ -6,13 +6,16 @@
 #include <QDateTime>
 #include <QScrollBar>
 #include <QFrame>
+#include <QJsonArray>
 #include <QMessageBox>
+#include "..\apiservice.h"
 #include "MessagesPage.h"
 
 MessagesPage::MessagesPage(QWidget *parent) : QWidget(parent) {
     chatData = QList<QMap<QString, QVariant>>();
     setupUI();
     loadChatHistory();
+    connect(ApiService::instance(), &ApiService::newMessageReceived, this, &MessagesPage::onNewMessage);
 }
 
 void MessagesPage::openOrCreateChat(int goodsId, const QString &sellerName) {
@@ -307,32 +310,32 @@ void MessagesPage::setupUI() {
 }
 
 void MessagesPage::loadChatHistory() {
-    // 清空现有数据
+    QJsonArray chats = ApiService::instance()->getChatList();
     chatList->clear();
     chatData.clear();
+    for (const QJsonValue &val : chats) {
+        QJsonObject chat = val.toObject();
+        QString sessionId = chat.value("session_id").toString();
+        QString lastMessage = chat.value("last_content").toString();
+        QString lastTime = chat.value("last_time").toString();
+        // 解析出对方姓名和商品信息（可能需要额外查询）
+        // 假设 chat 对象中包含对方昵称和商品名称
+        QString otherName = chat.value("other_name").toString();
+        int goodsId = chat.value("goods_id").toInt();
 
-    // 模拟从数据库加载现有聊天数据
-    // 这里可以添加从数据库加载的逻辑
+        QMap<QString, QVariant> chatItem;
+        chatItem["sessionId"] = sessionId;
+        chatItem["otherName"] = otherName;
+        chatItem["goodsId"] = goodsId;
+        chatItem["lastMessage"] = lastMessage;
+        chatItem["lastTime"] = lastTime;
+        chatData.append(chatItem);
 
-    // 模拟数据
-    QList<QStringList> existingChats = {
-        {"王五同学", "1001", "2024-03-20 10:30", "你好，这个手机还在吗？"},
-        {"李四同学", "1002", "2024-03-18 14:20", "书我已经收到了，很满意！"}
-    };
-
-    for (const auto &data : existingChats) {
-        QMap<QString, QVariant> chat;
-        chat["sellerName"] = data[0];
-        chat["goodsId"] = data[1].toInt();
-        chat["lastTime"] = data[2];
-        chat["lastMessage"] = data[3];
-
-        chatData.append(chat);
-
-        QString chatInfo = QString("%1 - 商品#%2\n%3").arg(data[0]).arg(data[1]).arg(data[2]);
-        QListWidgetItem *item = new QListWidgetItem(chatInfo, chatList);
-        item->setData(Qt::UserRole, data[0]);
-        item->setData(Qt::UserRole + 1, data[1].toInt());
+        QString display = QString("%1 - 商品#%2\n%3\n%4").arg(otherName).arg(goodsId).arg(lastMessage).arg(lastTime);
+        QListWidgetItem *item = new QListWidgetItem(display, chatList);
+        item->setData(Qt::UserRole, sessionId);
+        item->setData(Qt::UserRole+1, otherName);
+        item->setData(Qt::UserRole+2, goodsId);
     }
 }
 
@@ -369,33 +372,33 @@ void MessagesPage::addMessage(const QString &sender, const QString &message, boo
 
 void MessagesPage::onSendMessage() {
     QString message = messageEdit->text().trimmed();
-    if (message.isEmpty()) {
-        return;
-    }
+    if (message.isEmpty()) return;
 
-    // 获取当前选中的聊天
     QListWidgetItem *currentItem = chatList->currentItem();
-    if (!currentItem) {
-        return;
+    if (!currentItem) return;
+
+    QString sessionId = currentItem->data(Qt::UserRole).toString();
+    QString receiverName = currentItem->data(Qt::UserRole+1).toString();
+    int goodsId = currentItem->data(Qt::UserRole+2).toInt();
+
+    // 获取 receiverId（需要从会话信息中获取，或从服务端查询）
+    // 简化：假设 ApiService::sendMessage 内部根据会话ID确定接收者
+    QJsonObject result = ApiService::instance()->sendMessage("", message, QStringList());
+    if (result.value("success").toBool()) {
+        // 在界面上添加自己发送的消息
+        addMessage("我", message, true);
+        messageEdit->clear();
+    } else {
+        QMessageBox::warning(this, "发送失败", result.value("error").toString());
     }
-
-    QString receiver = currentItem->data(Qt::UserRole).toString();
-
-    // 添加消息到界面
-    addMessage(receiver, message, true);
-
-    // 发射信号用于网络发送
-    emit sendMessage(receiver, message);
-
-    // 清空输入框
-    messageEdit->clear();
 }
 
 void MessagesPage::onChatItemClicked(QListWidgetItem *item) {
     if (!item) return;
 
-    QString chatWith = item->data(Qt::UserRole).toString();
-    int goodsId = item->data(Qt::UserRole + 1).toInt();
+    QString sessionId = item->data(Qt::UserRole).toString();   // 获取 sessionId
+    QString chatWith = item->data(Qt::UserRole+1).toString(); // 对方昵称
+    int goodsId = item->data(Qt::UserRole+2).toInt();         // 商品ID
 
     // 更新聊天头部
     currentChatLabel->setText(QString("与 %1 的对话 (商品#%2)").arg(chatWith).arg(goodsId));
@@ -419,31 +422,57 @@ void MessagesPage::onChatItemClicked(QListWidgetItem *item) {
     chatArea->clear();
 
     // 加载该聊天的消息历史
-    loadChatMessages(chatList->row(item));
+    loadChatMessages(sessionId, 1, 30);
 
     // 发射信号通知聊天被选中
     emit chatSelected(goodsId);
 }
 
-void MessagesPage::loadChatMessages(int chatIndex) {
-    if (chatIndex < 0 || chatIndex >= chatData.size()) {
-        return;
+void MessagesPage::loadChatMessages(const QString &sessionId, int page, int pageSize) {
+    QJsonArray messages = ApiService::instance()->getMessageHistory(sessionId, page, pageSize);
+    // 清空聊天区域，按时间顺序显示消息
+    chatArea->clear();
+    // 注意：返回的消息可能是倒序的，需要反转或按时间正序添加
+    for (int i = messages.size() - 1; i >= 0; --i) {
+        QJsonObject msg = messages[i].toObject();
+        int senderId = msg.value("sender_id").toInt();
+        QString content = msg.value("content").toString();
+        QString timestamp = msg.value("create_time").toString();
+        bool isSelf = (senderId == ApiService::instance()->getCurrentUserId());
+        addMessage(isSelf ? "我" : msg.value("sender_name").toString(), content, isSelf);
     }
+}
 
-    // 模拟加载聊天消息
-    // 在实际应用中，这里应该从数据库加载该聊天的所有消息
+void MessagesPage::onNewMessage(const QJsonObject &message) {
+    QString senderId = message.value("sender_id").toString();
+    QString content = message.value("content").toString();
+    QString sessionId = message.value("session_id").toString();
+    // 检查当前打开的会话是否就是这个 sessionId
+    QListWidgetItem *current = chatList->currentItem();
+    if (current && current->data(Qt::UserRole).toString() == sessionId) {
+        // 当前正在查看这个聊天，直接添加消息
+        addMessage(senderId, content, false);
+        // 标记已读（调用 API）
+        ApiService::instance()->markMessageRead(sessionId);
+    } else {
+        // 否则更新聊天列表中的最后一条消息显示
+        updateChatListLastMessage(sessionId, content);
+    }
+}
 
-    QString sellerName = chatData[chatIndex]["sellerName"].toString();
-
-    // 添加模拟消息
-    addMessage(sellerName, "你好，我想咨询一下商品详情。", false);
-    addMessage("我", "有什么问题请尽管问。", true);
-    addMessage(sellerName, "这个商品还能便宜点吗？", false);
-    addMessage("我", "价格已经是最低了，可以包邮哦。", true);
-
-    // 如果有最后一条消息，显示它
-    QString lastMessage = chatData[chatIndex]["lastMessage"].toString();
-    if (!lastMessage.isEmpty() && lastMessage != "开始对话") {
-        addMessage(sellerName, lastMessage, false);
+void MessagesPage::updateChatListLastMessage(const QString &sessionId, const QString &lastMessage) {
+    for (int i = 0; i < chatList->count(); ++i) {
+        QListWidgetItem *item = chatList->item(i);
+        if (item->data(Qt::UserRole).toString() == sessionId) {
+            QString otherName = item->data(Qt::UserRole+1).toString();
+            int goodsId = item->data(Qt::UserRole+2).toInt();
+            QString display = QString("%1 - 商品#%2\n%3\n%4")
+                                  .arg(otherName)
+                                  .arg(goodsId)
+                                  .arg(lastMessage)
+                                  .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm"));
+            item->setText(display);
+            break;
+        }
     }
 }
