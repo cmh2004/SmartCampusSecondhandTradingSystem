@@ -274,7 +274,10 @@ void PublishPage::onAIPriceEstimate() {
         // 简化：可以不上传图片，只根据描述估价
     }
 
+    qDebug() << "[AI] Start estimate";
+    auto start = QDateTime::currentMSecsSinceEpoch();
     QJsonObject result = ApiService::instance()->estimatePrice(description, imagePath);
+    qDebug() << "[AI] Estimate finished, elapsed:" << (QDateTime::currentMSecsSinceEpoch() - start) << "ms";
     if (result.value("success").toBool()) {
         QJsonObject data = result.value("data").toObject();
         double minPrice = data.value("min_price").toDouble();

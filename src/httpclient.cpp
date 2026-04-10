@@ -12,7 +12,7 @@ HttpClient* HttpClient::m_instance = nullptr;
 HttpClient::HttpClient(QObject* parent)
     : QObject(parent)
     , m_networkManager(new QNetworkAccessManager(this))
-    , m_timeout(10000)
+    , m_timeout(40000)
 {
     // 创建缓存目录
     QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
@@ -103,6 +103,9 @@ QNetworkReply* HttpClient::deleteResource(const QString& endpoint)
 QJsonObject HttpClient::syncRequest(const QString& endpoint, const QJsonObject& data,
                                     const QString& method, int timeout)
 {
+    qDebug() << "[HTTP] Request start:" << endpoint << "timeout:" << timeout;
+    auto startTime = QDateTime::currentMSecsSinceEpoch();
+
     QNetworkReply* reply = nullptr;
 
     if (method.toUpper() == "GET") {
@@ -127,6 +130,9 @@ QJsonObject HttpClient::syncRequest(const QString& endpoint, const QJsonObject& 
 
     timer.start(timeout);
     loop.exec();
+
+    auto elapsed = QDateTime::currentMSecsSinceEpoch() - startTime;
+    qDebug() << "[HTTP] Request finished, elapsed:" << elapsed << "ms";
 
     QJsonObject response;
     if (timer.isActive()) {
@@ -251,7 +257,7 @@ QNetworkRequest HttpClient::createRequest(const QString& urlStr) const
     }
 
     // 设置超时
-    request.setTransferTimeout(m_timeout);
+    // request.setTransferTimeout(m_timeout);
 
     return request;
 }

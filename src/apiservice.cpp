@@ -205,7 +205,7 @@ QJsonObject ApiService::estimatePrice(const QString& description, const QString&
         // 实际项目中应该上传图片到AI服务
     }
 
-    return HttpClient::instance()->syncRequest("/api/ai/estimate", data);
+    return HttpClient::instance()->syncRequest("/api/ai/estimate", data, "POST", 60000);
 }
 
 void ApiService::setAuthToken(const QString& token)
