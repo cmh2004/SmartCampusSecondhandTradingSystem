@@ -20,7 +20,7 @@ public:
     int getGoodsId() const { return goodsId; }
 
 signals:
-    void contactSellerRequested(int goodsId,const QString &sellerName);
+    void contactSellerRequested(int goodsId, const QString &sellerName);
     void buyNowRequested(int goodsId);
     void reportGoodsRequested(int goodsId);
 
@@ -33,6 +33,7 @@ private:
     void setupUI();
     void loadGoodsData(int goodsId);
     void loadAIAssessment(int goodsId);
+    QString getCategoryName(int categoryId);
 
 private:
     int goodsId;
@@ -66,6 +67,10 @@ private:
 
     // 标签页
     QTabWidget *detailTabs;
+
+    QList<QLabel*> m_thumbnailLabels;   // 存储缩略图控件
+
+    bool m_isFavorited;  // 当前商品是否已收藏
 };
 
 #endif // GOODSDETAILDIALOG_H

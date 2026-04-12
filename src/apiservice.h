@@ -62,7 +62,7 @@ public:
 
     // 聊天消息
     QJsonObject sendMessage(const QString& receiverId, const QString& content,
-                            const QStringList& attachments = QStringList());
+                            int goodsId, const QStringList& attachments = QStringList());
     QJsonArray getMessageHistory(const QString& chatId, int page = 1, int pageSize = 50);
     QJsonArray getChatList();
     int getUnreadMessageCount();
@@ -119,6 +119,7 @@ signals:
     void newMessageReceived(const QJsonObject& message);
     void orderStatusUpdated(int orderId, const QString& status);
     void newNotification(const QJsonObject& notification);
+    void favoriteChanged();
 
 private:
     explicit ApiService(QObject* parent = nullptr);

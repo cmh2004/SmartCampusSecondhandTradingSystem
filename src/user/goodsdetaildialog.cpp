@@ -70,6 +70,8 @@ void GoodsDetailDialog::setupUI() {
         thumbnail->setStyleSheet("border: 1px solid #ddd; border-radius: 4px;");
         thumbnail->setAlignment(Qt::AlignCenter);
         thumbnail->setCursor(Qt::PointingHandCursor);
+        thumbnail->setObjectName(QString("thumbnail_%1").arg(i));
+        m_thumbnailLabels.append(thumbnail);
         thumbnailLayout->addWidget(thumbnail);
     }
     thumbnailLayout->addStretch();
@@ -388,7 +390,7 @@ void GoodsDetailDialog::loadGoodsData(int goodsId) {
         goodsTitleLabel->setText(data.value("name").toString());
         priceLabel->setText(QString("¥%1").arg(data.value("price").toDouble()));
         descriptionText->setText(data.value("description").toString());
-        categoryLabel->setText(QString::number(data.value("category_id").toInt())); // 或从分类表获取名称
+        categoryLabel->setText(getCategoryName(data.value("category_id").toInt())); // 或从分类表获取名称
         publishTimeLabel->setText(data.value("publish_time").toString());
         conditionLabel->setText(data.value("condition").toString()); // 需要服务端提供，若没有可暂时隐藏或显示默认
 
@@ -401,7 +403,9 @@ void GoodsDetailDialog::loadGoodsData(int goodsId) {
         QJsonArray images = data.value("images").toArray();
         if (!images.isEmpty()) {
             // 主图
-            QString mainImageUrl = images[0].toObject().value("url").toString();
+            QString mainImageUrl = images[0].toObject().value("image_url").toString();
+            // 拼接完整 URL
+            QString fullUrl = "http://127.0.0.1:8080" + mainImageUrl;
             // 异步加载图片并设置到 goodsImageLabel
             QNetworkAccessManager *nam = new QNetworkAccessManager(this);
             connect(nam, &QNetworkAccessManager::finished, [this, nam](QNetworkReply *reply) {
@@ -415,20 +419,19 @@ void GoodsDetailDialog::loadGoodsData(int goodsId) {
                 reply->deleteLater();
                 nam->deleteLater();
             });
-            nam->get(QNetworkRequest(QUrl(mainImageUrl)));
+            nam->get(QNetworkRequest(QUrl(fullUrl)));
 
             // 缩略图
-            QList<QLabel*> thumbnails = findChildren<QLabel*>("thumbnail"); // 需在 setupUI 中给每个缩略图设置 objectName
-            for (int i = 0; i < qMin(images.size(), thumbnails.size()); ++i) {
-                QString thumbUrl = images[i].toObject().value("url").toString();
-                int idx = i;
+            for (int i = 0; i < qMin(images.size(), m_thumbnailLabels.size()); ++i) {
+                QString thumbUrl = "http://127.0.0.1:8080" +images[i].toObject().value("image_url").toString();
+                QLabel *thumbLabel = m_thumbnailLabels[i];
                 QNetworkAccessManager *thumbNam = new QNetworkAccessManager(this);
-                connect(thumbNam, &QNetworkAccessManager::finished, [this, idx, thumbNam, thumbnails](QNetworkReply *reply) {
+                connect(thumbNam, &QNetworkAccessManager::finished, [thumbLabel, thumbNam](QNetworkReply *reply) {
                     if (reply->error() == QNetworkReply::NoError) {
                         QPixmap pixmap;
                         pixmap.loadFromData(reply->readAll());
                         if (!pixmap.isNull()) {
-                            thumbnails[idx]->setPixmap(pixmap.scaled(80, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                            thumbLabel->setPixmap(pixmap.scaled(80, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation));
                         }
                     }
                     reply->deleteLater();
@@ -438,21 +441,20 @@ void GoodsDetailDialog::loadGoodsData(int goodsId) {
             }
         }
 
+        bool isFavorited = data.value("is_favorited").toBool();
+        qDebug() << "is_favorited value:" << data.value("is_favorited").toBool();
+        m_isFavorited=isFavorited;
+        if (isFavorited) {
+            collectBtn->setText("已收藏");
+        } else {
+            collectBtn->setText("收藏");
+        }
+
         // AI评估信息（需要额外调用 estimatePrice，或从商品数据中已有，这里假设从 data 中获取）
         if (data.contains("min_price") && data.contains("max_price")) {
             aiPriceRangeLabel->setText(QString("¥%1 - ¥%2")
                                            .arg(data.value("min_price").toDouble())
                                            .arg(data.value("max_price").toDouble()));
-        } else {
-            // 若无估价信息，可调用 ApiService::estimatePrice
-            QJsonObject estimate = ApiService::instance()->estimatePrice(data.value("description").toString(), "");
-            if (estimate.value("success").toBool()) {
-                QJsonObject estData = estimate.value("data").toObject();
-                aiPriceRangeLabel->setText(QString("¥%1 - ¥%2")
-                                               .arg(estData.value("min_price").toDouble())
-                                               .arg(estData.value("max_price").toDouble()));
-                aiRiskLevelLabel->setText(estData.value("risk_level").toString());
-            }
         }
 
         // 其他 AI 评估字段，若服务端返回则填充
@@ -473,23 +475,50 @@ void GoodsDetailDialog::loadAIAssessment(int goodsId) {
 }
 
 void GoodsDetailDialog::onCollectGoods() {
-    QJsonObject result = ApiService::instance()->addFavorite(goodsId);
-    if (result.value("success").toBool()) {
-        QMessageBox::information(this, "收藏", "商品已添加到收藏夹");
-        // 可以更新按钮状态为已收藏
-        collectBtn->setEnabled(false);
-        collectBtn->setText("已收藏");
+    if (m_isFavorited) {
+        // 取消收藏
+        QJsonObject result = ApiService::instance()->removeFavorite(goodsId);
+        if (result.value("success").toBool()) {
+            m_isFavorited = false;
+            emit ApiService::instance()->favoriteChanged();
+            collectBtn->setText("收藏");
+            collectBtn->setEnabled(true);
+            QMessageBox::information(this, "提示", "已取消收藏");
+        } else {
+            QMessageBox::warning(this, "失败", result.value("error").toString());
+        }
     } else {
-        QMessageBox::warning(this, "收藏失败", result.value("error").toString());
+        // 添加收藏
+        QJsonObject result = ApiService::instance()->addFavorite(goodsId);
+        emit ApiService::instance()->favoriteChanged();
+        if (result.value("success").toBool()) {
+            m_isFavorited = true;
+            collectBtn->setText("已收藏");
+            QMessageBox::information(this, "提示", "收藏成功");
+        } else {
+            QMessageBox::warning(this, "失败", result.value("error").toString());
+        }
     }
 }
 
 void GoodsDetailDialog::onAIAssessment() {
-    QMessageBox::information(this, "AI评估", "正在重新进行AI评估...");
-    // 模拟AI评估结果
-    aiPriceRangeLabel->setText("¥2400 - ¥2600");
-    aiRiskLevelLabel->setText("低风险");
-    aiRecommendationLabel->setText("价格适中，建议购买");
+    // 显示加载提示
+    aiPriceRangeLabel->setText("加载中...");
+    QString description = descriptionText->toPlainText();
+    QJsonObject estimate = ApiService::instance()->estimatePrice(description, "");
+    if (estimate.value("success").toBool()) {
+        QJsonObject data = estimate.value("data").toObject();
+        aiPriceRangeLabel->setText(QString("¥%1 - ¥%2")
+                                       .arg(data.value("min_price").toDouble())
+                                       .arg(data.value("max_price").toDouble()));
+        aiRiskLevelLabel->setText(data.value("risk_level").toString());
+        aiConditionLabel->setText(data.value("ai_condition").toString());
+        aiBrandLabel->setText(data.value("brand").toString());
+        aiRecommendationLabel->setText(data.value("recommendation").toString());
+    } else {
+        aiPriceRangeLabel->setText("估价失败");
+        QMessageBox::warning(this, "AI估价失败", estimate.value("error").toString());
+    }
 }
 
 void GoodsDetailDialog::onShowRiskAssessment() {
@@ -499,4 +528,18 @@ void GoodsDetailDialog::onShowRiskAssessment() {
                          "2. 价格在合理范围内\n"
                          "3. 建议线下验货后再付款\n"
                          "4. 注意保留聊天记录作为凭证");
+}
+
+
+QString GoodsDetailDialog::getCategoryName(int categoryId) {
+    switch (categoryId) {
+    case 1: return "书籍教材";
+    case 2: return "电子产品";
+    case 3: return "服饰鞋包";
+    case 4: return "生活用品";
+    case 5: return "体育器材";
+    case 6: return "学习工具";
+    case 7: return "美妆个护";
+    default: return "其他";
+    }
 }

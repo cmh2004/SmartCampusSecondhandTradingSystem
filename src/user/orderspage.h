@@ -6,6 +6,7 @@
 #include <QComboBox>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QLabel>
 
 class OrdersPage : public QWidget {
     Q_OBJECT
@@ -20,7 +21,6 @@ signals:
     void disputeRequested(int orderId);
     void cancelOrderRequested(int orderId);
     void confirmReceiptRequested(int orderId);
-    void exportOrdersRequested();
 
 private slots:
     void onFilterOrders();
@@ -39,12 +39,13 @@ private:
     QLineEdit *orderSearchEdit;
     QPushButton *filterBtn;
     QPushButton *refreshBtn;
-    QPushButton *exportBtn;
 
     QString m_currentStatus;
     QString m_currentKeyword;
     int m_currentPage;
     int m_currentPageSize;
+
+    QLabel *totalLabel;
 };
 
 #endif // ORDERSPAGE_H

@@ -5,8 +5,9 @@
 #include <QApplication>
 #include <QInputDialog>
 #include <QJsonObject>
-#include "..\apiservice.h"
 #include <QGraphicsDropShadowEffect>
+#include "..\apiservice.h"
+#include "..\loginpage.h"
 #include "MainWindow.h"
 #include "HomePage.h"
 #include "PublishPage.h"
@@ -80,13 +81,13 @@ void MainWindow::setupUI() {
         detailDialog->setAttribute(Qt::WA_DeleteOnClose);
 
         // 连接GoodsDetailDialog的所有信号
-        connect(detailDialog, &GoodsDetailDialog::contactSellerRequested, this, [this](int goodsId, const QString &sellerName) {
+        connect(detailDialog, &GoodsDetailDialog::contactSellerRequested, this, [this](int goodsId ,const QString &sellerName) {
             // 切换到消息页面
             setActiveTabButton(2);
             mainTabWidget->setCurrentIndex(2); // 消息页面索引
 
             // 通知消息页面创建或进入对话
-            messagesPage->openOrCreateChat(goodsId, sellerName);
+            messagesPage->openOrCreateChat(goodsId,sellerName);
         });
 
         connect(detailDialog, &GoodsDetailDialog::buyNowRequested, this, [this](int goodsId) {
@@ -108,16 +109,6 @@ void MainWindow::setupUI() {
     });
 
     // 连接HomePage的其他信号
-    connect(homePage, &HomePage::searchRequested, this, [this](const QString &keyword) {
-        QMessageBox::information(this, "搜索", QString("搜索关键词: %1").arg(keyword));
-        // 实际应该执行搜索逻辑
-    });
-
-    connect(homePage, &HomePage::categoryChanged, this, [this](const QString &category) {
-        QMessageBox::information(this, "分类切换", QString("切换到分类: %1").arg(category));
-        // 实际应该按分类过滤商品
-    });
-
     connect(homePage, &HomePage::reportGoodsRequested, this, &MainWindow::onReportGoods);
 
     // 连接PublishPage信号
@@ -140,24 +131,9 @@ void MainWindow::setupUI() {
         // 3. 可能跳转到首页
     });
 
-    // 连接MessagesPage信号
-    connect(messagesPage, &MessagesPage::sendMessage, this, [this](const QString &message) {
-        QMessageBox::information(this, "发送消息", QString("发送消息: %1").arg(message));
-        // 实际应该发送消息到服务器
-    });
-
-    connect(messagesPage, &MessagesPage::chatSelected, this, [this](int chatId) {
-        QMessageBox::information(this, "选择聊天", QString("选择聊天ID: %1").arg(chatId));
-        // 实际应该加载聊天记录
-    });
-
     connect(ordersPage, &OrdersPage::paymentRequested, this, &MainWindow::onShowPayment);
     connect(ordersPage, &OrdersPage::reviewRequested, this, &MainWindow::onShowReview);
     connect(ordersPage, &OrdersPage::disputeRequested, this, &MainWindow::onShowDisputeSubmit);
-    connect(ordersPage, &OrdersPage::exportOrdersRequested, this, [this]() {
-        QMessageBox::information(this, "导出订单", "订单导出功能开发中...");
-        // 实际应该导出订单数据
-    });
 
     connect(userCenterPage, &UserCenterPage::editProfileRequested,
             this, &MainWindow::onShowProfileEdit);
@@ -471,6 +447,11 @@ void MainWindow::setupUI() {
 
         // 执行原有的标签页切换逻辑
         onTabChanged(index);
+    });
+
+    connect(userCenterPage, &UserCenterPage::logoutRequested, this, &MainWindow::onLogout);
+    connect(ApiService::instance(), &ApiService::favoriteChanged, this, [this]() {
+        userCenterPage->refreshFavorites(); // 刷新收藏列表
     });
 }
 
@@ -883,3 +864,26 @@ void MainWindow::setActiveTabButton(int index) {
 }
 
 MainWindow::~MainWindow() {}
+
+void MainWindow::onLogout() {
+    // 1. 调用退出 API（可选）
+    ApiService::instance()->logout();
+
+    // 2. 清除本地认证信息
+    ApiService::instance()->clearAuthToken();
+    ApiService::instance()->setCurrentUserId(-1);
+
+    // 3. 关闭当前主窗口
+    this->close();
+
+    // 4. 重新显示登录页
+    LoginPage loginPage;
+    if (loginPage.exec() == QDialog::Accepted) {
+        // 登录成功，重新创建主窗口（注意：当前窗口已关闭）
+        MainWindow *newWindow = new MainWindow();
+        newWindow->show();
+    } else {
+        // 用户取消登录，退出整个应用程序
+        QApplication::quit();
+    }
+}

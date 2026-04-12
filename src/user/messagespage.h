@@ -16,10 +16,6 @@ public:
     void addMessage(const QString &sender, const QString &message, bool isSelf = false);
     void openOrCreateChat(int goodsId, const QString &sellerName);
 
-signals:
-    void sendMessage(const QString &receiver,const QString &message);
-    void chatSelected(int chatId);
-
 private slots:
     void onSendMessage();
     void onChatItemClicked(QListWidgetItem *item);

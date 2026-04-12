@@ -230,7 +230,7 @@ void PublishPage::onPublishGoods() {
     goodsData["description"] = desc;
     goodsData["category"] = category;  // 服务端可能需要 category_id，需要映射
 
-    QJsonObject result = ApiService::instance()->publishGoods(goodsData, imagePaths);
+    QJsonObject result = ApiService::instance()->publishGoods(goodsData, m_uploadedImagePaths);
     if (result.value("success").toBool()) {
         QMessageBox::information(this, "成功", "商品发布成功，等待审核");
         // 清空表单
@@ -253,6 +253,8 @@ void PublishPage::onUploadImage() {
             imagePreview->setPixmap(
                 pixmap.scaled(150, 150, Qt::KeepAspectRatio, Qt::SmoothTransformation)
                 );
+            m_uploadedImagePaths.clear();  // 若只支持单图，先清空
+            m_uploadedImagePaths.append(fileName);
         } else {
             QMessageBox::warning(this, "错误", "无法加载图片文件");
         }

@@ -32,6 +32,7 @@ private:
     QTextEdit *goodsDescEdit;
     QPushButton *uploadImageBtn;
     QLabel *imagePreview;
+    QStringList m_uploadedImagePaths;   // 存储已选择的图片路径
 };
 
 #endif // PUBLISHPAGE_H

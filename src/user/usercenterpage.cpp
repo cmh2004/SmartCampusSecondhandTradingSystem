@@ -689,14 +689,7 @@ void UserCenterPage::onLogout() {
         );
 
     if (reply == QMessageBox::Yes) {
-
-        // 可以在这里清除用户信息（可选）
-        userNameLabel->setText("未登录");
-        userLevelLabel->setText("信用分: --");
-        userJoinLabel->setText("注册时间: --");
-
-        // 可以添加一个简单的退出提示
-        QMessageBox::information(this, "退出成功", "您已成功退出登录！");
+        emit logoutRequested();   // 发射退出信号
     }
 }
 
@@ -740,8 +733,12 @@ void UserCenterPage::loadFavorites() {
     collectionList->clear();
     for (const QJsonValue &val : favorites) {
         QJsonObject goods = val.toObject();
-        QString title = goods.value("title").toString();
+        QString title = goods.value("name").toString();
         double price = goods.value("price").toDouble();
         collectionList->addItem(QString("%1 - ¥%2").arg(title).arg(price));
     }
+}
+
+void UserCenterPage::refreshFavorites() {
+    loadFavorites(); // 重新加载收藏列表
 }

@@ -33,7 +33,7 @@ void OrdersPage::setupUI() {
     statusLabel->setStyleSheet("color: #475569;");
 
     statusCombo = new QComboBox();
-    statusCombo->addItems({"全部订单", "待付款", "待发货", "待收货", "已完成", "已取消", "纠纷处理中"});
+    statusCombo->addItems({"全部订单", "待付款", "待收货", "已完成", "已取消", "纠纷处理中"});
     statusCombo->setFixedWidth(120);
     statusCombo->setStyleSheet(R"(
         QComboBox {
@@ -151,23 +151,17 @@ void OrdersPage::setupUI() {
     QHBoxLayout *statsLayout = new QHBoxLayout(statsWidget);
     statsLayout->setContentsMargins(0, 10, 0, 0);
 
-    QLabel *totalLabel = new QLabel("共 6 个订单");
+    totalLabel = new QLabel("共 0 个订单");
     totalLabel->setStyleSheet("color: #64748B; font-size: 13px;");
 
     statsLayout->addWidget(totalLabel);
     statsLayout->addStretch();
-
-    exportBtn = new QPushButton("导出订单");
-    exportBtn->setObjectName("primaryBtn");
-    exportBtn->setFixedSize(100, 30);
-    statsLayout->addWidget(exportBtn);
 
     mainLayout->addWidget(statsWidget);
 
     // 连接信号槽
     connect(filterBtn, &QPushButton::clicked, this, &OrdersPage::onFilterOrders);
     connect(refreshBtn, &QPushButton::clicked, this, &OrdersPage::onRefreshOrders);
-    connect(exportBtn, &QPushButton::clicked, this, &OrdersPage::exportOrdersRequested);
     connect(statusCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &OrdersPage::onFilterOrders);
     connect(orderSearchEdit, &QLineEdit::returnPressed,
@@ -211,6 +205,9 @@ void OrdersPage::loadOrdersFromServer(const QString &status, const QString &keyw
         // 根据状态创建操作按钮
         createActionButtons(row, orderStatus, orderId);
     }
+    // 更新统计标签
+    int orderCount = ordersTable->rowCount();
+    totalLabel->setText(QString("共 %1 个订单").arg(orderCount));
 }
 
 void OrdersPage::createActionButtons(int row, const QString &status, int orderId) {
@@ -407,8 +404,7 @@ void OrdersPage::onFilterOrders() {
     QString statusParam;
     if (status == "全部订单") statusParam = "";
     else if (status == "待付款") statusParam = "pending_payment";
-    else if (status == "待发货") statusParam = "paid";
-    else if (status == "待收货") statusParam = "shipped";
+    else if (status == "待收货") statusParam = "paid";
     else if (status == "已完成") statusParam = "completed";
     else if (status == "已取消") statusParam = "cancelled";
     else if (status == "纠纷处理中") statusParam = "dispute";

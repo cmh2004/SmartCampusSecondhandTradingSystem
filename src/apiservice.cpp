@@ -154,10 +154,21 @@ QJsonArray ApiService::searchGoods(const QString& keyword, const QString& catego
         {"page_size", pageSize}
     };
 
-    QJsonObject response = HttpClient::instance()->syncRequest("/api/goods/search", params, "GET");
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/goods/search", params, "POST");
 
-    if (response.value("success").toBool()) {
-        return response.value("data").toObject().value("goods_list").toArray();
+    qDebug() << "[searchGoods] Full response:" << response;
+
+    bool success = response.value("success").toBool();
+    qDebug() << "[searchGoods] success value:" << success;
+
+    if (success) {
+        QJsonObject dataObj = response.value("data").toObject();
+        QJsonArray goodsList = dataObj.value("goods_list").toArray();
+        qDebug() << "[searchGoods] goods_list size:" << goodsList.size();
+        return goodsList;
+    } else {
+        QString error = response.value("error").toString();
+        qDebug() << "[searchGoods] Error:" << error;
     }
 
     return QJsonArray();
@@ -173,12 +184,12 @@ QJsonObject ApiService::createOrder(int goodsId, const QJsonObject& orderInfo)
 }
 
 QJsonObject ApiService::sendMessage(const QString& receiverId, const QString& content,
-                                    const QStringList& attachments)
+                                    int goodsId, const QStringList& attachments)
 {
-    // 同时通过HTTP和WebSocket发送消息，确保可靠性
     QJsonObject httpData{
         {"receiver_id", receiverId},
         {"content", content},
+        {"goods_id", goodsId},
         {"attachments", QJsonArray::fromStringList(attachments)},
         {"timestamp", QDateTime::currentSecsSinceEpoch()}
     };
@@ -261,7 +272,7 @@ QJsonObject ApiService::getGoodsDetail(int goodsId)
 {
     QJsonObject params;
     params["goods_id"] = goodsId;
-    return HttpClient::instance()->syncRequest("/api/goods/detail", params, "GET");
+    return HttpClient::instance()->syncRequest("/api/goods/detail", params, "POST");
 }
 
 // ==================== 纠纷提交 ====================
@@ -284,7 +295,7 @@ QJsonObject ApiService::submitReview(int orderId, int rating, const QString& com
 {
     QJsonObject data;
     data["order_id"] = orderId;
-    data["rating"] = rating;
+    data["score"] = rating;
     data["comment"] = comment;
     data["images"] = QJsonArray::fromStringList(images);
     data["review_time"] = QDateTime::currentSecsSinceEpoch();
@@ -349,9 +360,10 @@ QJsonArray ApiService::getFavorites(int page, int pageSize)
     QJsonObject params;
     params["page"] = page;
     params["page_size"] = pageSize;
-    QJsonObject response = HttpClient::instance()->syncRequest("/api/favorite/list", params, "GET");
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/favorite/list", params, "POST");
     if (response.value("success").toBool()) {
-        return response.value("data").toObject().value("list").toArray();
+        QJsonArray list = response.value("data").toObject().value("list").toArray();
+        return list;
     }
     return QJsonArray();
 }
@@ -392,7 +404,7 @@ QJsonArray ApiService::getOrderList(const QString& status, int page, int pageSiz
     }
     params["page"] = page;
     params["page_size"] = pageSize;
-    QJsonObject response = HttpClient::instance()->syncRequest("/api/order/list", params, "GET");
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/order/list", params, "POST");
     if (response.value("success").toBool()) {
         return response.value("data").toObject().value("orders").toArray();
     }
@@ -584,7 +596,7 @@ QJsonArray ApiService::getMyDisputes(const QString& status, int page, int pageSi
 QJsonArray ApiService::getPendingGoods(int page, int pageSize)
 {
     QJsonObject params{{"page", page}, {"page_size", pageSize}};
-    QJsonObject response = HttpClient::instance()->syncRequest("/api/admin/pending_goods", params, "GET");
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/admin/pending_goods", params, "POST");
     if (response.value("success").toBool()) {
         return response.value("data").toArray();
     }

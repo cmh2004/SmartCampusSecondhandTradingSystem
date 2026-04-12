@@ -6,6 +6,8 @@
 #include <QTimer>
 #include <QRegularExpression>
 #include <QJsonObject>
+#include <QFileDialog>
+#include <QRegularExpression>
 #include "registerpage.h"
 #include "apiservice.h"
 #include "commonwidgets.h"
@@ -13,7 +15,7 @@
 RegisterPage::RegisterPage(QWidget *parent) : QDialog(parent), isDragging(false), isPasswordVisible(false) {
     setWindowFlags(Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
-    setFixedSize(420, 575);
+    setFixedSize(420, 475);
 
     setupUI();
     setupStyles();
@@ -33,7 +35,7 @@ void RegisterPage::setupUI() {
     // 主容器
     QWidget *mainContainer = new QWidget(this);
     mainContainer->setObjectName("mainContainer");
-    mainContainer->setFixedSize(420, 570);
+    mainContainer->setFixedSize(420, 470);
 
     // 添加阴影效果
     QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect(mainContainer);
@@ -65,45 +67,7 @@ void RegisterPage::setupUI() {
     QWidget *formContainer = new QWidget(mainContainer);
     formContainer->setObjectName("formContainer");
     formContainer->move(0, 45);
-    formContainer->setFixedSize(420, 675);
-
-    // 头像区域
-    QWidget *avatarArea = new QWidget(formContainer);
-    avatarArea->setFixedHeight(110);
-
-    QVBoxLayout *avatarAreaLayout = new QVBoxLayout(avatarArea);
-    avatarAreaLayout->setContentsMargins(0, 0, 0, 0);
-    avatarAreaLayout->setSpacing(2);
-
-    // 头像容器
-    QWidget *avatarContainer = new QWidget();
-    avatarContainer->setFixedSize(80, 80);
-    avatarContainer->setStyleSheet(R"(
-        background-color: #f0f8ff;
-        border-radius: 40px;
-        border: 2px dashed #1e90ff;
-    )");
-
-    QLabel *avatarIcon = new QLabel("+", avatarContainer);
-    avatarIcon->setFixedSize(50, 50);
-    avatarIcon->setStyleSheet("color: #1e90ff; font-size: 24px; font-weight: bold;");
-    avatarIcon->setAlignment(Qt::AlignCenter);
-    avatarIcon->move(15, 15); // 居中显示
-
-    // 头像文字
-    QLabel *avatarText = new QLabel("点击上传头像");
-    avatarText->setStyleSheet(R"(
-        color: #666;
-        font-size: 11px;
-        border: none;
-        background-color: transparent;
-        padding: 0;
-        margin: 0;
-    )");
-    avatarText->setAlignment(Qt::AlignCenter);
-    avatarText->setFixedHeight(15);
-    avatarAreaLayout->addWidget(avatarContainer, 0, Qt::AlignCenter);
-    avatarAreaLayout->addWidget(avatarText, 0, Qt::AlignCenter);
+    formContainer->setFixedSize(420, 475);
 
     // 输入框容器
     QWidget *inputContainer = new QWidget(formContainer);
@@ -200,12 +164,10 @@ void RegisterPage::setupUI() {
 
     // 添加组件，精确控制间距
     formMainLayout->addSpacing(5);  // 顶部间距
-    formMainLayout->addWidget(avatarArea, 0, Qt::AlignCenter);
-    formMainLayout->addSpacing(15); // 头像和输入框之间的间距
     formMainLayout->addWidget(inputContainer, 0, Qt::AlignCenter);
     formMainLayout->addSpacing(10); // 输入框和按钮之间的间距
     formMainLayout->addWidget(buttonContainer, 0, Qt::AlignCenter);
-    formMainLayout->addStretch();   // 弹性空间，让内容保持在上部
+    formMainLayout->addSpacing(30);
 
     // 窗口布局
     QVBoxLayout *windowLayout = new QVBoxLayout(this);
@@ -345,14 +307,66 @@ void RegisterPage::onRegisterClicked() {
     QString password = passwordEdit->text().trimmed();
     QString nickname = nicknameEdit->text().trimmed();
     QString email = emailEdit->text().trimmed();
-    // 可以加手机号，但当前界面没有，可以忽略或添加
     QString phone = ""; // 未提供
 
-    if (username.isEmpty() || password.isEmpty()) {
-        showMessageBox(this, "提示", "请填写账号和密码", QMessageBox::Warning);
+    // 1. 用户名验证
+    if (username.isEmpty()) {
+        showMessageBox(this, "提示", "账号不能为空", QMessageBox::Warning);
         return;
     }
-    // 密码强度验证等...
+    if (username.length() < 4 || username.length() > 20) {
+        showMessageBox(this, "提示", "账号长度应为4-20个字符", QMessageBox::Warning);
+        return;
+    }
+    // 可选：只允许字母、数字、下划线
+    QRegularExpression usernameRegex("^[a-zA-Z0-9_]{4,20}$");
+    if (!usernameRegex.match(username).hasMatch()) {
+        showMessageBox(this, "提示", "账号只能包含字母、数字和下划线，长度4-20位", QMessageBox::Warning);
+        return;
+    }
+
+    // 2. 密码验证
+    if (password.isEmpty()) {
+        showMessageBox(this, "提示", "密码不能为空", QMessageBox::Warning);
+        return;
+    }
+    if (password.length() < 6 || password.length() > 20) {
+        showMessageBox(this, "提示", "密码长度应为6-20个字符", QMessageBox::Warning);
+        return;
+    }
+    // 密码强度：必须包含字母和数字
+    bool hasLetter = false, hasDigit = false;
+    for (QChar ch : password) {
+        if (ch.isLetter()) hasLetter = true;
+        if (ch.isDigit()) hasDigit = true;
+    }
+    if (!hasLetter || !hasDigit) {
+        showMessageBox(this, "提示", "密码必须同时包含字母和数字", QMessageBox::Warning);
+        return;
+    }
+
+    // 3. 昵称验证
+    if (nickname.isEmpty()) {
+        showMessageBox(this, "提示", "昵称不能为空", QMessageBox::Warning);
+        return;
+    }
+    if (nickname.length() > 20) {
+        showMessageBox(this, "提示", "昵称长度不能超过20个字符", QMessageBox::Warning);
+        return;
+    }
+
+    // 4. 邮箱验证（非空且格式正确）
+    if (email.isEmpty()) {
+        showMessageBox(this, "提示", "邮箱不能为空", QMessageBox::Warning);
+        return;
+    }
+    QRegularExpression emailRegex(R"(^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$)");
+    if (!emailRegex.match(email).hasMatch()) {
+        showMessageBox(this, "提示", "请输入有效的邮箱地址", QMessageBox::Warning);
+        return;
+    }
+
+    // 调用注册 API
     QJsonObject result = ApiService::instance()->registerUser(username, password, email, phone, nickname);
     if (result.value("success").toBool()) {
         showMessageBox(this, "成功", "注册成功！请登录", QMessageBox::Information);

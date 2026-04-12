@@ -48,6 +48,8 @@ private slots:
 
     void onShowDisputeSubmit(int orderId);  // 显示售后纠纷对话框
 
+    void onLogout();
+
 private:
     void setupUI();
     void setupCustomTitleBar();

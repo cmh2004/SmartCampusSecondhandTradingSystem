@@ -74,7 +74,7 @@ void HomePage::setupUI() {
     categoryList->setObjectName("categoryList");
     categoryList->addItems({"📦 全部商品", "📚 书籍教材", "💻 电子产品", "👕 服饰鞋包",
                             "🏠 生活用品", "⚽ 体育器材", "✏️ 学习工具", "💄 美妆个护", "🔍 其他"});
-
+    categoryList->setCurrentRow(0);
     categoryLayout->addWidget(categoryTitle);
     categoryLayout->addWidget(categoryList, 1);
 
@@ -154,18 +154,31 @@ void HomePage::loadGoodsFromServer(const QString &keyword, const QString &catego
     // 1. 清空现有商品网格
     clearGoodsGrid();  // 该函数需在 HomePage 中实现
 
+    // 调试：打印商品数量
+    qDebug() << "Goods array size:" << goodsArray.size();
+
     // 2. 添加新商品卡片到网格
     int columns = 4;  // 固定列数，可根据窗口宽度动态调整
     for (int i = 0; i < goodsArray.size(); ++i) {
         QJsonObject goods = goodsArray[i].toObject();
-        int goodsId = goods.value("goods_id").toInt();
-        QString name = goods.value("title").toString();
+        int goodsId = goods.value("id").toInt();
+        QString name = goods.value("name").toString();
         double price = goods.value("price").toDouble();
-        QString categoryName = goods.value("category").toString();
+        int categoryId = goods.value("category_id").toInt();
         QString status = goods.value("status").toString(); // 待售等
 
+        // 将状态码转换为显示文本
+        QString statusText;
+        if (status == "1") statusText = "在售";
+        else if (status == "0") statusText = "待审核";
+        else if (status == "2") statusText = "交易中";
+        else if (status == "3") statusText = "已售出";
+        else statusText = "未知";
+        QString categoryName = QString::number(categoryId);
+
+        QString imageUrl = goods.value("image_url").toString();
         // 创建商品卡片
-        QWidget *card = createGoodsCard(goodsId, name, QString::number(price), categoryName, status);
+        QWidget *card = createGoodsCard(goodsId, name, QString::number(price), categoryName, statusText, imageUrl);
 
         // 计算行列位置
         int row = i / columns;
@@ -176,7 +189,7 @@ void HomePage::loadGoodsFromServer(const QString &keyword, const QString &catego
 
 QWidget* HomePage::createGoodsCard(int goodsId, const QString& name,
                                    const QString& price, const QString& category,
-                                   const QString& status) {
+                                   const QString& status, const QString& imageUrl) {
     QWidget *card = new QWidget();
     card->setObjectName("goodsCard");
     card->setFixedSize(233, 282);
@@ -196,10 +209,26 @@ QWidget* HomePage::createGoodsCard(int goodsId, const QString& name,
     QLabel *imageLabel = new QLabel();
     imageLabel->setAlignment(Qt::AlignCenter);
 
-    // 根据类别选择不同的占位图
-    QString iconPath = ":/icons/img/buy.png"; // 默认图标
-
-    imageLabel->setPixmap(QPixmap(iconPath).scaled(100, 100, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    if (!imageUrl.isEmpty()) {
+        QString fullUrl = "http://127.0.0.1:8080" + imageUrl;
+        // 异步加载图片
+        QNetworkAccessManager *nam = new QNetworkAccessManager();
+        connect(nam, &QNetworkAccessManager::finished, [imageLabel, nam](QNetworkReply *reply) {
+            if (reply->error() == QNetworkReply::NoError) {
+                QPixmap pixmap;
+                pixmap.loadFromData(reply->readAll());
+                if (!pixmap.isNull()) {
+                    imageLabel->setPixmap(pixmap.scaled(150, 150, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                }
+            }
+            reply->deleteLater();
+            nam->deleteLater();
+        });
+        nam->get(QNetworkRequest(QUrl(fullUrl)));
+    } else {
+        // 默认图片
+        imageLabel->setPixmap(QPixmap(":/icons/img/buy.png").scaled(100, 100, Qt::KeepAspectRatio));
+    }
     imageLayout->addWidget(imageLabel);
 
     // 商品信息区域
@@ -304,18 +333,12 @@ void HomePage::onCategoryClicked(QListWidgetItem* item) {
     // 移除emoji图标
     category = category.mid(category.indexOf(" ") + 1);
     welcomeLabel->setText(QString("当前分类: %1").arg(category));
-    emit categoryChanged(category);
 
     loadGoodsFromServer(searchEdit->text().trimmed(), category, 0, 0, getSortByValue(), 1, 20);
 }
 
 void HomePage::onSearchClicked() {
     QString keyword = searchEdit->text().trimmed();
-    if (keyword.isEmpty()) {
-        QMessageBox::warning(this, "提示", "请输入搜索关键词");
-        return;
-    }
-    emit searchRequested(keyword);
 
     // 根据当前选择的分类和排序条件，执行搜索
     QString currentCategory = categoryList->currentItem()->text();

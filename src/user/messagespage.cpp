@@ -58,6 +58,7 @@ void MessagesPage::createNewChat(int goodsId, const QString &sellerName) {
     QListWidgetItem *item = new QListWidgetItem(chatInfo, chatList);
     item->setData(Qt::UserRole, sellerName);
     item->setData(Qt::UserRole + 1, goodsId);
+    item->setData(Qt::UserRole+2, goodsId);
 
     // 自动选中新创建的聊天
     chatList->setCurrentItem(item);
@@ -128,7 +129,7 @@ void MessagesPage::setupUI() {
 
     // 右侧聊天区域
     QWidget *chatAreaWidget = new QWidget();
-     chatAreaWidget->setStyleSheet("background-color: #f8fafc;");
+    chatAreaWidget->setStyleSheet("background-color: #f8fafc;");
     QVBoxLayout *chatLayout = new QVBoxLayout(chatAreaWidget);
     chatLayout->setContentsMargins(0, 0, 0, 0);
     chatLayout->setSpacing(0);
@@ -381,9 +382,9 @@ void MessagesPage::onSendMessage() {
     QString receiverName = currentItem->data(Qt::UserRole+1).toString();
     int goodsId = currentItem->data(Qt::UserRole+2).toInt();
 
-    // 获取 receiverId（需要从会话信息中获取，或从服务端查询）
-    // 简化：假设 ApiService::sendMessage 内部根据会话ID确定接收者
-    QJsonObject result = ApiService::instance()->sendMessage("", message, QStringList());
+    QString receiverId = ""; // 服务端会从商品信息中获取卖家ID
+
+    QJsonObject result = ApiService::instance()->sendMessage(receiverId, message, goodsId);
     if (result.value("success").toBool()) {
         // 在界面上添加自己发送的消息
         addMessage("我", message, true);
@@ -423,9 +424,6 @@ void MessagesPage::onChatItemClicked(QListWidgetItem *item) {
 
     // 加载该聊天的消息历史
     loadChatMessages(sessionId, 1, 30);
-
-    // 发射信号通知聊天被选中
-    emit chatSelected(goodsId);
 }
 
 void MessagesPage::loadChatMessages(const QString &sessionId, int page, int pageSize) {

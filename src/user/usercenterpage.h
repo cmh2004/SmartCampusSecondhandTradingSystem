@@ -16,10 +16,12 @@ public:
     explicit UserCenterPage(QWidget *parent = nullptr);
     void updateUserInfo(const QString &name, int creditScore, const QString &joinDate);
     void loadUserInfo();
+    void refreshFavorites();
 
 signals:
     void editProfileRequested();
     void creditScoreRequested();
+    void logoutRequested();
 
 private slots:
     void onEditProfile();

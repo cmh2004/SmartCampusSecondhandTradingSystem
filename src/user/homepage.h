@@ -27,8 +27,6 @@ private slots:
 
 signals:
     void goodsDetailRequested(int goodsId);
-    void searchRequested(const QString &keyword);
-    void categoryChanged(const QString &category);
     void reportGoodsRequested(int goodsId);
     void contactSellerRequested(int goodsId);
     void buyNowRequested(int goodsId);
@@ -38,7 +36,7 @@ private:
     void setupUI();
     QWidget* createGoodsCard(int goodsId, const QString& name,
                              const QString& price, const QString& category,
-                             const QString& status);
+                             const QString& status, const QString& imageUrl="");
     void clearGoodsGrid();
     QString getSortByValue() const;
     QString getCurrentCategory() const;
