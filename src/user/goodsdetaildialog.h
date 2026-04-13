@@ -19,6 +19,9 @@ public:
 
     int getGoodsId() const { return goodsId; }
 
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 signals:
     void contactSellerRequested(int goodsId, const QString &sellerName);
     void buyNowRequested(int goodsId);
@@ -28,6 +31,7 @@ private slots:
     void onCollectGoods();
     void onAIAssessment();
     void onShowRiskAssessment();
+    void onThumbnailClicked(int index);
 
 private:
     void setupUI();
@@ -68,6 +72,7 @@ private:
     // 标签页
     QTabWidget *detailTabs;
 
+    QStringList m_imageUrls;          // 存储所有图片的完整URL
     QList<QLabel*> m_thumbnailLabels;   // 存储缩略图控件
 
     bool m_isFavorited;  // 当前商品是否已收藏

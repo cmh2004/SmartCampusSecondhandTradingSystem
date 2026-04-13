@@ -209,11 +209,13 @@ QJsonObject ApiService::estimatePrice(const QString& description, const QString&
 {
     QJsonObject data{{"description", description}};
 
-    // 如果有图片，需要处理图片
     if (!imagePath.isEmpty() && QFileInfo::exists(imagePath)) {
-        // 这里可以调用图片分析API
-        data["has_image"] = true;
-        // 实际项目中应该上传图片到AI服务
+        QFile file(imagePath);
+        if (file.open(QIODevice::ReadOnly)) {
+            QByteArray imageData = file.readAll();
+            QString base64 = imageData.toBase64();
+            data["image_base64"] = base64;
+        }
     }
 
     return HttpClient::instance()->syncRequest("/api/ai/estimate", data, "POST", 60000);

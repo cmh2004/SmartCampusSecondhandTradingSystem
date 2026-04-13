@@ -6,6 +6,7 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QLineEdit>
+#include <QEvent>
 #include <QNetworkRequest>
 #include "..\apiservice.h"
 #include "goodsdetaildialog.h"
@@ -18,6 +19,11 @@ GoodsDetailDialog::GoodsDetailDialog(QWidget *parent, int goodsId)
 
     setupUI();
     loadGoodsData(goodsId);
+
+    // 为所有缩略图安装事件过滤器
+    for (QLabel *label : m_thumbnailLabels) {
+        label->installEventFilter(this);
+    }
 }
 
 void GoodsDetailDialog::setupUI() {
@@ -61,12 +67,12 @@ void GoodsDetailDialog::setupUI() {
     // 缩略图
     QWidget *thumbnailContainer = new QWidget();
     QHBoxLayout *thumbnailLayout = new QHBoxLayout(thumbnailContainer);
-    thumbnailLayout->setSpacing(8);
+    thumbnailLayout->setSpacing(4);
     thumbnailLayout->setContentsMargins(0, 0, 0, 0);
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 5; i++) {
         QLabel *thumbnail = new QLabel();
-        thumbnail->setFixedSize(80, 80);
+        thumbnail->setFixedSize(75, 75);
         thumbnail->setStyleSheet("border: 1px solid #ddd; border-radius: 4px;");
         thumbnail->setAlignment(Qt::AlignCenter);
         thumbnail->setCursor(Qt::PointingHandCursor);
@@ -401,11 +407,13 @@ void GoodsDetailDialog::loadGoodsData(int goodsId) {
 
         // 商品图片
         QJsonArray images = data.value("images").toArray();
+        m_imageUrls.clear();
         if (!images.isEmpty()) {
             // 主图
             QString mainImageUrl = images[0].toObject().value("image_url").toString();
             // 拼接完整 URL
             QString fullUrl = "http://127.0.0.1:8080" + mainImageUrl;
+            m_imageUrls.append(fullUrl);
             // 异步加载图片并设置到 goodsImageLabel
             QNetworkAccessManager *nam = new QNetworkAccessManager(this);
             connect(nam, &QNetworkAccessManager::finished, [this, nam](QNetworkReply *reply) {
@@ -424,6 +432,7 @@ void GoodsDetailDialog::loadGoodsData(int goodsId) {
             // 缩略图
             for (int i = 0; i < qMin(images.size(), m_thumbnailLabels.size()); ++i) {
                 QString thumbUrl = "http://127.0.0.1:8080" +images[i].toObject().value("image_url").toString();
+                if (i > 0) m_imageUrls.append(thumbUrl); // 第一张已添加
                 QLabel *thumbLabel = m_thumbnailLabels[i];
                 QNetworkAccessManager *thumbNam = new QNetworkAccessManager(this);
                 connect(thumbNam, &QNetworkAccessManager::finished, [thumbLabel, thumbNam](QNetworkReply *reply) {
@@ -438,6 +447,16 @@ void GoodsDetailDialog::loadGoodsData(int goodsId) {
                     thumbNam->deleteLater();
                 });
                 thumbNam->get(QNetworkRequest(QUrl(thumbUrl)));
+            }
+            // 隐藏多余的缩略图
+            for (int i = images.size(); i < m_thumbnailLabels.size(); ++i) {
+                m_thumbnailLabels[i]->hide();
+            }
+        }
+        else{
+            // 隐藏多余的缩略图
+            for (int i = 0; i < m_thumbnailLabels.size(); ++i) {
+                m_thumbnailLabels[i]->hide();
             }
         }
 
@@ -544,4 +563,38 @@ QString GoodsDetailDialog::getCategoryName(int categoryId) {
     case 7: return "美妆个护";
     default: return "其他";
     }
+}
+
+bool GoodsDetailDialog::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::MouseButtonPress) {
+        for (int i = 0; i < m_thumbnailLabels.size(); ++i) {
+            if (watched == m_thumbnailLabels[i]) {
+                onThumbnailClicked(i);
+                return true;
+            }
+        }
+    }
+    return QDialog::eventFilter(watched, event);
+}
+
+void GoodsDetailDialog::onThumbnailClicked(int index)
+{
+    if (index < 0 || index >= m_imageUrls.size()) return;
+
+    QString imageUrl = m_imageUrls[index];
+    // 异步加载大图
+    QNetworkAccessManager *nam = new QNetworkAccessManager(this);
+    connect(nam, &QNetworkAccessManager::finished, [this, nam](QNetworkReply *reply) {
+        if (reply->error() == QNetworkReply::NoError) {
+            QPixmap pixmap;
+            pixmap.loadFromData(reply->readAll());
+            if (!pixmap.isNull()) {
+                goodsImageLabel->setPixmap(pixmap.scaled(380, 380, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+            }
+        }
+        reply->deleteLater();
+        nam->deleteLater();
+    });
+    nam->get(QNetworkRequest(QUrl(imageUrl)));
 }

@@ -4,6 +4,7 @@
 #include <QMessageBox>
 #include <QGraphicsDropShadowEffect>
 #include <QJsonObject>
+#include <QScrollArea>
 #include "..\apiservice.h"
 #include "PublishPage.h"
 
@@ -126,25 +127,30 @@ void PublishPage::setupUI() {
     imageLayout->setContentsMargins(0, 0, 0, 0);
 
     QLabel *imageLabel = new QLabel("商品图片:");
-    uploadImageBtn = new QPushButton("+ 上传图片");
-    uploadImageBtn->setObjectName("secondaryBtn");
-    uploadImageBtn->setFixedSize(150, 150);
-
-    imagePreview = new QLabel();
-    imagePreview->setFixedSize(150, 150);
-    imagePreview->setStyleSheet("border: 2px dashed #ccc; border-radius: 8px;");
-    imagePreview->setAlignment(Qt::AlignCenter);
-    imagePreview->setText("暂无图片");
-
-    connect(uploadImageBtn, &QPushButton::clicked, this, &PublishPage::onUploadImage);
-
-    QHBoxLayout *imageBtnLayout = new QHBoxLayout();
-    imageBtnLayout->addWidget(uploadImageBtn);
-    imageBtnLayout->addWidget(imagePreview);
-    imageBtnLayout->addStretch();
-
     imageLayout->addWidget(imageLabel);
-    imageLayout->addLayout(imageBtnLayout);
+    // 水平滚动容器
+    QScrollArea *scrollArea = new QScrollArea();
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scrollArea->setFixedHeight(130);
+    scrollArea->setStyleSheet("border: none;");
+
+    m_imageContainer = new QWidget();
+    m_imageLayout = new QHBoxLayout(m_imageContainer);
+    m_imageLayout->setContentsMargins(0, 0, 0, 0);
+    m_imageLayout->setSpacing(10);
+    m_imageLayout->setAlignment(Qt::AlignLeft);
+
+    // 添加图片按钮
+    m_addImageBtn = new QPushButton("+");
+    m_addImageBtn->setFixedSize(100, 100);
+    m_addImageBtn->setStyleSheet("border: 2px dashed #ccc; border-radius: 8px; font-size: 28px;");
+    connect(m_addImageBtn, &QPushButton::clicked, this, &PublishPage::onAddImage);
+    m_imageLayout->addWidget(m_addImageBtn);
+
+    scrollArea->setWidget(m_imageContainer);
+    imageLayout->addWidget(scrollArea);
 
     // 提交按钮
     QPushButton *submitBtn = new QPushButton("发布商品");
@@ -220,44 +226,49 @@ void PublishPage::onPublishGoods() {
         return;
     }
 
-    // 收集图片路径（如果有）
-    QStringList imagePaths;
-    // 如果 imagePreview 有图片，需要获取其路径，这里简化
+    if (desc.isEmpty()) {
+        QMessageBox::warning(this, "提示", "请填写商品描述");
+        return;
+    }
+
+    QStringList imageUrls;
+    for (const QString &path : m_uploadedImagePaths) {
+        QJsonObject uploadResult = ApiService::instance()->uploadImage(path);
+        if (uploadResult.value("success").toBool()) {
+            QString url = uploadResult.value("data").toObject().value("file_url").toString();
+            imageUrls.append(url);
+        } else {
+            QMessageBox::warning(this, "图片上传失败", uploadResult.value("error").toString());
+            return;
+        }
+    }
 
     QJsonObject goodsData;
     goodsData["name"] = name;
     goodsData["price"] = priceValue;
     goodsData["description"] = desc;
-    goodsData["category"] = category;  // 服务端可能需要 category_id，需要映射
+    goodsData["category"] = category;
 
     QJsonObject result = ApiService::instance()->publishGoods(goodsData, m_uploadedImagePaths);
     if (result.value("success").toBool()) {
         QMessageBox::information(this, "成功", "商品发布成功，等待审核");
         // 清空表单
+        goodsNameEdit->clear();
+        goodsPriceEdit->clear();
+        goodsDescEdit->clear();
+        goodsCategoryCombo->setCurrentIndex(0);
+        // 清空图片预览
+        QLayoutItem *child;
+        while ((child = m_imageLayout->takeAt(0)) != nullptr) {
+            if (child->widget() && child->widget() != m_addImageBtn) {
+                delete child->widget();
+            }
+            delete child;
+        }
+        m_imageLayout->addWidget(m_addImageBtn);
+        m_uploadedImagePaths.clear();
     } else {
         QMessageBox::warning(this, "失败", result.value("error").toString());
-    }
-}
-
-void PublishPage::onUploadImage() {
-    QString fileName = QFileDialog::getOpenFileName(
-        this,
-        "选择商品图片",
-        "",
-        "Images (*.png *.jpg *.jpeg *.bmp *.gif)"
-        );
-
-    if (!fileName.isEmpty()) {
-        QPixmap pixmap(fileName);
-        if (!pixmap.isNull()) {
-            imagePreview->setPixmap(
-                pixmap.scaled(150, 150, Qt::KeepAspectRatio, Qt::SmoothTransformation)
-                );
-            m_uploadedImagePaths.clear();  // 若只支持单图，先清空
-            m_uploadedImagePaths.append(fileName);
-        } else {
-            QMessageBox::warning(this, "错误", "无法加载图片文件");
-        }
     }
 }
 
@@ -268,12 +279,10 @@ void PublishPage::onAIPriceEstimate() {
         return;
     }
 
-    // 如果有上传的图片，也可以传给 AI（可选）
+    // 获取第一张图片的路径（如果有），用于AI分析
     QString imagePath;
-    QPixmap pix = imagePreview->pixmap();
-    if (&pix && !pix.isNull())  {
-        // 这里需要获取实际图片文件路径，但 `imagePreview` 只存了 pixmap，需要记录原始路径
-        // 简化：可以不上传图片，只根据描述估价
+    if (!m_uploadedImagePaths.isEmpty()) {
+        imagePath = m_uploadedImagePaths.first();
     }
 
     qDebug() << "[AI] Start estimate";
@@ -293,4 +302,69 @@ void PublishPage::onAIPriceEstimate() {
     } else {
         QMessageBox::warning(this, "估价失败", result.value("error").toString());
     }
+}
+
+void PublishPage::onAddImage()
+{
+    QStringList fileNames = QFileDialog::getOpenFileNames(
+        this,
+        "选择商品图片",
+        "",
+        "Images (*.png *.jpg *.jpeg *.bmp *.gif)"
+        );
+    if (fileNames.isEmpty()) return;
+
+    for (const QString &fileName : fileNames) {
+        addImagePreview(fileName);
+    }
+}
+
+void PublishPage::addImagePreview(const QString &filePath)
+{
+    QPixmap pixmap(filePath);
+    if (pixmap.isNull()) {
+        qDebug() << "Failed to load image:" << filePath;
+        return;
+    }
+
+    // 限制最多5张图片
+    if (m_uploadedImagePaths.size() >= 5) {
+        QMessageBox::warning(this, "提示", "最多只能上传5张图片");
+        return;
+    }
+
+    // 缩放图片
+    QPixmap scaled = pixmap.scaled(100, 100, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+    // 创建带删除按钮的容器
+    QWidget *container = new QWidget();
+    container->setFixedSize(100, 100);
+    container->setStyleSheet("border: 1px solid #ddd; border-radius: 6px; background-color: white;");
+
+    // 显示图片的 Label
+    QLabel *imageLabel = new QLabel(container);
+    imageLabel->setPixmap(scaled);
+    imageLabel->setAlignment(Qt::AlignCenter);
+    imageLabel->setGeometry(0, 0, 100, 100);
+    imageLabel->setStyleSheet("border: none;");
+
+    // 删除按钮
+    QPushButton *removeBtn = new QPushButton("×", container);
+    removeBtn->setFixedSize(20, 20);
+    removeBtn->setStyleSheet("background-color: rgba(231, 76, 60, 0.9); color: white; border-radius: 10px; border: none;");
+    removeBtn->move(80, 0);
+    removeBtn->setCursor(Qt::PointingHandCursor);
+
+    // 存储文件路径
+    container->setProperty("filePath", filePath);
+
+    connect(removeBtn, &QPushButton::clicked, [this, container]() {
+        m_imageLayout->removeWidget(container);
+        m_uploadedImagePaths.removeOne(container->property("filePath").toString());
+        delete container;
+    });
+
+    // 在添加按钮之前插入
+    m_imageLayout->insertWidget(m_imageLayout->count() - 1, container);
+    m_uploadedImagePaths.append(filePath);
 }

@@ -6,6 +6,7 @@
 #include <QComboBox>
 #include <QTextEdit>
 #include <QPushButton>
+#include <QHBoxLayout>
 #include <QLabel>
 
 class PublishPage : public QWidget {
@@ -20,19 +21,23 @@ signals:
 
 private slots:
     void onPublishGoods();
-    void onUploadImage();
     void onAIPriceEstimate();
 
 private:
     void setupUI();
+    void onAddImage();
+    void addImagePreview(const QString &filePath);
 
     QLineEdit *goodsNameEdit;
     QComboBox *goodsCategoryCombo;
     QLineEdit *goodsPriceEdit;
     QTextEdit *goodsDescEdit;
-    QPushButton *uploadImageBtn;
-    QLabel *imagePreview;
-    QStringList m_uploadedImagePaths;   // 存储已选择的图片路径
+
+    QList<QString> m_uploadedImagePaths;      // 存储上传后的图片URL（服务端返回）
+    QList<QLabel*> m_imagePreviewLabels;      // 预览控件
+    QWidget *m_imageContainer;                // 放置预览图片的容器
+    QHBoxLayout *m_imageLayout;               // 水平布局
+    QPushButton *m_addImageBtn;               // 添加图片按钮
 };
 
 #endif // PUBLISHPAGE_H
