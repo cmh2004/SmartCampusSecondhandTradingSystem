@@ -20,6 +20,7 @@ signals:
 private slots:
     void onSaveProfile();
     void onUploadAvatar();
+    void onChangePassword();
 
 private:
     void setupUI();
@@ -28,11 +29,7 @@ private:
     // 基本信息
     QLineEdit *nicknameEdit;
     QLineEdit *realNameEdit;
-    QLineEdit *studentIdEdit;
-    QLineEdit *phoneEdit;
     QLineEdit *emailEdit;
-    QComboBox *campusCombo;
-    QComboBox *collegeCombo;
 
     // 头像
     QLabel *avatarLabel;
@@ -40,7 +37,6 @@ private:
 
     // 安全设置
     QPushButton *changePwdBtn;
-    QPushButton *bindPhoneBtn;
 
     // 按钮
     QPushButton *saveBtn;

@@ -7,7 +7,7 @@
 #include "..\apiservice.h"
 #include "creditscoredialog.h"
 
-CreditScoreDialog::CreditScoreDialog(QWidget *parent, QString userId)
+CreditScoreDialog::CreditScoreDialog(QWidget *parent, int userId)
     : QDialog(parent), userId(userId), m_animationProgress(0), m_targetScore(0) {
     setWindowTitle("信用分详情");
     this->setFixedSize(900, 900);  // 增加尺寸

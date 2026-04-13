@@ -264,7 +264,7 @@ QJsonObject ApiService::markMessageRead(const QString &sessionId) {
 
 QJsonObject ApiService::getDisputeByOrder(int orderId) {
     QJsonObject params{{"order_id", orderId}};
-    return HttpClient::instance()->syncRequest("/api/dispute/by_order", params, "GET");
+    return HttpClient::instance()->syncRequest("/api/dispute/by_order", params, "POST");
 }
 
 // ==================== 商品详情 ====================
@@ -309,20 +309,20 @@ QJsonObject ApiService::updateUserProfile(const QJsonObject& userData)
 }
 
 // ==================== 信用分获取 ====================
-QJsonObject ApiService::getCreditScore(const QString& userId)
+QJsonObject ApiService::getCreditScore(int userId)
 {
     QJsonObject params;
-    if (!userId.isEmpty()) {
+    if (userId!=-1) {
         params["user_id"] = userId;
     }
-    return HttpClient::instance()->syncRequest("/api/credit/score", params, "GET");
+    return HttpClient::instance()->syncRequest("/api/credit/score", params, "POST");
 }
 
 // ==================== 信用历史 ====================
-QJsonArray ApiService::getCreditHistory(const QString& userId, int page, int pageSize)
+QJsonArray ApiService::getCreditHistory(int userId, int page, int pageSize)
 {
     QJsonObject params;
-    if (!userId.isEmpty()) {
+    if (userId!=-1) {
         params["user_id"] = userId;
     }
     params["page"] = page;
@@ -385,7 +385,7 @@ QJsonArray ApiService::getMessageHistory(const QString& chatId, int page, int pa
     params["chat_id"] = chatId;
     params["page"] = page;
     params["page_size"] = pageSize;
-    QJsonObject response = HttpClient::instance()->syncRequest("/api/message/history", params, "GET");
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/message/history", params, "POST");
     if (response.value("success").toBool()) {
         return response.value("data").toObject().value("messages").toArray();
     }
@@ -617,7 +617,7 @@ QJsonArray ApiService::getUserList(const QString& role, int page, int pageSize)
     if (!role.isEmpty()) params["role"] = role;
     params["page"] = page;
     params["page_size"] = pageSize;
-    QJsonObject response = HttpClient::instance()->syncRequest("/api/admin/user_list", params, "GET");
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/admin/user_list", params, "POST");
     if (response.value("success").toBool()) {
         return response.value("data").toArray();
     }
@@ -628,7 +628,7 @@ QJsonArray ApiService::getUserList(const QString& role, int page, int pageSize)
 QJsonObject ApiService::updateUserStatus(const QString& userId, const QString& status, const QString& reason)
 {
     QJsonObject data{{"user_id", userId}, {"status", status}, {"reason", reason}};
-    return HttpClient::instance()->syncRequest("/api/admin/update_user_status", data);
+    return HttpClient::instance()->syncRequest("/api/admin/update_user_status", data,"POST");
 }
 
 // 获取纠纷列表（管理员）
@@ -638,7 +638,7 @@ QJsonArray ApiService::getDisputeList(const QString& status, int page, int pageS
     if (!status.isEmpty()) params["status"] = status;
     params["page"] = page;
     params["page_size"] = pageSize;
-    QJsonObject response = HttpClient::instance()->syncRequest("/api/admin/dispute_list", params, "GET");
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/admin/dispute_list", params, "POST");
     if (response.value("success").toBool()) {
         return response.value("data").toArray();
     }
@@ -648,8 +648,8 @@ QJsonArray ApiService::getDisputeList(const QString& status, int page, int pageS
 // 处理纠纷（管理员）
 QJsonObject ApiService::processDispute(int disputeId, const QString& result, const QString& comment)
 {
-    QJsonObject data{{"dispute_id", disputeId}, {"result", result}, {"comment", comment}};
-    return HttpClient::instance()->syncRequest("/api/admin/process_dispute", data);
+    QJsonObject data{{"dispute_id", disputeId}, {"status", 2}, {"result", result}, {"comment", comment}};
+    return HttpClient::instance()->syncRequest("/api/admin/process_dispute", data,"POST");
 }
 
 // 获取统计信息（管理员）
@@ -680,4 +680,80 @@ QJsonObject ApiService::uploadImage(const QString &filePath)
     data["image_type"] = imageType;
 
     return HttpClient::instance()->syncRequest("/api/upload/image", data);
+}
+
+QJsonArray ApiService::getAllReports(int page, int pageSize, const QString& status)
+{
+    QJsonObject params{{"page", page}, {"page_size", pageSize}};
+    if (!status.isEmpty()) params["status"] = status;
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/admin/reports", params, "POST");
+    qDebug()<<response;
+    if (response.value("success").toBool()) {
+        return response.value("data").toArray();
+    }
+    return QJsonArray();
+}
+
+bool ApiService::processReport(int reportId, const QString& result)
+{
+    QJsonObject data{{"report_id", reportId}, {"result", result}};
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/admin/process_report", data, "POST");
+    return response.value("success").toBool();
+}
+
+QJsonObject ApiService::updateUserCreditScore(int userId, int newScore, const QString& reason)
+{
+    QJsonObject data;
+    data["user_id"] = userId;
+    data["credit_score"] = newScore;
+    data["reason"] = reason;
+    return HttpClient::instance()->syncRequest("/api/admin/update_credit", data, "POST");
+}
+
+QJsonArray ApiService::getMyGoods(int page, int pageSize) {
+    QJsonObject params{{"page", page}, {"page_size", pageSize}};
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/user/goods", params, "POST");
+    if (response.value("success").toBool()) {
+        return response.value("data").toArray();
+    }
+    return QJsonArray();
+}
+
+QJsonArray ApiService::getMyReviews(int page, int pageSize) {
+    QJsonObject params{{"page", page}, {"page_size", pageSize}};
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/user/reviews", params, "POST");
+    if (response.value("success").toBool()) {
+        return response.value("data").toArray();
+    }
+    return QJsonArray();
+}
+
+QJsonArray ApiService::getBrowseHistory(int page, int pageSize) {
+    QJsonObject params{{"page", page}, {"page_size", pageSize}};
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/user/history", params, "POST");
+    if (response.value("success").toBool()) {
+        return response.value("data").toArray();
+    }
+    return QJsonArray();
+}
+
+QJsonObject ApiService::addBrowseHistory(int goodsId) {
+    QJsonObject data{{"goods_id", goodsId}};
+    return HttpClient::instance()->syncRequest("/api/user/history/add", data, "POST");
+}
+
+QJsonObject ApiService::updateGoodsStatus(int goodsId, int status)
+{
+    QJsonObject data;
+    data["goods_id"] = goodsId;
+    data["status"] = status;
+    return HttpClient::instance()->syncRequest("/api/goods/update_status", data, "POST");
+}
+
+QJsonObject ApiService::changePassword(const QString &oldPassword, const QString &newPassword)
+{
+    QJsonObject data;
+    data["old_password"] = oldPassword;
+    data["new_password"] = newPassword;
+    return HttpClient::instance()->syncRequest("/api/user/change_password", data, "POST");
 }

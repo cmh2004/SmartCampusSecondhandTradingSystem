@@ -5,9 +5,11 @@
 #include <QGraphicsDropShadowEffect>
 #include "UserCenterPage.h"
 #include "..\apiservice.h"
+#include "GoodsEditDialog.h"
 
 UserCenterPage::UserCenterPage(QWidget *parent) : QWidget(parent) {
     setupUI();
+    loadUserInfo();
 }
 
 void UserCenterPage::setupUI() {
@@ -211,6 +213,10 @@ void UserCenterPage::setupUI() {
 
         connect(menuBtn, &QPushButton::clicked, this, [this, i]() {
             userSubTabs->setCurrentIndex(i);
+            // 如果切换到浏览历史标签页（索引3），重新加载数据
+            if (i == 3) {
+                loadBrowseHistory();
+            }
         });
 
         menuLayout->addWidget(menuBtn);
@@ -314,6 +320,13 @@ void UserCenterPage::setupUI() {
 
     // 页面背景色
     this->setStyleSheet("background-color: #FAFAFA;");
+
+    connect(collectionList, &QListWidget::itemClicked, this, [this](QListWidgetItem *item) {
+        int goodsId = item->data(Qt::UserRole).toInt();
+        if (goodsId > 0) {
+            emit goodsDetailRequested(goodsId);   // 发射信号
+        }
+    });
 }
 
 void UserCenterPage::createMyPublishTab() {
@@ -364,18 +377,7 @@ void UserCenterPage::createMyPublishTab() {
     myGoodsTable->setColumnWidth(2, 150);
     myGoodsTable->horizontalHeader()->setStretchLastSection(true);
 
-    // 添加示例数据
-    QStringList goodsData = {"二手iPhone 12", "¥2500", "待售", "编辑/下架"};
-    int row = myGoodsTable->rowCount();
-    myGoodsTable->insertRow(row);
-    for (int i = 0; i < goodsData.size(); i++) {
-        QTableWidgetItem *item = new QTableWidgetItem(goodsData[i]);
-        if (i == 2) { // 状态列
-            item->setForeground(QColor("#38A169")); // 绿色
-            item->setFont(QFont("Microsoft YaHei", -1, QFont::Medium));
-        }
-        myGoodsTable->setItem(row, i, item);
-    }
+    loadMyGoods();
 
     layout->addWidget(myGoodsTable, 1);
 }
@@ -458,16 +460,7 @@ void UserCenterPage::createReviewTab() {
     )");
 
     // 添加评价数据
-    addReviewItem("2024-03-18", "订单 #1002", "大学物理教材", 5,
-                  "书本保存得很好，卖家很细心，交易很愉快！包装也很用心。");
-    addReviewItem("2024-03-15", "订单 #1004", "笔记本电脑", 4,
-                  "电脑性能不错，就是电池续航稍弱，总体满意。性价比很高。");
-    addReviewItem("2024-03-10", "订单 #1006", "吉他", 3,
-                  "琴弦有点旧了，需要自己更换。音色还可以，价格适中。");
-    addReviewItem("2024-02-28", "订单 #1008", "篮球鞋", 5,
-                  "鞋子很新，穿起来很舒服。卖家发货很快，非常满意！");
-    addReviewItem("2024-02-20", "订单 #1010", "耳机", 4,
-                  "音质不错，续航能力强。包装有点简单，但整体很好。");
+    loadMyReviews();
 
     layout->addWidget(reviewList, 1);
 }
@@ -488,7 +481,7 @@ void UserCenterPage::addReviewItem(const QString &date, const QString &orderId,
     )");
 
     QVBoxLayout *itemLayout = new QVBoxLayout(reviewWidget);
-    itemLayout->setContentsMargins(16, 16, 16, 20);
+    itemLayout->setContentsMargins(16, 12, 16, 16);
     itemLayout->setSpacing(8);
 
     // 头部：日期和订单号
@@ -579,39 +572,11 @@ void UserCenterPage::addReviewItem(const QString &date, const QString &orderId,
     )");
     commentLabel->setWordWrap(true);
 
-    // 底部操作按钮
-    QWidget *actionWidget = new QWidget();
-    QHBoxLayout *actionLayout = new QHBoxLayout(actionWidget);
-    actionLayout->setContentsMargins(0, 0, 0, 0);
-    actionLayout->setSpacing(12);
-
-    QPushButton *editBtn = new QPushButton("编辑");
-    editBtn->setFixedSize(60, 28);
-    editBtn->setStyleSheet(R"(
-        QPushButton {
-            background-color: transparent;
-            border: 1px solid #E2E8F0;
-            border-radius: 4px;
-            color: #718096;
-            font-size: 12px;
-            padding: 4px 8px;
-        }
-        QPushButton:hover {
-            background-color: #F7FAFC;
-            color: #4299E1;
-        }
-    )");
-    editBtn->setCursor(Qt::PointingHandCursor);
-
-    actionLayout->addStretch();
-    actionLayout->addWidget(editBtn);
-
     // 组装所有组件
     itemLayout->addWidget(headerWidget);
     itemLayout->addWidget(itemLabel);
     itemLayout->addWidget(ratingWidget);
     itemLayout->addWidget(commentLabel);
-    itemLayout->addWidget(actionWidget);
 
     // 创建列表项
     QListWidgetItem *itemWidget = new QListWidgetItem();
@@ -621,39 +586,11 @@ void UserCenterPage::addReviewItem(const QString &date, const QString &orderId,
 }
 
 void UserCenterPage::createHistoryTab() {
+    myHistoryWidget = new QWidget();
     QVBoxLayout *layout = new QVBoxLayout(myHistoryWidget);
-    layout->setContentsMargins(10, 10, 10, 10);
-    layout->setAlignment(Qt::AlignCenter);
+    layout->setContentsMargins(0, 0, 0, 0);
 
-    // 空状态容器
-    QWidget *emptyWidget = new QWidget();
-    emptyWidget->setStyleSheet("background-color: white; border-radius: 12px;");
-
-    QVBoxLayout *emptyLayout = new QVBoxLayout(emptyWidget);
-    emptyLayout->setAlignment(Qt::AlignCenter);
-    emptyLayout->setSpacing(16);
-
-    // 图标容器
-    QWidget *iconContainer = new QWidget();
-    iconContainer->setFixedSize(80, 80);
-    iconContainer->setStyleSheet(R"(
-        background-color: #F7FAFC;
-        border-radius: 40px;
-    )");
-
-    QVBoxLayout *iconLayout = new QVBoxLayout(iconContainer);
-    QLabel *iconLabel = new QLabel("👁️");
-    iconLabel->setStyleSheet("font-size: 32px;");
-    iconLabel->setAlignment(Qt::AlignCenter);
-    iconLayout->addWidget(iconLabel);
-
-    QLabel *textLabel = new QLabel("暂无浏览历史");
-    textLabel->setStyleSheet("font-size: 16px; color: #718096;");
-
-    emptyLayout->addWidget(iconContainer);
-    emptyLayout->addWidget(textLabel);
-
-    layout->addWidget(emptyWidget);
+    loadBrowseHistory();
 }
 
 void UserCenterPage::updateUserInfo(const QString &name, int creditScore, const QString &joinDate) {
@@ -733,12 +670,219 @@ void UserCenterPage::loadFavorites() {
     collectionList->clear();
     for (const QJsonValue &val : favorites) {
         QJsonObject goods = val.toObject();
+        int goodsId = goods.value("id").toInt();
         QString title = goods.value("name").toString();
         double price = goods.value("price").toDouble();
-        collectionList->addItem(QString("%1 - ¥%2").arg(title).arg(price));
+
+        QListWidgetItem *item = new QListWidgetItem(QString("%1 %2 - ¥%3:%4").arg(goodsId).arg(title).arg(price).arg(goods.value("description").toString()));
+        item->setData(Qt::UserRole, goodsId);             // 存储商品ID
+        collectionList->addItem(item);
     }
 }
 
 void UserCenterPage::refreshFavorites() {
     loadFavorites(); // 重新加载收藏列表
+}
+
+void UserCenterPage::loadMyGoods() {
+    myGoodsTable->setRowCount(0);
+    QJsonArray goodsList = ApiService::instance()->getMyGoods(1, 20);
+    for (const QJsonValue &val : goodsList) {
+        QJsonObject goods = val.toObject();
+        int goodsId = goods.value("id").toInt();
+        int row = myGoodsTable->rowCount();
+        myGoodsTable->insertRow(row);
+        myGoodsTable->setRowHeight(row, 65);
+
+        myGoodsTable->setItem(row, 0, new QTableWidgetItem(goods.value("name").toString()));
+        myGoodsTable->setItem(row, 1, new QTableWidgetItem(QString("¥%1").arg(goods.value("price").toDouble())));
+
+        int status = goods.value("status").toString().toInt();
+        QString statusText;
+        if (status == 0) statusText = "待审核";
+        else if (status == 1) statusText = "在售";
+        else if (status == 2) statusText = "交易中";
+        else if (status == 3) statusText = "已售出";
+        else if (status == 4) statusText = "已拒绝";
+        else if (status == 5) statusText = "已下架";
+        else statusText = "未知";
+        QTableWidgetItem *statusItem = new QTableWidgetItem(statusText);
+        if (status == 1) statusItem->setForeground(QColor("#38A169"));
+        else if (status == 0) statusItem->setForeground(QColor("#E67E22"));
+        myGoodsTable->setItem(row, 2, statusItem);
+
+        // 操作按钮：编辑/下架/重新上架等
+        QWidget *actionWidget = new QWidget();
+        QHBoxLayout *actionLayout = new QHBoxLayout(actionWidget);
+        actionLayout->setContentsMargins(5, 1, 5, 1);
+        actionLayout->setSpacing(5);
+
+        // 编辑按钮（除交易中、已售出外都显示）
+        if (status != 2 && status != 3) {
+            QPushButton *editBtn = new QPushButton("编辑");
+            editBtn->setFixedSize(60, 28);
+            editBtn->setProperty("goodsId", goodsId);
+            connect(editBtn, &QPushButton::clicked, this, &UserCenterPage::onEditGoods);
+            actionLayout->addWidget(editBtn);
+        }
+
+        if (status == 1) {
+            // 在售：下架
+            QPushButton *offShelfBtn = new QPushButton("下架");
+            offShelfBtn->setFixedSize(60, 28);
+            offShelfBtn->setProperty("goodsId", goodsId);
+            connect(offShelfBtn, &QPushButton::clicked, this, &UserCenterPage::onOffShelf);
+            actionLayout->addWidget(offShelfBtn);
+        } else if (status == 5) {
+            // 已下架：申请上架
+            QPushButton *applyBtn = new QPushButton("申请上架");
+            applyBtn->setFixedSize(80, 28);
+            applyBtn->setProperty("goodsId", goodsId);
+            connect(applyBtn, &QPushButton::clicked, this, &UserCenterPage::onApplyShelve);
+            actionLayout->addWidget(applyBtn);
+        }
+        // 待审核(0)、已拒绝(4) 只有编辑按钮，不添加其他
+        actionLayout->addStretch();
+        myGoodsTable->setCellWidget(row, 3, actionWidget);
+    }
+}
+
+void UserCenterPage::loadMyReviews() {
+    reviewList->clear();
+    QJsonArray reviews = ApiService::instance()->getMyReviews(1, 20);
+    for (const QJsonValue &val : reviews) {
+        QJsonObject review = val.toObject();
+        QString date = review.value("create_time").toString().left(10);
+        QString orderId = QString::number(review.value("order_id").toInt());
+        QString goodsName = review.value("goods_name").toString();
+        int rating = review.value("score").toString().toInt();
+        QString comment = review.value("content").toString();
+        addReviewItem(date, "订单 #" + orderId, goodsName, rating, comment);
+    }
+}
+
+void UserCenterPage::loadBrowseHistory() {
+    // 清空 myHistoryWidget 的所有子控件和布局
+    QLayout *oldLayout = myHistoryWidget->layout();
+    if (oldLayout) {
+        QLayoutItem *child;
+        while ((child = oldLayout->takeAt(0)) != nullptr) {
+            if (child->widget()) delete child->widget();
+            delete child;
+        }
+        delete oldLayout;
+    }
+
+    QJsonArray history = ApiService::instance()->getBrowseHistory(1, 20);
+    QVBoxLayout *newLayout = new QVBoxLayout(myHistoryWidget);
+    newLayout->setContentsMargins(10, 10, 10, 10);
+    newLayout->setSpacing(10);
+
+    if (history.isEmpty()) {
+        QWidget *emptyWidget = createEmptyHistoryWidget();
+        newLayout->addWidget(emptyWidget);
+    } else {
+        for (const QJsonValue &val : history) {
+            QJsonObject item = val.toObject();
+            QWidget *historyItem = createHistoryItem(item);
+            newLayout->addWidget(historyItem);
+        }
+        newLayout->addStretch();
+    }
+}
+
+QWidget* UserCenterPage::createHistoryItem(const QJsonObject &goods) {
+    QWidget *widget = new QWidget();
+    QHBoxLayout *layout = new QHBoxLayout(widget);
+    layout->setContentsMargins(10, 10, 10, 10);
+
+    QLabel *nameLabel = new QLabel(goods.value("name").toString());
+    nameLabel->setStyleSheet("font-weight: bold;");
+    QLabel *priceLabel = new QLabel(QString("¥%1").arg(goods.value("price").toDouble()));
+    QLabel *timeLabel = new QLabel(goods.value("browse_time").toString());
+    QPushButton *viewBtn = new QPushButton("查看详情");
+    viewBtn->setFixedSize(80, 28);
+    viewBtn->setProperty("goodsId", goods.value("id").toInt());
+    connect(viewBtn, &QPushButton::clicked, [this, viewBtn](){
+        emit goodsDetailRequested(viewBtn->property("goodsId").toInt());
+    });
+
+    layout->addWidget(nameLabel, 2);
+    layout->addWidget(priceLabel, 1);
+    layout->addWidget(timeLabel, 2);
+    layout->addWidget(viewBtn);
+    return widget;
+}
+
+void UserCenterPage::onOffShelf() {
+    QPushButton *btn = qobject_cast<QPushButton*>(sender());
+    if (!btn) return;
+    int goodsId = btn->property("goodsId").toInt();
+    // 调用下架 API (假设 updateGoodsStatus 或类似)
+    QJsonObject result = ApiService::instance()->updateGoodsStatus(goodsId, 5); // 4=下架
+    if (result.value("success").toBool()) {
+        QMessageBox::information(this, "成功", "商品已下架");
+        loadMyGoods();  // 刷新列表
+    } else {
+        QMessageBox::warning(this, "失败", result.value("error").toString());
+    }
+}
+
+void UserCenterPage::onEditGoods()
+{
+    QPushButton *btn = qobject_cast<QPushButton*>(sender());
+    if (!btn) return;
+    int goodsId = btn->property("goodsId").toInt();
+
+    // 获取当前商品的完整数据（可从表格中已有的数据构建，或重新从服务端获取）
+    // 简单起见，可以从服务端重新获取商品详情
+    QJsonObject result = ApiService::instance()->getGoodsDetail(goodsId);
+    if (!result.value("success").toBool()) {
+        QMessageBox::warning(this, "错误", "获取商品信息失败");
+        return;
+    }
+    QJsonObject goodsData = result.value("data").toObject();
+
+    GoodsEditDialog *dialog = new GoodsEditDialog(goodsId, goodsData, this);
+    connect(dialog, &GoodsEditDialog::goodsUpdated, this, &UserCenterPage::loadMyGoods);
+    dialog->show();
+}
+
+QWidget* UserCenterPage::createEmptyHistoryWidget() {
+    QWidget *emptyWidget = new QWidget();
+    emptyWidget->setStyleSheet("background-color: white; border-radius: 12px;");
+    QVBoxLayout *emptyLayout = new QVBoxLayout(emptyWidget);
+    emptyLayout->setAlignment(Qt::AlignCenter);
+    emptyLayout->setSpacing(16);
+
+    QWidget *iconContainer = new QWidget();
+    iconContainer->setFixedSize(80, 80);
+    iconContainer->setStyleSheet("background-color: #F7FAFC; border-radius: 40px;");
+    QVBoxLayout *iconLayout = new QVBoxLayout(iconContainer);
+    QLabel *iconLabel = new QLabel("👁️");
+    iconLabel->setStyleSheet("font-size: 32px;");
+    iconLabel->setAlignment(Qt::AlignCenter);
+    iconLayout->addWidget(iconLabel);
+
+    QLabel *textLabel = new QLabel("暂无浏览历史");
+    textLabel->setStyleSheet("font-size: 16px; color: #718096;");
+
+    emptyLayout->addWidget(iconContainer);
+    emptyLayout->addWidget(textLabel);
+    return emptyWidget;
+}
+
+void UserCenterPage::onApplyShelve()
+{
+    QPushButton *btn = qobject_cast<QPushButton*>(sender());
+    if (!btn) return;
+    int goodsId = btn->property("goodsId").toInt();
+
+    QJsonObject result = ApiService::instance()->updateGoodsStatus(goodsId, 0); // 0 = 待审核
+    if (result.value("success").toBool()) {
+        QMessageBox::information(this, "成功", "已提交上架申请，等待管理员审核");
+        loadMyGoods(); // 刷新列表
+    } else {
+        QMessageBox::warning(this, "失败", result.value("error").toString());
+    }
 }

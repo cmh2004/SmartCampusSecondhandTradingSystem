@@ -23,7 +23,7 @@ class CreditScoreDialog : public QDialog {
     Q_PROPERTY(int animationProgress READ animationProgress WRITE setAnimationProgress)
 
 public:
-    explicit CreditScoreDialog(QWidget *parent = nullptr, QString userId = "");
+    explicit CreditScoreDialog(QWidget *parent = nullptr, int userId = -1);
     ~CreditScoreDialog();
 
 protected:
@@ -46,7 +46,7 @@ private:
     void setAnimationProgress(int progress);
 
 private:
-    QString userId;
+    int userId;
     int m_animationProgress;
     int m_targetScore;
     QTimer *m_scoreAnimationTimer;

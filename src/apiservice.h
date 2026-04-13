@@ -30,6 +30,7 @@ public:
     QJsonObject getUserProfile(const QString& userId = "");
     QJsonObject updateUserProfile(const QJsonObject& userData);
     QJsonObject uploadAvatar(const QString& filePath);
+    QJsonObject changePassword(const QString &oldPassword, const QString &newPassword);
 
     // 商品管理
     QJsonObject publishGoods(const QJsonObject& goodsData, const QStringList& imagePaths);
@@ -79,8 +80,8 @@ public:
     QJsonArray getFavorites(int page = 1, int pageSize = 20);
 
     // 信用系统
-    QJsonObject getCreditScore(const QString& userId = "");
-    QJsonArray getCreditHistory(const QString& userId = "", int page = 1, int pageSize = 20);
+    QJsonObject getCreditScore(int userId = -1);
+    QJsonArray getCreditHistory(int userId = -1, int page = 1, int pageSize = 20);
 
     // 举报系统
     QJsonObject submitReport(int targetId, const QString& targetType,
@@ -103,6 +104,9 @@ public:
     QJsonArray getDisputeList(const QString& status = "", int page = 1, int pageSize = 20);
     QJsonObject processDispute(int disputeId, const QString& result, const QString& comment);
     QJsonObject getStatistics(const QString& period = "daily");
+    QJsonArray getAllReports(int page = 1, int pageSize = 20, const QString& status = "");
+    bool processReport(int reportId, const QString& result);
+    QJsonObject updateUserCreditScore(int userId, int newScore, const QString& reason = "");
 
     // 设置认证token
     void setAuthToken(const QString& token);
@@ -113,6 +117,16 @@ public:
     int getCurrentUserId() const { return m_currentUserId; }
     // 标记会话消息为已读
     QJsonObject markMessageRead(const QString &sessionId);
+    // 获取我发布的商品
+    QJsonArray getMyGoods(int page = 1, int pageSize = 20);
+    // 获取我的评价记录（作为买家或卖家）
+    QJsonArray getMyReviews(int page = 1, int pageSize = 20);
+    // 获取浏览历史
+    QJsonArray getBrowseHistory(int page = 1, int pageSize = 20);
+    // 添加浏览记录（在商品详情页调用）
+    QJsonObject addBrowseHistory(int goodsId);
+    // 更新商品状态（下架/上架等）
+    QJsonObject updateGoodsStatus(int goodsId, int status);
 
 signals:
     void unauthorized();  // 认证失效

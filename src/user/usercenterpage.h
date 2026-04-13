@@ -22,11 +22,15 @@ signals:
     void editProfileRequested();
     void creditScoreRequested();
     void logoutRequested();
+    void goodsDetailRequested(int goodsId);
 
 private slots:
     void onEditProfile();
     void onShowCreditScore();
     void onLogout();  // 退出登录槽函数
+    void onOffShelf();           // 下架商品
+    void onEditGoods();          // 编辑商品
+    void onApplyShelve();
 
 private:
     void setupUI();
@@ -38,6 +42,11 @@ private:
     void loadFavorites();
     void addReviewItem(const QString &date, const QString &orderId,
                        const QString &item, int rating, const QString &comment);
+    void loadMyGoods();
+    void loadMyReviews();
+    void loadBrowseHistory();
+    QWidget* createHistoryItem(const QJsonObject &goods);
+    QWidget* createEmptyHistoryWidget();   // 创建空历史记录控件
 
     QLabel *userAvatarLabel;
     QLabel *userNameLabel;

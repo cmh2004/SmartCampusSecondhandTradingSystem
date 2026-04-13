@@ -7,6 +7,7 @@
 #include <QMouseEvent>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QTextEdit>
 #include "HomePage.h"
 #include "..\apiservice.h"
 
@@ -36,6 +37,12 @@ void HomePage::setupUI() {
     searchBtn->setObjectName("primaryBtn");
     searchBtn->setFixedWidth(90);
     searchBtn->setMinimumHeight(38);
+
+    QPushButton *aiSearchBtn = new QPushButton("AI推荐");
+    aiSearchBtn->setObjectName("primaryBtn");
+    aiSearchBtn->setFixedWidth(90);
+    aiSearchBtn->setMinimumHeight(38);
+    searchLayout->addWidget(aiSearchBtn);
 
     sortCombo = new QComboBox();
     sortCombo->addItems({"最新发布", "价格最低", "价格最高", "最热商品"});
@@ -144,6 +151,7 @@ void HomePage::setupUI() {
                             getSortByValue(),
                             1, 20);
     });
+    connect(aiSearchBtn, &QPushButton::clicked, this, &HomePage::onAISearchClicked);
 }
 
 void HomePage::loadGoodsFromServer(const QString &keyword, const QString &category,
@@ -377,7 +385,73 @@ QString HomePage::getCurrentCategory() const {
     if (spacePos != -1) {
         text = text.mid(spacePos + 1);
     }
-    // 注意：服务端可能使用特定的分类名称，如"书籍教材"、"电子产品"等
-    // 如果 UI 中的文本与服务端一致，直接返回；否则需要映射
     return text;
+}
+
+void HomePage::onAISearchClicked()
+{
+    // 弹出对话框让用户输入需求
+    QDialog dialog(this);
+    dialog.setWindowTitle("AI 智能推荐");
+    dialog.setFixedSize(500, 300);
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+    QLabel *label = new QLabel("请描述您的需求：");
+    QTextEdit *requirementEdit = new QTextEdit();
+    requirementEdit->setPlaceholderText("例如：我想买一台1500元左右的二手笔记本电脑，9成新以上，联想或华硕品牌");
+    QPushButton *searchBtn = new QPushButton("开始推荐");
+    QPushButton *cancelBtn = new QPushButton("取消");
+    QHBoxLayout *btnLayout = new QHBoxLayout();
+    btnLayout->addStretch();
+    btnLayout->addWidget(cancelBtn);
+    btnLayout->addWidget(searchBtn);
+    layout->addWidget(label);
+    layout->addWidget(requirementEdit);
+    layout->addLayout(btnLayout);
+
+    connect(searchBtn, &QPushButton::clicked, &dialog, &QDialog::accept);
+    connect(cancelBtn, &QPushButton::clicked, &dialog, &QDialog::reject);
+
+    if (dialog.exec() != QDialog::Accepted) return;
+
+    QString requirement = requirementEdit->toPlainText().trimmed();
+    if (requirement.isEmpty()) {
+        QMessageBox::warning(this, "提示", "请输入需求描述");
+        return;
+    }
+
+    // 调用 API
+    QJsonObject request;
+    request["requirement"] = requirement;
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/ai/search", request, "POST", 30000);
+
+    if (!response.value("success").toBool()) {
+        QMessageBox::warning(this, "AI 推荐失败", response.value("error").toString());
+        return;
+    }
+
+    QJsonObject data = response.value("data").toObject();
+    QJsonArray goodsList = data.value("goods_list").toArray();
+    bool aiUsed = data.value("ai_used").toBool();
+
+    // 清空当前商品网格并显示推荐结果
+    clearGoodsGrid();
+    if (goodsList.isEmpty()) {
+        QMessageBox::information(this, "没有找到商品", "根据您的需求没有匹配的商品，请尝试更宽松的条件。");
+        return;
+    }
+
+    int columns = 4;
+    for (int i = 0; i < goodsList.size(); ++i) {
+        QJsonObject goods = goodsList[i].toObject();
+        int goodsId = goods.value("id").toInt();
+        QString name = goods.value("name").toString();
+        double price = goods.value("price").toDouble();
+        QString imageUrl = goods.value("image_url").toString();
+        // 状态字段（假设商品状态为1表示在售）
+        QString status = "在售";
+        QWidget *card = createGoodsCard(goodsId, name, QString::number(price), "", status, imageUrl);
+        int row = i / columns;
+        int col = i % columns;
+        goodsGridLayout->addWidget(card, row, col);
+    }
 }

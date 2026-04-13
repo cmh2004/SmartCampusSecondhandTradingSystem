@@ -453,6 +453,11 @@ void MainWindow::setupUI() {
     connect(ApiService::instance(), &ApiService::favoriteChanged, this, [this]() {
         userCenterPage->refreshFavorites(); // 刷新收藏列表
     });
+    connect(userCenterPage, &UserCenterPage::goodsDetailRequested, this, [this](int goodsId) {
+        GoodsDetailDialog *dialog = new GoodsDetailDialog(this, goodsId);
+        dialog->setAttribute(Qt::WA_DeleteOnClose);
+        dialog->show();
+    });
 }
 
 void MainWindow::setupCustomTitleBar() {
@@ -696,6 +701,9 @@ void MainWindow::onTabChanged(int index) {
     if (index == 0) { // 首页
         homePage->loadGoodsFromServer("", "全部", 0, 0, "newest", 1, 20);
     }
+    else if (index == 4) {  // 个人中心标签页索引
+        userCenterPage->loadUserInfo();
+    }
 }
 
 // 支付对话框显示
@@ -726,9 +734,12 @@ void MainWindow::onShowCreditScore() {
         creditScoreDialog->deleteLater();
     }
 
-    // 创建并显示信用分对话框
-    // 这里使用当前用户的ID，假设从登录信息中获取
-    QString currentUserId = "user_001";  // 实际应该从登录信息获取
+    // 从 ApiService 获取当前登录用户的 ID
+    int currentUserId = ApiService::instance()->getCurrentUserId();
+    if (currentUserId <= 0) {
+        QMessageBox::warning(this, "提示", "未获取到用户信息，请重新登录");
+        return;
+    }
 
     creditScoreDialog = new CreditScoreDialog(this, currentUserId);
     creditScoreDialog->setAttribute(Qt::WA_DeleteOnClose);

@@ -74,8 +74,22 @@ void ReviewDialog::setupUI() {
     QVBoxLayout *contentLayout = new QVBoxLayout();
 
     reviewEdit = new QTextEdit();
-    reviewEdit->setPlaceholderText("请详细描述您的购物体验...\n（建议包含：商品质量、卖家服务、物流速度等）");
+    reviewEdit->setPlaceholderText("请详细描述您的购物体验...\n（建议包含：商品质量、卖家服务、物流速度等,内容不超过200字）");
     reviewEdit->setMaximumHeight(150);
+
+    // 添加字数限制
+    connect(reviewEdit, &QTextEdit::textChanged, [this]() {
+        QString text = reviewEdit->toPlainText();
+        if (text.length() > 200) {
+            // 截断超出部分
+            QTextCursor cursor = reviewEdit->textCursor();
+            reviewEdit->setPlainText(text.left(200));
+            // 将光标移到最后
+            cursor.movePosition(QTextCursor::End);
+            reviewEdit->setTextCursor(cursor);
+            QMessageBox::warning(this, "提示", "评价内容不能超过200字");
+        }
+    });
 
     contentLayout->addWidget(reviewEdit);
     contentGroup->setLayout(contentLayout);

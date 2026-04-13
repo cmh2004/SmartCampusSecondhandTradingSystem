@@ -13,6 +13,7 @@
 #include <QInputDialog>
 #include "../apiservice.h"
 #include "adminmainwindow.h"
+#include "reportsmanagepage.h"
 
 AdminMainWindow::AdminMainWindow(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle("校园二手交易系统 - 管理员后台");
@@ -49,10 +50,12 @@ void AdminMainWindow::setupUI() {
     QWidget *goodsReviewPage = createGoodsReviewPage();
     QWidget *userManagementPage = createUserManagementPage();
     QWidget *disputeManagementPage = createDisputeManagementPage();
+    ReportsManagePage *reportsPage = new ReportsManagePage(this);
 
     mainTabWidget->addTab(goodsReviewPage, "商品审核");
     mainTabWidget->addTab(userManagementPage, "用户管理");
     mainTabWidget->addTab(disputeManagementPage, "纠纷处理");
+    mainTabWidget->addTab(reportsPage, "举报管理");
 
     QVBoxLayout *mainLayout = new QVBoxLayout(mainWidget);
     mainLayout->addWidget(mainTabWidget);
@@ -284,6 +287,7 @@ QWidget* AdminMainWindow::createUserManagementPage() {
     userTable->setColumnWidth(5, 100);
     userTable->setColumnWidth(6, 100);
     userTable->horizontalHeader()->setStretchLastSection(true);
+    userTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
 
     mainLayout->addWidget(filterWidget);
     mainLayout->addWidget(userTable, 1);
@@ -503,16 +507,17 @@ void AdminMainWindow::onBlockUser(const QString &userId, bool block) {
     }
 }
 
-void AdminMainWindow::onAdjustCreditScore(const QString &userId, int score) {
-    // 注意：服务端可能需要一个专门调整信用分的接口，或者通过 updateUser 修改 credit_score
-    // 这里假设 ApiService 有 updateUserStatus 或类似方法可以调整信用分
-    // 如果没有，需要扩展 ApiService
-    QJsonObject updates;
-    updates["credit_score"] = score;
-    QJsonObject result = ApiService::instance()->updateUserProfile(updates); // 可能需要根据 userId 调整
+void AdminMainWindow::onAdjustCreditScore(int userId, int newScore) {
+    bool ok;
+    QString reason = QInputDialog::getText(this, "调整原因",
+                                           "请输入调整原因:",
+                                           QLineEdit::Normal,
+                                           "管理员手动调整", &ok);
+    if (!ok) return;
+    QJsonObject result = ApiService::instance()->updateUserCreditScore(userId, newScore, reason);
     if (result.value("success").toBool()) {
         QMessageBox::information(this, "调整成功", "信用分已更新");
-        loadUserManagementData();
+        loadUserManagementData();  // 刷新表格
     } else {
         QMessageBox::warning(this, "调整失败", result.value("error").toString());
     }
@@ -570,10 +575,11 @@ void AdminMainWindow::loadUserManagementData() {
         QString phone = user.value("phone").toString();
         QString regTime = user.value("register_time").toString();
         int creditScore = user.value("credit_score").toInt();
-        int status = user.value("status").toInt(); // 1=正常, 0=禁用
+        int status = user.value("status").toString().toInt(); // 1=正常, 0=禁用
 
         int row = userTable->rowCount();
         userTable->insertRow(row);
+        userTable->setRowHeight(row, 42);
         userTable->setItem(row, 0, new QTableWidgetItem(QString::number(userId)));
         userTable->setItem(row, 1, new QTableWidgetItem(username));
         userTable->setItem(row, 2, new QTableWidgetItem(studentId));
@@ -622,7 +628,7 @@ void AdminMainWindow::loadUserManagementData() {
                                                 "输入新信用分 (0-100):",
                                                 50, 0, 100, 1, &ok);
             if (ok) {
-                onAdjustCreditScore(adjustBtn->property("userId").toString(), newScore);
+                onAdjustCreditScore(adjustBtn->property("userId").toString().toInt(), newScore);
             }
         });
         actionLayout->addWidget(adjustBtn);
@@ -643,11 +649,12 @@ void AdminMainWindow::loadDisputeData() {
         QString defendant = dispute.value("defendant_name").toString();
         QString type = dispute.value("type").toString();
         QString createTime = dispute.value("create_time").toString();
-        int status = dispute.value("status").toInt(); // 0待处理,1处理中,2已解决,3已关闭
+        int status = dispute.value("status").toString().toInt(); // 0待处理,1处理中,2已解决,3已关闭
         QString progress = dispute.value("handle_result").toString();
 
         int row = disputeTable->rowCount();
         disputeTable->insertRow(row);
+        disputeTable->setRowHeight(row, 42);
         disputeTable->setItem(row, 0, new QTableWidgetItem(QString::number(disputeId)));
         disputeTable->setItem(row, 1, new QTableWidgetItem(QString::number(orderId)));
         disputeTable->setItem(row, 2, new QTableWidgetItem(complainant));

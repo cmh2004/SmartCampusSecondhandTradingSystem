@@ -46,23 +46,11 @@ void ProfileEditDialog::setupUI() {
 
     nicknameEdit = new QLineEdit();
     realNameEdit = new QLineEdit();
-    studentIdEdit = new QLineEdit();
-    phoneEdit = new QLineEdit();
     emailEdit = new QLineEdit();
-    campusCombo = new QComboBox();
-    collegeCombo = new QComboBox();
-
-    campusCombo->addItems({"主校区", "东校区", "西校区", "新校区"});
-    collegeCombo->addItems({"计算机学院", "电子信息学院", "经济管理学院",
-                            "外国语学院", "理学院", "其他学院"});
 
     basicLayout->addRow("昵称:", nicknameEdit);
     basicLayout->addRow("真实姓名:", realNameEdit);
-    basicLayout->addRow("学号:", studentIdEdit);
-    basicLayout->addRow("手机号:", phoneEdit);
     basicLayout->addRow("邮箱:", emailEdit);
-    basicLayout->addRow("所在校区:", campusCombo);
-    basicLayout->addRow("所属学院:", collegeCombo);
 
     basicGroup->setLayout(basicLayout);
     mainLayout->addWidget(basicGroup);
@@ -72,13 +60,9 @@ void ProfileEditDialog::setupUI() {
     QVBoxLayout *securityLayout = new QVBoxLayout();
 
     changePwdBtn = new QPushButton("修改密码");
-    bindPhoneBtn = new QPushButton("绑定手机号");
 
     changePwdBtn->setObjectName("primaryBtn");
-    bindPhoneBtn->setObjectName("primaryBtn");
-
     securityLayout->addWidget(changePwdBtn);
-    securityLayout->addWidget(bindPhoneBtn);
     securityGroup->setLayout(securityLayout);
     mainLayout->addWidget(securityGroup);
 
@@ -102,12 +86,7 @@ void ProfileEditDialog::setupUI() {
     connect(saveBtn, &QPushButton::clicked, this, &ProfileEditDialog::onSaveProfile);
     connect(cancelBtn, &QPushButton::clicked, this, &QDialog::reject);
     connect(uploadAvatarBtn, &QPushButton::clicked, this, &ProfileEditDialog::onUploadAvatar);
-    connect(changePwdBtn, &QPushButton::clicked, []() {
-        QMessageBox::information(nullptr, "提示", "修改密码功能开发中");
-    });
-    connect(bindPhoneBtn, &QPushButton::clicked, []() {
-        QMessageBox::information(nullptr, "提示", "绑定手机号功能开发中");
-    });
+    connect(changePwdBtn, &QPushButton::clicked, this, &ProfileEditDialog::onChangePassword);
 
     // 样式
     setStyleSheet(R"(
@@ -180,35 +159,49 @@ void ProfileEditDialog::setupUI() {
 }
 
 void ProfileEditDialog::loadCurrentProfile() {
-    // 模拟加载当前用户资料
-    nicknameEdit->setText("张三同学");
-    realNameEdit->setText("张三");
-    studentIdEdit->setText("2024012345");
-    phoneEdit->setText("138****1234");
-    emailEdit->setText("zhangsan@student.edu.cn");
-    campusCombo->setCurrentText("主校区");
-    collegeCombo->setCurrentText("计算机学院");
+    // 从服务端获取当前用户信息
+    QJsonObject result = ApiService::instance()->getUserProfile();
+    if (result.value("success").toBool()) {
+        QJsonObject data = result.value("data").toObject();
+        nicknameEdit->setText(data.value("nickname").toString());
+        realNameEdit->setText(data.value("real_name").toString());
+        emailEdit->setText(data.value("email").toString());
+
+        // 加载头像（如果有）
+        QString avatarUrl = data.value("avatar_url").toString();
+        if (!avatarUrl.isEmpty()) {
+            // 异步加载头像图片
+            QNetworkAccessManager *nam = new QNetworkAccessManager(this);
+            if (!avatarUrl.startsWith("http")) {
+                avatarUrl = "http://127.0.0.1:8080" + avatarUrl;
+            }
+            connect(nam, &QNetworkAccessManager::finished, [this, nam](QNetworkReply *reply) {
+                if (reply->error() == QNetworkReply::NoError) {
+                    QPixmap pixmap;
+                    pixmap.loadFromData(reply->readAll());
+                    if (!pixmap.isNull()) {
+                        avatarLabel->setPixmap(pixmap.scaled(80, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                    }
+                }
+                reply->deleteLater();
+                nam->deleteLater();
+            });
+            nam->get(QNetworkRequest(QUrl(avatarUrl)));
+        }
+    } else {
+        QMessageBox::warning(this, "提示", "加载用户信息失败，将使用默认数据");
+        // 可回退到默认值或留空
+    }
 }
 
 void ProfileEditDialog::onSaveProfile() {
     QString nickname = nicknameEdit->text().trimmed();
     QString realName = realNameEdit->text().trimmed();
-    QString studentId = studentIdEdit->text().trimmed();
-    QString phone = phoneEdit->text().trimmed();
     QString email = emailEdit->text().trimmed();
 
     if (nickname.isEmpty() || realName.isEmpty()) {
         QMessageBox::warning(this, "提示", "昵称和真实姓名不能为空");
         return;
-    }
-
-    // 验证手机号格式
-    if (!phone.isEmpty()) {
-        QRegularExpression phoneRegex("^1[3-9]\\d{9}$");
-        if (!phoneRegex.match(phone).hasMatch()) {
-            QMessageBox::warning(this, "提示", "请输入正确的手机号格式");
-            return;
-        }
     }
 
     // 验证邮箱格式
@@ -221,10 +214,8 @@ void ProfileEditDialog::onSaveProfile() {
     }
     QJsonObject updates;
     updates["nickname"] = nickname;
-    updates["phone"] = phone;
     updates["email"] = email;
     updates["realName"] = realName;
-    updates["studentId"] = studentId;
     if (!m_newAvatarUrl.isEmpty()) {
         updates["avatar_url"] = m_newAvatarUrl;
     }
@@ -261,4 +252,72 @@ void ProfileEditDialog::onUploadAvatar() {
     } else {
         QMessageBox::warning(this, "上传失败", result.value("error").toString());
     }
+}
+
+void ProfileEditDialog::onChangePassword() {
+    QDialog dialog(this);
+    dialog.setWindowTitle("修改密码");
+    dialog.setMinimumSize(300, 200);
+
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+    QLineEdit *oldPwdEdit = new QLineEdit(&dialog);
+    oldPwdEdit->setPlaceholderText("原密码");
+    oldPwdEdit->setEchoMode(QLineEdit::Password);
+    QLineEdit *newPwdEdit = new QLineEdit(&dialog);
+    newPwdEdit->setPlaceholderText("新密码（6-20位，含字母+数字）");
+    newPwdEdit->setEchoMode(QLineEdit::Password);
+    QLineEdit *confirmPwdEdit = new QLineEdit(&dialog);
+    confirmPwdEdit->setPlaceholderText("确认新密码");
+    confirmPwdEdit->setEchoMode(QLineEdit::Password);
+
+    QPushButton *okBtn = new QPushButton("确定", &dialog);
+    QPushButton *cancelBtn = new QPushButton("取消", &dialog);
+    QHBoxLayout *btnLayout = new QHBoxLayout();
+    btnLayout->addStretch();
+    btnLayout->addWidget(cancelBtn);
+    btnLayout->addWidget(okBtn);
+
+    layout->addWidget(oldPwdEdit);
+    layout->addWidget(newPwdEdit);
+    layout->addWidget(confirmPwdEdit);
+    layout->addLayout(btnLayout);
+
+    connect(okBtn, &QPushButton::clicked, [&](){
+        QString oldPwd = oldPwdEdit->text().trimmed();
+        QString newPwd = newPwdEdit->text().trimmed();
+        QString confirmPwd = confirmPwdEdit->text().trimmed();
+
+        if (oldPwd.isEmpty() || newPwd.isEmpty()) {
+            QMessageBox::warning(&dialog, "提示", "请填写完整信息");
+            return;
+        }
+        if (newPwd != confirmPwd) {
+            QMessageBox::warning(&dialog, "提示", "两次输入的新密码不一致");
+            return;
+        }
+        if (newPwd.length() < 6 || newPwd.length() > 20) {
+            QMessageBox::warning(&dialog, "提示", "密码长度应为6-20位");
+            return;
+        }
+        bool hasLetter = false, hasDigit = false;
+        for (QChar ch : newPwd) {
+            if (ch.isLetter()) hasLetter = true;
+            if (ch.isDigit()) hasDigit = true;
+        }
+        if (!hasLetter || !hasDigit) {
+            QMessageBox::warning(&dialog, "提示", "密码需同时包含字母和数字");
+            return;
+        }
+
+        QJsonObject result = ApiService::instance()->changePassword(oldPwd, newPwd);
+        if (result.value("success").toBool()) {
+            QMessageBox::information(&dialog, "成功", "密码修改成功，请重新登录");
+            dialog.accept();
+        } else {
+            QMessageBox::warning(&dialog, "失败", result.value("error").toString());
+        }
+    });
+    connect(cancelBtn, &QPushButton::clicked, &dialog, &QDialog::reject);
+
+    dialog.exec();
 }

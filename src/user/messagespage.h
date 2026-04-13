@@ -13,7 +13,7 @@ class MessagesPage : public QWidget {
 public:
     explicit MessagesPage(QWidget *parent = nullptr);
     void loadChatHistory();
-    void addMessage(const QString &sender, const QString &message, bool isSelf = false);
+    void addMessage(const QString &sender, const QString &message, bool isSelf = false, const QString &timestamp = "");
     void openOrCreateChat(int goodsId, const QString &sellerName);
 
 private slots:

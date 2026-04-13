@@ -33,7 +33,7 @@ private slots:
 
     // 用户管理相关
     void onBlockUser(const QString &userId, bool block);
-    void onAdjustCreditScore(const QString &userId, int score);
+    void onAdjustCreditScore(int userId, int score);
     void onSearchUsers();
 
     // 纠纷处理相关

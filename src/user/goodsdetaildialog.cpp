@@ -463,6 +463,8 @@ void GoodsDetailDialog::loadGoodsData(int goodsId) {
         aiRiskLevelLabel->setText(data.value("risk_level").toString());
         aiRecommendationLabel->setText(data.value("recommendation").toString());
 
+        // 添加浏览记录（异步，不需要等待结果）
+        ApiService::instance()->addBrowseHistory(goodsId);
     } else {
         QMessageBox::warning(this, "错误", "加载商品详情失败");
         close();

@@ -340,8 +340,19 @@ void MessagesPage::loadChatHistory() {
     }
 }
 
-void MessagesPage::addMessage(const QString &sender, const QString &message, bool isSelf) {
-    QString time = QDateTime::currentDateTime().toString("HH:mm");
+void MessagesPage::addMessage(const QString &sender, const QString &message, bool isSelf, const QString &timestamp) {
+    QString time;
+    if (timestamp.isEmpty()) {
+        time = QDateTime::currentDateTime().toString("HH:mm");
+    } else {
+        // 服务端返回的格式通常是 "yyyy-MM-dd HH:mm:ss"，提取 HH:mm
+        QDateTime dt = QDateTime::fromString(timestamp, "yyyy-MM-dd HH:mm:ss");
+        if (dt.isValid()) {
+            time = dt.toString("HH:mm");
+        } else {
+            time = QDateTime::currentDateTime().toString("HH:mm"); // fallback
+        }
+    }
     QString senderName = isSelf ? "我" : sender;
 
     // 使用HTML格式化消息
@@ -427,17 +438,20 @@ void MessagesPage::onChatItemClicked(QListWidgetItem *item) {
 }
 
 void MessagesPage::loadChatMessages(const QString &sessionId, int page, int pageSize) {
+    qDebug() << "loadChatMessages: sessionId=" << sessionId;
     QJsonArray messages = ApiService::instance()->getMessageHistory(sessionId, page, pageSize);
+    qDebug() << "loadChatMessages: received messages count=" << messages.size();
     // 清空聊天区域，按时间顺序显示消息
     chatArea->clear();
     // 注意：返回的消息可能是倒序的，需要反转或按时间正序添加
     for (int i = messages.size() - 1; i >= 0; --i) {
         QJsonObject msg = messages[i].toObject();
+        qDebug()<<msg;
         int senderId = msg.value("sender_id").toInt();
         QString content = msg.value("content").toString();
         QString timestamp = msg.value("create_time").toString();
         bool isSelf = (senderId == ApiService::instance()->getCurrentUserId());
-        addMessage(isSelf ? "我" : msg.value("sender_name").toString(), content, isSelf);
+        addMessage(isSelf ? "我" : msg.value("sender_name").toString(), content, isSelf,timestamp);
     }
 }
 
@@ -449,7 +463,8 @@ void MessagesPage::onNewMessage(const QJsonObject &message) {
     QListWidgetItem *current = chatList->currentItem();
     if (current && current->data(Qt::UserRole).toString() == sessionId) {
         // 当前正在查看这个聊天，直接添加消息
-        addMessage(senderId, content, false);
+        QString timestamp = message.value("timestamp").toString();
+        addMessage(senderId, content, false,timestamp);
         // 标记已读（调用 API）
         ApiService::instance()->markMessageRead(sessionId);
     } else {

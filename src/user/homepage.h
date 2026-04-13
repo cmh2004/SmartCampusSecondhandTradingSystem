@@ -24,6 +24,7 @@ protected:
 private slots:
     void onCategoryClicked(QListWidgetItem* item);
     void onSearchClicked();
+    void onAISearchClicked();
 
 signals:
     void goodsDetailRequested(int goodsId);
