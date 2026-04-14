@@ -30,7 +30,6 @@ signals:
 private slots:
     void onCollectGoods();
     void onAIAssessment();
-    void onShowRiskAssessment();
     void onThumbnailClicked(int index);
 
 private:
@@ -38,6 +37,8 @@ private:
     void loadGoodsData(int goodsId);
     void loadAIAssessment(int goodsId);
     QString getCategoryName(int categoryId);
+    void doAIAssessment(const QString& description, const QStringList& imageBase64List);
+    void downloadImagesForAI(const QList<QUrl>& imageUrls, const QString& description);
 
 private:
     int goodsId;
@@ -48,7 +49,6 @@ private:
     QLabel *priceLabel;
     QLabel *sellerLabel;
     QLabel *contactLabel;
-    QLabel *locationLabel;
     QLabel *publishTimeLabel;
     QLabel *conditionLabel;
     QLabel *categoryLabel;
@@ -57,16 +57,14 @@ private:
     // AI评估信息
     QLabel *aiPriceRangeLabel;
     QLabel *aiConditionLabel;
-    QLabel *aiBrandLabel;
     QLabel *aiRiskLevelLabel;
-    QLabel *aiRecommendationLabel;
+    QLabel *reasonLabel;
 
     // 按钮
     QPushButton *contactBtn;
     QPushButton *buyBtn;
     QPushButton *collectBtn;
     QPushButton *aiAssessmentBtn;
-    QPushButton *riskBtn;
     QPushButton *reportBtn;
 
     // 标签页

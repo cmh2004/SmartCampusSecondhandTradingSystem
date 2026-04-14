@@ -20,6 +20,7 @@ private slots:
     void onSendMessage();
     void onChatItemClicked(QListWidgetItem *item);
     void onNewMessage(const QJsonObject &message);
+    void onReportClicked();
 
 private:
     void setupUI();
@@ -27,11 +28,15 @@ private:
     int findChatByGoodsId(int goodsId);
     void loadChatMessages(const QString &sessionId, int page=1, int pageSize=10);
     void updateChatListLastMessage(const QString &sessionId, const QString &lastMessage);
+    QWidget* createMessageWidget(const QString &senderName, const QString &message, bool isSelf, const QString &timestamp);
+    QString formatMessageTime(const QString &timestamp);
 
     QListWidget *chatList;
-    QTextEdit *chatArea;
+    QListWidget *messageListWidget;
     QLineEdit *messageEdit;
     QLabel *currentChatLabel;
+
+    int m_currentChatOtherId = -1;
 
     QList<QMap<QString, QVariant>> chatData;
 };

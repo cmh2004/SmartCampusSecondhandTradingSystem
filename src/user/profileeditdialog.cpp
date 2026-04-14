@@ -45,12 +45,12 @@ void ProfileEditDialog::setupUI() {
     QFormLayout *basicLayout = new QFormLayout();
 
     nicknameEdit = new QLineEdit();
-    realNameEdit = new QLineEdit();
     emailEdit = new QLineEdit();
+    phoneEdit = new QLineEdit();
 
     basicLayout->addRow("昵称:", nicknameEdit);
-    basicLayout->addRow("真实姓名:", realNameEdit);
     basicLayout->addRow("邮箱:", emailEdit);
+    basicLayout->addRow("手机号:", phoneEdit);
 
     basicGroup->setLayout(basicLayout);
     mainLayout->addWidget(basicGroup);
@@ -164,8 +164,8 @@ void ProfileEditDialog::loadCurrentProfile() {
     if (result.value("success").toBool()) {
         QJsonObject data = result.value("data").toObject();
         nicknameEdit->setText(data.value("nickname").toString());
-        realNameEdit->setText(data.value("real_name").toString());
         emailEdit->setText(data.value("email").toString());
+        phoneEdit->setText(data.value("phone").toString());
 
         // 加载头像（如果有）
         QString avatarUrl = data.value("avatar_url").toString();
@@ -196,11 +196,11 @@ void ProfileEditDialog::loadCurrentProfile() {
 
 void ProfileEditDialog::onSaveProfile() {
     QString nickname = nicknameEdit->text().trimmed();
-    QString realName = realNameEdit->text().trimmed();
     QString email = emailEdit->text().trimmed();
+    QString phone=phoneEdit->text().trimmed();
 
-    if (nickname.isEmpty() || realName.isEmpty()) {
-        QMessageBox::warning(this, "提示", "昵称和真实姓名不能为空");
+    if (nickname.isEmpty()) {
+        QMessageBox::warning(this, "提示", "昵称不能为空");
         return;
     }
 
@@ -212,10 +212,21 @@ void ProfileEditDialog::onSaveProfile() {
             return;
         }
     }
+
+    // 验证手机号格式（如果填写）
+    if (!phone.isEmpty()) {
+        // 中国大陆手机号：11位数字，以1开头
+        QRegularExpression phoneRegex("^1[3-9]\\d{9}$");
+        if (!phoneRegex.match(phone).hasMatch()) {
+            QMessageBox::warning(this, "提示", "请输入正确的11位手机号码");
+            return;
+        }
+    }
+
     QJsonObject updates;
     updates["nickname"] = nickname;
     updates["email"] = email;
-    updates["realName"] = realName;
+    updates["phone"]=phone;
     if (!m_newAvatarUrl.isEmpty()) {
         updates["avatar_url"] = m_newAvatarUrl;
     }

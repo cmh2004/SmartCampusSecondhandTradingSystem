@@ -9,6 +9,7 @@
 #include <QJsonArray>
 #include <QMessageBox>
 #include "..\apiservice.h"
+#include "ReportSubmitDialog.h"
 #include "MessagesPage.h"
 
 MessagesPage::MessagesPage(QWidget *parent) : QWidget(parent) {
@@ -70,15 +71,14 @@ void MessagesPage::setupUI() {
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
 
-    // 左侧聊天列表
-    QWidget *chatListWidget = new QWidget();
-    chatListWidget->setFixedWidth(250);
-    chatListWidget->setStyleSheet("background-color: #f8fafc;");
-    QVBoxLayout *listLayout = new QVBoxLayout(chatListWidget);
+    // ========== 左侧：聊天列表容器 ==========
+    QWidget *leftContainer = new QWidget();
+    leftContainer->setFixedWidth(250);
+    leftContainer->setStyleSheet("background-color: #f8fafc;");
+    QVBoxLayout *listLayout = new QVBoxLayout(leftContainer);
     listLayout->setContentsMargins(0, 0, 0, 0);
     listLayout->setSpacing(0);
 
-    // 列表标题
     QLabel *listTitle = new QLabel("💬 聊天列表");
     listTitle->setFixedHeight(60);
     listTitle->setStyleSheet(R"(
@@ -121,16 +121,15 @@ void MessagesPage::setupUI() {
             outline: none;
         }
     )");
-
     chatList->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
 
     listLayout->addWidget(listTitle);
     listLayout->addWidget(chatList, 1);
 
-    // 右侧聊天区域
-    QWidget *chatAreaWidget = new QWidget();
-    chatAreaWidget->setStyleSheet("background-color: #f8fafc;");
-    QVBoxLayout *chatLayout = new QVBoxLayout(chatAreaWidget);
+    // ========== 右侧：聊天区域容器 ==========
+    QWidget *rightContainer = new QWidget();
+    rightContainer->setStyleSheet("background-color: #f8fafc;");
+    QVBoxLayout *chatLayout = new QVBoxLayout(rightContainer);
     chatLayout->setContentsMargins(0, 0, 0, 0);
     chatLayout->setSpacing(0);
 
@@ -141,16 +140,11 @@ void MessagesPage::setupUI() {
         background-color: #F8FAFC;
         border-bottom: 1px solid #E2E8F0;
     )");
-
     QHBoxLayout *headerLayout = new QHBoxLayout(chatHeader);
     headerLayout->setContentsMargins(20, 0, 20, 0);
 
     currentChatLabel = new QLabel("请选择一个聊天");
-    currentChatLabel->setStyleSheet(R"(
-        font-weight: bold;
-        font-size: 16px;
-        color: #1E293B;
-    )");
+    currentChatLabel->setStyleSheet("font-weight: bold; font-size: 16px; color: #1E293B;");
 
     QPushButton *reportBtn = new QPushButton("举报");
     reportBtn->setObjectName("warningBtn");
@@ -178,33 +172,25 @@ void MessagesPage::setupUI() {
     headerLayout->addStretch();
     headerLayout->addWidget(reportBtn);
 
-    // 聊天消息区域
-    chatArea = new QTextEdit();
-    chatArea->setReadOnly(true);
-    chatArea->setStyleSheet(R"(
-        QTextEdit {
+    // 消息列表（右侧气泡区域）
+    messageListWidget = new QListWidget();
+    messageListWidget->setStyleSheet(R"(
+        QListWidget {
             border: none;
-            background-color: white;
-            font-size: 14px;
-            color: #334155;
-            border-radius: 0 0 12px 0;
-            padding: 20px;
+            background-color: #f8fafc;
+            outline: none;
         }
-    )");
-
-    chatArea->setText(R"(
-        <div style="text-align: center; padding: 60px 20px; color: #94a3b8; font-size: 15px;">
-            <div style="font-size: 48px; margin-bottom: 15px;">💬</div>
-            <div style="font-weight: 500; color: #64748b; margin-bottom: 8px;">选择一个聊天开始对话</div>
-            <div style="color: #94a3b8; font-size: 13px;">与对方进行安全、便捷的沟通</div>
-        </div>
+        QListWidget::item {
+            padding: 0;
+            margin: 0;
+            border: none;
+        }
     )");
 
     // 消息输入区域
     QWidget *inputWidget = new QWidget();
     inputWidget->setMinimumHeight(130);
     inputWidget->setStyleSheet("background-color: #F8FAFC; border-top: 1px solid #E2E8F0;");
-
     QVBoxLayout *inputLayout = new QVBoxLayout(inputWidget);
     inputLayout->setContentsMargins(20, 15, 20, 15);
 
@@ -229,34 +215,34 @@ void MessagesPage::setupUI() {
     QHBoxLayout *btnLayout = new QHBoxLayout();
     btnLayout->setContentsMargins(0, 10, 0, 0);
 
-    QPushButton *fileBtn = new QPushButton("文件");
-    fileBtn->setObjectName("secondaryBtn");
-    fileBtn->setFixedSize(80, 30);
-    fileBtn->setEnabled(false);
-    fileBtn->setToolTip("发送文件");
+    // QPushButton *fileBtn = new QPushButton("文件");
+    // fileBtn->setObjectName("secondaryBtn");
+    // fileBtn->setFixedSize(80, 30);
+    // fileBtn->setEnabled(false);
+    // fileBtn->setToolTip("发送文件");
 
     QPushButton *sendBtn = new QPushButton("发送");
     sendBtn->setObjectName("primaryBtn");
     sendBtn->setFixedSize(80, 30);
     sendBtn->setEnabled(false);
 
-    fileBtn->setStyleSheet(R"(
-        QPushButton {
-            background-color: #f1f5f9;
-            color: #475569;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 500;
-        }
-        QPushButton:hover {
-            background-color: #e2e8f0;
-            border-color: #cbd5e1;
-        }
-        QPushButton:pressed {
-            background-color: #cbd5e1;
-        }
-    )");
+    // fileBtn->setStyleSheet(R"(
+    //     QPushButton {
+    //         background-color: #f1f5f9;
+    //         color: #475569;
+    //         border: 1px solid #e2e8f0;
+    //         border-radius: 8px;
+    //         font-size: 13px;
+    //         font-weight: 500;
+    //     }
+    //     QPushButton:hover {
+    //         background-color: #e2e8f0;
+    //         border-color: #cbd5e1;
+    //     }
+    //     QPushButton:pressed {
+    //         background-color: #cbd5e1;
+    //     }
+    // )");
 
     sendBtn->setStyleSheet(R"(
         QPushButton {
@@ -279,7 +265,7 @@ void MessagesPage::setupUI() {
         }
     )");
 
-    btnLayout->addWidget(fileBtn);
+    // btnLayout->addWidget(fileBtn);
     btnLayout->addStretch();
     btnLayout->addWidget(sendBtn);
 
@@ -287,27 +273,30 @@ void MessagesPage::setupUI() {
     inputLayout->addLayout(btnLayout);
 
     chatLayout->addWidget(chatHeader);
-    chatLayout->addWidget(chatArea, 1);
+    chatLayout->addWidget(messageListWidget, 1);
     chatLayout->addWidget(inputWidget);
 
+    // 分割线
     QFrame *separator = new QFrame();
-    separator->setFrameShape(QFrame::VLine);  // 设置为垂直线
-    separator->setFrameShadow(QFrame::Sunken);  // 设置阴影效果
-    separator->setLineWidth(1);  // 设置线宽
-    separator->setMidLineWidth(0);  // 设置中线宽度
-    separator->setStyleSheet("background-color: #e2e8f0; border: none;");  // 设置颜色
+    separator->setFrameShape(QFrame::VLine);
+    separator->setFrameShadow(QFrame::Sunken);
+    separator->setLineWidth(1);
+    separator->setMidLineWidth(0);
+    separator->setStyleSheet("background-color: #e2e8f0; border: none;");
 
-    mainLayout->addWidget(chatListWidget);
+    // 添加到主布局
+    mainLayout->addWidget(leftContainer);
     mainLayout->addWidget(separator);
-    mainLayout->addWidget(chatAreaWidget, 1);
+    mainLayout->addWidget(rightContainer, 1);
 
     // 连接信号槽
     connect(chatList, &QListWidget::itemClicked, this, &MessagesPage::onChatItemClicked);
     connect(messageEdit, &QLineEdit::returnPressed, this, &MessagesPage::onSendMessage);
     connect(sendBtn, &QPushButton::clicked, this, &MessagesPage::onSendMessage);
-    connect(fileBtn, &QPushButton::clicked, this, [this]() {
-        QMessageBox::information(this, "文件", "文件上传功能开发中...");
-    });
+    // connect(fileBtn, &QPushButton::clicked, this, [this]() {
+    //     QMessageBox::information(this, "文件", "文件上传功能开发中...");
+    // });
+    connect(reportBtn, &QPushButton::clicked, this, &MessagesPage::onReportClicked);
 }
 
 void MessagesPage::loadChatHistory() {
@@ -319,10 +308,9 @@ void MessagesPage::loadChatHistory() {
         QString sessionId = chat.value("session_id").toString();
         QString lastMessage = chat.value("last_content").toString();
         QString lastTime = chat.value("last_time").toString();
-        // 解析出对方姓名和商品信息（可能需要额外查询）
-        // 假设 chat 对象中包含对方昵称和商品名称
         QString otherName = chat.value("other_name").toString();
         int goodsId = chat.value("goods_id").toInt();
+        int otherId = chat.value("other_id").toInt();
 
         QMap<QString, QVariant> chatItem;
         chatItem["sessionId"] = sessionId;
@@ -330,6 +318,7 @@ void MessagesPage::loadChatHistory() {
         chatItem["goodsId"] = goodsId;
         chatItem["lastMessage"] = lastMessage;
         chatItem["lastTime"] = lastTime;
+        chatItem["otherId"] = otherId;
         chatData.append(chatItem);
 
         QString display = QString("%1 - 商品#%2\n%3\n%4").arg(otherName).arg(goodsId).arg(lastMessage).arg(lastTime);
@@ -337,54 +326,39 @@ void MessagesPage::loadChatHistory() {
         item->setData(Qt::UserRole, sessionId);
         item->setData(Qt::UserRole+1, otherName);
         item->setData(Qt::UserRole+2, goodsId);
+        item->setData(Qt::UserRole+3, otherId);
     }
 }
 
 void MessagesPage::addMessage(const QString &sender, const QString &message, bool isSelf, const QString &timestamp) {
-    QString time;
+    QString formattedTime;
     if (timestamp.isEmpty()) {
-        time = QDateTime::currentDateTime().toString("HH:mm");
+        formattedTime = QDateTime::currentDateTime().toString("HH:mm");
     } else {
-        // 服务端返回的格式通常是 "yyyy-MM-dd HH:mm:ss"，提取 HH:mm
-        QDateTime dt = QDateTime::fromString(timestamp, "yyyy-MM-dd HH:mm:ss");
-        if (dt.isValid()) {
-            time = dt.toString("HH:mm");
-        } else {
-            time = QDateTime::currentDateTime().toString("HH:mm"); // fallback
-        }
+        formattedTime = formatMessageTime(timestamp);
     }
-    QString senderName = isSelf ? "我" : sender;
 
-    // 使用HTML格式化消息
-    QString htmlMessage = QString(
-                              "<div style='margin-bottom: 15px;'>"
-                              "  <div style='font-size: 12px; color: #64748B; margin-bottom: 3px;'>"
-                              "    %1 · %2"
-                              "  </div>"
-                              "  <div style='%3 padding: 10px 15px; border-radius: 8px; "
-                              "        max-width: 70%%; word-wrap: break-word;'>"
-                              "    %4"
-                              "  </div>"
-                              "</div>"
-                              ).arg(
-                                  senderName,
-                                  time,
-                                  isSelf ? "background-color: #EFF6FF; color: #1E40AF; margin-left: auto;"
-                                         : "background-color: #F1F5F9; color: #334155; margin-right: auto;",
-                                  message.toHtmlEscaped()
-                                  );
+    // 创建消息条目
+    QListWidgetItem* item = new QListWidgetItem();
+    messageListWidget->addItem(item);
 
-    // 添加消息到聊天区域
-    chatArea->append(htmlMessage);
+    // 创建消息控件，传入格式化后的时间
+    QWidget* msgWidget = createMessageWidget(sender, message, isSelf, formattedTime);
 
-    // 滚动到底部
-    QScrollBar *scrollbar = chatArea->verticalScrollBar();
-    scrollbar->setValue(scrollbar->maximum());
+    item->setSizeHint(msgWidget->sizeHint());
+    messageListWidget->setItemWidget(item, msgWidget);
+
+    messageListWidget->scrollToBottom();
 }
 
 void MessagesPage::onSendMessage() {
     QString message = messageEdit->text().trimmed();
     if (message.isEmpty()) return;
+
+    if (m_currentChatOtherId <= 0) {
+        QMessageBox::warning(this, "错误", "无法获取接收者信息");
+        return;
+    }
 
     QListWidgetItem *currentItem = chatList->currentItem();
     if (!currentItem) return;
@@ -393,9 +367,7 @@ void MessagesPage::onSendMessage() {
     QString receiverName = currentItem->data(Qt::UserRole+1).toString();
     int goodsId = currentItem->data(Qt::UserRole+2).toInt();
 
-    QString receiverId = ""; // 服务端会从商品信息中获取卖家ID
-
-    QJsonObject result = ApiService::instance()->sendMessage(receiverId, message, goodsId);
+    QJsonObject result = ApiService::instance()->sendMessage(QString::number(m_currentChatOtherId), message, goodsId);
     if (result.value("success").toBool()) {
         // 在界面上添加自己发送的消息
         addMessage("我", message, true);
@@ -411,6 +383,7 @@ void MessagesPage::onChatItemClicked(QListWidgetItem *item) {
     QString sessionId = item->data(Qt::UserRole).toString();   // 获取 sessionId
     QString chatWith = item->data(Qt::UserRole+1).toString(); // 对方昵称
     int goodsId = item->data(Qt::UserRole+2).toInt();         // 商品ID
+    m_currentChatOtherId = item->data(Qt::UserRole + 3).toInt(); // 存储对方ID
 
     // 更新聊天头部
     currentChatLabel->setText(QString("与 %1 的对话 (商品#%2)").arg(chatWith).arg(goodsId));
@@ -430,9 +403,6 @@ void MessagesPage::onChatItemClicked(QListWidgetItem *item) {
         }
     }
 
-    // 清空并加载聊天历史
-    chatArea->clear();
-
     // 加载该聊天的消息历史
     loadChatMessages(sessionId, 1, 30);
 }
@@ -441,8 +411,7 @@ void MessagesPage::loadChatMessages(const QString &sessionId, int page, int page
     qDebug() << "loadChatMessages: sessionId=" << sessionId;
     QJsonArray messages = ApiService::instance()->getMessageHistory(sessionId, page, pageSize);
     qDebug() << "loadChatMessages: received messages count=" << messages.size();
-    // 清空聊天区域，按时间顺序显示消息
-    chatArea->clear();
+    messageListWidget->clear();  // 清空消息列表
     // 注意：返回的消息可能是倒序的，需要反转或按时间正序添加
     for (int i = messages.size() - 1; i >= 0; --i) {
         QJsonObject msg = messages[i].toObject();
@@ -487,5 +456,105 @@ void MessagesPage::updateChatListLastMessage(const QString &sessionId, const QSt
             item->setText(display);
             break;
         }
+    }
+}
+
+void MessagesPage::onReportClicked() {
+    QListWidgetItem *currentItem = chatList->currentItem();
+    if (!currentItem) {
+        QMessageBox::warning(this, "提示", "请先选择一个聊天");
+        return;
+    }
+
+    // 获取对方用户信息
+    int otherUserId = currentItem->data(Qt::UserRole + 3).toInt(); // 需要存储对方ID
+    QString otherName = currentItem->data(Qt::UserRole + 1).toString();
+
+    if (otherUserId <= 0) {
+        QMessageBox::warning(this, "提示", "无法获取举报对象信息");
+        return;
+    }
+
+    ReportSubmitDialog *dialog = new ReportSubmitDialog(this, otherUserId, "user", otherName);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->show();
+}
+
+QWidget* MessagesPage::createMessageWidget(const QString &senderName, const QString &message, bool isSelf, const QString &timestamp) {
+    QWidget *container = new QWidget();
+    QHBoxLayout *mainLayout = new QHBoxLayout(container);
+    mainLayout->setContentsMargins(10, 8, 10, 8);
+    mainLayout->setSpacing(8);
+
+    // 气泡
+    QWidget *bubble = new QWidget();
+    bubble->setObjectName("bubble");
+    QVBoxLayout *bubbleLayout = new QVBoxLayout(bubble);
+    bubbleLayout->setContentsMargins(10, 8, 10, 8);
+    bubbleLayout->setSpacing(4);
+
+    // 昵称 + 时间（放在同一行）
+    QHBoxLayout *infoLayout = new QHBoxLayout();
+    QLabel *nameLabel = new QLabel(isSelf ? "我   " : senderName+"   ");
+    nameLabel->setStyleSheet("font-size: 13px; font-weight: 500; color: #475569; background-color: transparent;");
+    QLabel *timeLabel = new QLabel(timestamp);
+    timeLabel->setStyleSheet("font-size: 11px; color: #94a3b8; background-color: transparent;");
+    infoLayout->addWidget(nameLabel);
+    infoLayout->addWidget(timeLabel);
+    timeLabel->setAlignment(Qt::AlignLeft);
+    timeLabel->setAlignment(Qt::AlignLeft);
+
+    // 消息内容
+    QLabel *msgLabel = new QLabel(message);
+    msgLabel->setWordWrap(true);
+    msgLabel->setStyleSheet("font-size: 14px; color: #1f2937; background-color: transparent;");
+    msgLabel->setMaximumWidth(300);
+
+    // 组装气泡内容
+    bubbleLayout->addLayout(infoLayout);
+    bubbleLayout->addWidget(msgLabel);
+
+    // 根据 isSelf 设置气泡位置和颜色
+    if (isSelf) {
+        bubble->setStyleSheet(R"(
+            QWidget#bubble {
+                background-color: #dbeafe;
+                border-radius: 14px;
+                border-top-right-radius: 4px;
+            }
+        )");
+        mainLayout->addStretch();
+        mainLayout->addWidget(bubble);
+    } else {
+        bubble->setStyleSheet(R"(
+            QWidget#bubble {
+                background-color: #f3f4f6;
+                border-radius: 14px;
+                border-top-left-radius: 4px;
+            }
+        )");
+        mainLayout->addWidget(bubble);
+        mainLayout->addStretch();
+    }
+    return container;
+}
+
+QString MessagesPage::formatMessageTime(const QString &timestamp) {
+    QDateTime msgTime = QDateTime::fromString(timestamp, "yyyy-MM-dd HH:mm:ss");
+    if (!msgTime.isValid()) {
+        // 尝试其他格式或返回当前时间
+        return QDateTime::currentDateTime().toString("HH:mm");
+    }
+
+    QDate today = QDate::currentDate();
+    QDate msgDate = msgTime.date();
+
+    if (msgDate == today) {
+        return msgTime.toString("HH:mm");
+    } else if (msgDate == today.addDays(-1)) {
+        return QString("昨天 %1").arg(msgTime.toString("HH:mm"));
+    } else {
+        // 显示月-日 时:分
+        return msgTime.toString("MM-dd HH:mm");
     }
 }

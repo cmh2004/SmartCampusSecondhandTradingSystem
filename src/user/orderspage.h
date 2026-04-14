@@ -45,6 +45,12 @@ private:
     int m_currentPage;
     int m_currentPageSize;
 
+    // 分页相关
+    int m_pageSize = 10;
+    QPushButton *m_prevBtn;
+    QPushButton *m_nextBtn;
+    QLabel *m_pageInfoLabel;
+
     QLabel *totalLabel;
 };
 

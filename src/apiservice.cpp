@@ -205,19 +205,20 @@ QJsonObject ApiService::sendMessage(const QString& receiverId, const QString& co
     return httpResponse;
 }
 
-QJsonObject ApiService::estimatePrice(const QString& description, const QString& imagePath)
+QJsonObject ApiService::estimatePrice(const QString& description, const QStringList& imageBase64List,int goodsId)
 {
-    QJsonObject data{{"description", description}};
-
-    if (!imagePath.isEmpty() && QFileInfo::exists(imagePath)) {
-        QFile file(imagePath);
-        if (file.open(QIODevice::ReadOnly)) {
-            QByteArray imageData = file.readAll();
-            QString base64 = imageData.toBase64();
-            data["image_base64"] = base64;
+    qDebug() << "=== estimatePrice ===";
+    qDebug() << "imageBase64List size:" << imageBase64List.size();
+    QJsonObject data;
+    data["description"] = description;
+    data["goods_id"] = goodsId;
+    QJsonArray imagesArray;
+    for (const QString &base64 : imageBase64List) {
+        if (!base64.isEmpty()) {
+            imagesArray.append(base64);
         }
     }
-
+    data["images"] = imagesArray;
     return HttpClient::instance()->syncRequest("/api/ai/estimate", data, "POST", 60000);
 }
 
@@ -329,7 +330,7 @@ QJsonArray ApiService::getCreditHistory(int userId, int page, int pageSize)
     }
     params["page"] = page;
     params["page_size"] = pageSize;
-    QJsonObject response = HttpClient::instance()->syncRequest("/api/credit/history", params, "GET");
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/credit/history", params, "POST");
     if (response.value("success").toBool()) {
         return response.value("data").toObject().value("history").toArray();
     }
@@ -613,10 +614,12 @@ QJsonObject ApiService::reviewGoods(int goodsId, bool approved, const QString& c
 }
 
 // 获取用户列表（管理员）
-QJsonArray ApiService::getUserList(const QString& role, int page, int pageSize)
+QJsonArray ApiService::getUserList(const QString& status, const QString& keyword,const QString& role, int page, int pageSize)
 {
     QJsonObject params;
     if (!role.isEmpty()) params["role"] = role;
+    if (!status.isEmpty()) params["status"] = status;
+    if (!keyword.isEmpty()) params["keyword"] = keyword;
     params["page"] = page;
     params["page_size"] = pageSize;
     QJsonObject response = HttpClient::instance()->syncRequest("/api/admin/user_list", params, "POST");
@@ -758,4 +761,20 @@ QJsonObject ApiService::changePassword(const QString &oldPassword, const QString
     data["old_password"] = oldPassword;
     data["new_password"] = newPassword;
     return HttpClient::instance()->syncRequest("/api/user/change_password", data, "POST");
+}
+
+QJsonArray ApiService::getGoodsForReview(const QString& keyword, const QString& status, const QString& startDate, const QString& endDate, int page, int pageSize)
+{
+    QJsonObject params;
+    params["keyword"] = keyword;
+    params["status"] = status;
+    params["start_date"] = startDate;
+    params["end_date"] = endDate;
+    params["page"] = page;
+    params["page_size"] = pageSize;
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/admin/goods_review_list", params, "POST");
+    if (response.value("success").toBool()) {
+        return response.value("data").toArray();
+    }
+    return QJsonArray();
 }

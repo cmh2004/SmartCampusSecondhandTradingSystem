@@ -2,6 +2,7 @@
 #include <QHBoxLayout>
 #include <QMessageBox>
 #include <QHeaderView>
+#include <QScrollArea>
 #include <QGraphicsDropShadowEffect>
 #include "UserCenterPage.h"
 #include "..\apiservice.h"
@@ -377,9 +378,52 @@ void UserCenterPage::createMyPublishTab() {
     myGoodsTable->setColumnWidth(2, 150);
     myGoodsTable->horizontalHeader()->setStretchLastSection(true);
 
-    loadMyGoods();
-
     layout->addWidget(myGoodsTable, 1);
+
+    // 分页控件
+    QWidget *paginationWidget = new QWidget();
+    QHBoxLayout *paginationLayout = new QHBoxLayout(paginationWidget);
+    paginationLayout->setContentsMargins(0, 10, 0, 0);
+    paginationLayout->setAlignment(Qt::AlignCenter);
+
+    m_publishPrevBtn = new QPushButton("上一页");
+    m_publishPrevBtn->setStyleSheet(
+        "background-color: #3498db;"
+        "color: white;"
+        "border: none;"
+        "border-radius: 4px;"
+        "font-size: 13px;"
+        );
+    m_publishPrevBtn->setFixedSize(80, 32);
+    m_publishNextBtn = new QPushButton("下一页");
+    m_publishNextBtn->setStyleSheet(
+        "background-color: #3498db;"
+        "color: white;"
+        "border: none;"
+        "border-radius: 4px;"
+        "font-size: 13px;"
+        );
+    m_publishNextBtn->setFixedSize(80, 32);
+    m_publishPageLabel = new QLabel("第 1 页");
+    m_publishPageLabel->setStyleSheet("font-size: 13px; color: #475569; margin: 0 15px;");
+
+    paginationLayout->addWidget(m_publishPrevBtn);
+    paginationLayout->addWidget(m_publishPageLabel);
+    paginationLayout->addWidget(m_publishNextBtn);
+    layout->addWidget(paginationWidget);
+
+    connect(m_publishPrevBtn, &QPushButton::clicked, this, [this]() {
+        if (m_publishCurrentPage > 1) {
+            m_publishCurrentPage--;
+            loadMyGoods(m_publishCurrentPage, m_publishPageSize);
+        }
+    });
+    connect(m_publishNextBtn, &QPushButton::clicked, this, [this]() {
+        m_publishCurrentPage++;
+        loadMyGoods(m_publishCurrentPage, m_publishPageSize);
+    });
+
+    loadMyGoods(1, m_publishPageSize);
 }
 
 void UserCenterPage::createMyCollectionTab() {
@@ -414,9 +458,50 @@ void UserCenterPage::createMyCollectionTab() {
         }
     )");
 
-    loadFavorites();
-
     layout->addWidget(collectionList, 1);
+
+    // 分页控件
+    QWidget *paginationWidget = new QWidget();
+    QHBoxLayout *paginationLayout = new QHBoxLayout(paginationWidget);
+    paginationLayout->setContentsMargins(0, 10, 0, 0);
+    paginationLayout->setAlignment(Qt::AlignCenter);
+
+    m_favPrevBtn = new QPushButton("上一页");
+    m_favPrevBtn->setStyleSheet(
+        "background-color: #3498db;"
+        "color: white;"
+        "border: none;"
+        "border-radius: 4px;"
+        "font-size: 13px;"
+        );
+    m_favPrevBtn->setFixedSize(80, 32);
+    m_favNextBtn = new QPushButton("下一页");
+    m_favNextBtn->setStyleSheet(
+        "background-color: #3498db;"
+        "color: white;"
+        "border: none;"
+        "border-radius: 4px;"
+        "font-size: 13px;"
+        );
+    m_favNextBtn->setFixedSize(80, 32);
+    m_favPageLabel = new QLabel("第 1 页");
+    m_favPageLabel->setStyleSheet("font-size: 13px; color: #475569; margin: 0 15px;");
+
+    paginationLayout->addWidget(m_favPrevBtn);
+    paginationLayout->addWidget(m_favPageLabel);
+    paginationLayout->addWidget(m_favNextBtn);
+    layout->addWidget(paginationWidget);
+
+    connect(m_favPrevBtn, &QPushButton::clicked, this, [this]() {
+        if (m_favCurrentPage > 1) {
+            loadFavorites(m_favCurrentPage - 1, m_favPageSize);
+        }
+    });
+    connect(m_favNextBtn, &QPushButton::clicked, this, [this]() {
+        loadFavorites(m_favCurrentPage + 1, m_favPageSize);
+    });
+
+    loadFavorites(1, m_favPageSize);
 }
 
 void UserCenterPage::createReviewTab() {
@@ -459,10 +544,50 @@ void UserCenterPage::createReviewTab() {
         }
     )");
 
-    // 添加评价数据
-    loadMyReviews();
-
     layout->addWidget(reviewList, 1);
+
+    // 分页控件
+    QWidget *paginationWidget = new QWidget();
+    QHBoxLayout *paginationLayout = new QHBoxLayout(paginationWidget);
+    paginationLayout->setContentsMargins(0, 10, 0, 0);
+    paginationLayout->setAlignment(Qt::AlignCenter);
+
+    m_reviewPrevBtn = new QPushButton("上一页");
+    m_reviewPrevBtn->setStyleSheet(
+        "background-color: #3498db;"
+        "color: white;"
+        "border: none;"
+        "border-radius: 4px;"
+        "font-size: 13px;"
+        );
+    m_reviewPrevBtn->setFixedSize(80, 32);
+    m_reviewNextBtn = new QPushButton("下一页");
+    m_reviewNextBtn->setStyleSheet(
+        "background-color: #3498db;"
+        "color: white;"
+        "border: none;"
+        "border-radius: 4px;"
+        "font-size: 13px;"
+        );
+    m_reviewNextBtn->setFixedSize(80, 32);
+    m_reviewPageLabel = new QLabel("第 1 页");
+    m_reviewPageLabel->setStyleSheet("font-size: 13px; color: #475569; margin: 0 15px;");
+
+    paginationLayout->addWidget(m_reviewPrevBtn);
+    paginationLayout->addWidget(m_reviewPageLabel);
+    paginationLayout->addWidget(m_reviewNextBtn);
+    layout->addWidget(paginationWidget);
+
+    connect(m_reviewPrevBtn, &QPushButton::clicked, this, [this]() {
+        if (m_reviewCurrentPage > 1) {
+            loadMyReviews(m_reviewCurrentPage - 1, m_reviewPageSize);
+        }
+    });
+    connect(m_reviewNextBtn, &QPushButton::clicked, this, [this]() {
+        loadMyReviews(m_reviewCurrentPage + 1, m_reviewPageSize);
+    });
+
+    loadMyReviews(1, m_reviewPageSize);
 }
 
 // 辅助函数：添加评价项
@@ -588,9 +713,62 @@ void UserCenterPage::addReviewItem(const QString &date, const QString &orderId,
 void UserCenterPage::createHistoryTab() {
     myHistoryWidget = new QWidget();
     QVBoxLayout *layout = new QVBoxLayout(myHistoryWidget);
-    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setContentsMargins(10, 10, 10, 10);
+    layout->setSpacing(10);
 
-    loadBrowseHistory();
+    // 历史记录容器（滚动区域内部）
+    QScrollArea *scrollArea = new QScrollArea();
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setStyleSheet("border: none; background: transparent;");
+    m_historyContainer = new QWidget();
+    m_historyContainerLayout = new QVBoxLayout(m_historyContainer);
+    m_historyContainerLayout->setContentsMargins(0, 0, 0, 0);
+    m_historyContainerLayout->setSpacing(10);
+    scrollArea->setWidget(m_historyContainer);
+    layout->addWidget(scrollArea, 1);
+
+    // 分页控件
+    QWidget *paginationWidget = new QWidget();
+    QHBoxLayout *paginationLayout = new QHBoxLayout(paginationWidget);
+    paginationLayout->setContentsMargins(0, 10, 0, 0);
+    paginationLayout->setAlignment(Qt::AlignCenter);
+
+    m_historyPrevBtn = new QPushButton("上一页");
+    m_historyPrevBtn->setStyleSheet(
+        "background-color: #3498db;"
+        "color: white;"
+        "border: none;"
+        "border-radius: 4px;"
+        "font-size: 13px;"
+        );
+    m_historyPrevBtn->setFixedSize(80, 32);
+    m_historyNextBtn = new QPushButton("下一页");
+    m_historyNextBtn->setStyleSheet(
+        "background-color: #3498db;"
+        "color: white;"
+        "border: none;"
+        "border-radius: 4px;"
+        "font-size: 13px;"
+        );
+    m_historyNextBtn->setFixedSize(80, 32);
+    m_historyPageLabel = new QLabel("第 1 页");
+    m_historyPageLabel->setStyleSheet("font-size: 13px; color: #475569; margin: 0 15px;");
+
+    paginationLayout->addWidget(m_historyPrevBtn);
+    paginationLayout->addWidget(m_historyPageLabel);
+    paginationLayout->addWidget(m_historyNextBtn);
+    layout->addWidget(paginationWidget);
+
+    connect(m_historyPrevBtn, &QPushButton::clicked, this, [this]() {
+        if (m_historyCurrentPage > 1) {
+            loadBrowseHistory(m_historyCurrentPage - 1, m_historyPageSize);
+        }
+    });
+    connect(m_historyNextBtn, &QPushButton::clicked, this, [this]() {
+        loadBrowseHistory(m_historyCurrentPage + 1, m_historyPageSize);
+    });
+
+    loadBrowseHistory(1, m_historyPageSize);
 }
 
 void UserCenterPage::updateUserInfo(const QString &name, int creditScore, const QString &joinDate) {
@@ -665,9 +843,14 @@ void UserCenterPage::loadUserInfo() {
     }
 }
 
-void UserCenterPage::loadFavorites() {
-    QJsonArray favorites = ApiService::instance()->getFavorites(1, 20); // 页码、每页数量
+void UserCenterPage::loadFavorites(int page, int pageSize) {
+    m_favCurrentPage = page;
+    m_favPageSize = pageSize;
+    m_favPageLabel->setText(QString("第 %1 页").arg(page));
+
     collectionList->clear();
+
+    QJsonArray favorites = ApiService::instance()->getFavorites(page, pageSize); // 页码、每页数量
     for (const QJsonValue &val : favorites) {
         QJsonObject goods = val.toObject();
         int goodsId = goods.value("id").toInt();
@@ -678,15 +861,22 @@ void UserCenterPage::loadFavorites() {
         item->setData(Qt::UserRole, goodsId);             // 存储商品ID
         collectionList->addItem(item);
     }
+
+    bool hasMore = (favorites.size() == pageSize);
+    m_favNextBtn->setEnabled(hasMore);
+    m_favPrevBtn->setEnabled(page > 1);
 }
 
 void UserCenterPage::refreshFavorites() {
     loadFavorites(); // 重新加载收藏列表
 }
 
-void UserCenterPage::loadMyGoods() {
+void UserCenterPage::loadMyGoods(int page, int pageSize) {
+    m_publishCurrentPage = page;
+    m_publishPageLabel->setText(QString("第 %1 页").arg(page));
+
     myGoodsTable->setRowCount(0);
-    QJsonArray goodsList = ApiService::instance()->getMyGoods(1, 20);
+    QJsonArray goodsList = ApiService::instance()->getMyGoods(page, pageSize);
     for (const QJsonValue &val : goodsList) {
         QJsonObject goods = val.toObject();
         int goodsId = goods.value("id").toInt();
@@ -745,11 +935,18 @@ void UserCenterPage::loadMyGoods() {
         actionLayout->addStretch();
         myGoodsTable->setCellWidget(row, 3, actionWidget);
     }
+    bool hasMore = (goodsList.size() == pageSize);
+    m_publishNextBtn->setEnabled(hasMore);
+    m_publishPrevBtn->setEnabled(page > 1);
 }
 
-void UserCenterPage::loadMyReviews() {
+void UserCenterPage::loadMyReviews(int page, int pageSize) {
+    m_reviewCurrentPage = page;
+    m_reviewPageSize = pageSize;
+    m_reviewPageLabel->setText(QString("第 %1 页").arg(page));
+
     reviewList->clear();
-    QJsonArray reviews = ApiService::instance()->getMyReviews(1, 20);
+    QJsonArray reviews = ApiService::instance()->getMyReviews(page, pageSize);
     for (const QJsonValue &val : reviews) {
         QJsonObject review = val.toObject();
         QString date = review.value("create_time").toString().left(10);
@@ -759,36 +956,40 @@ void UserCenterPage::loadMyReviews() {
         QString comment = review.value("content").toString();
         addReviewItem(date, "订单 #" + orderId, goodsName, rating, comment);
     }
+
+    bool hasMore = (reviews.size() == pageSize);
+    m_reviewNextBtn->setEnabled(hasMore);
+    m_reviewPrevBtn->setEnabled(page > 1);
 }
 
-void UserCenterPage::loadBrowseHistory() {
-    // 清空 myHistoryWidget 的所有子控件和布局
-    QLayout *oldLayout = myHistoryWidget->layout();
-    if (oldLayout) {
-        QLayoutItem *child;
-        while ((child = oldLayout->takeAt(0)) != nullptr) {
-            if (child->widget()) delete child->widget();
-            delete child;
-        }
-        delete oldLayout;
+void UserCenterPage::loadBrowseHistory(int page, int pageSize) {
+    m_historyCurrentPage = page;
+    m_historyPageSize = pageSize;
+    m_historyPageLabel->setText(QString("第 %1 页").arg(page));
+
+    // 清空容器
+    QLayoutItem *child;
+    while ((child = m_historyContainerLayout->takeAt(0)) != nullptr) {
+        if (child->widget()) delete child->widget();
+        delete child;
     }
 
-    QJsonArray history = ApiService::instance()->getBrowseHistory(1, 20);
-    QVBoxLayout *newLayout = new QVBoxLayout(myHistoryWidget);
-    newLayout->setContentsMargins(10, 10, 10, 10);
-    newLayout->setSpacing(10);
-
+    QJsonArray history = ApiService::instance()->getBrowseHistory(page, pageSize);
     if (history.isEmpty()) {
         QWidget *emptyWidget = createEmptyHistoryWidget();
-        newLayout->addWidget(emptyWidget);
+        m_historyContainerLayout->addWidget(emptyWidget);
     } else {
         for (const QJsonValue &val : history) {
             QJsonObject item = val.toObject();
             QWidget *historyItem = createHistoryItem(item);
-            newLayout->addWidget(historyItem);
+            m_historyContainerLayout->addWidget(historyItem);
         }
-        newLayout->addStretch();
+        m_historyContainerLayout->addStretch();
     }
+
+    bool hasMore = (history.size() == pageSize);
+    m_historyNextBtn->setEnabled(hasMore);
+    m_historyPrevBtn->setEnabled(page > 1);
 }
 
 QWidget* UserCenterPage::createHistoryItem(const QJsonObject &goods) {
@@ -844,7 +1045,9 @@ void UserCenterPage::onEditGoods()
     QJsonObject goodsData = result.value("data").toObject();
 
     GoodsEditDialog *dialog = new GoodsEditDialog(goodsId, goodsData, this);
-    connect(dialog, &GoodsEditDialog::goodsUpdated, this, &UserCenterPage::loadMyGoods);
+    connect(dialog, &GoodsEditDialog::goodsUpdated, this, [this]() {
+        loadMyGoods(m_publishCurrentPage, m_publishPageSize);
+    });
     dialog->show();
 }
 

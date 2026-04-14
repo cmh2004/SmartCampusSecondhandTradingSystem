@@ -34,14 +34,11 @@ protected:
 
 private slots:
     void onScoreDetailClicked();
-    void onScoreHistoryClicked();
     void updateScoreAnimation();
 
 private:
     void setupUI();
     void loadScoreData();
-    void createScoreMeter();
-    void createProgressBars();
     int animationProgress() const { return m_animationProgress; }
     void setAnimationProgress(int progress);
 
@@ -54,13 +51,10 @@ private:
     // UI 组件
     QLabel *currentScoreLabel;
     QLabel *scoreLevelLabel;
-    QLabel *scoreTrendLabel;
     QWidget *scoreMeterWidget;
     QTableWidget *scoreHistoryTable;
     QPushButton *detailBtn;
-    QPushButton *historyBtn;
     QPushButton *closeBtn;
-    QWidget *progressBarsWidget;
     QLabel *lastUpdateLabel;
 
     // 窗口拖拽相关

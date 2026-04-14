@@ -146,6 +146,36 @@ void OrdersPage::setupUI() {
 
     mainLayout->addWidget(ordersTable, 1);
 
+    // 分页控件
+    QWidget *paginationWidget = new QWidget();
+    QHBoxLayout *paginationLayout = new QHBoxLayout(paginationWidget);
+    paginationLayout->setContentsMargins(0, 10, 0, 0);
+    paginationLayout->setAlignment(Qt::AlignCenter);
+
+    m_prevBtn = new QPushButton("上一页");
+    m_prevBtn->setObjectName("primaryBtn");
+    m_prevBtn->setFixedSize(80, 32);
+    m_nextBtn = new QPushButton("下一页");
+    m_nextBtn->setObjectName("primaryBtn");
+    m_nextBtn->setFixedSize(80, 32);
+    m_pageInfoLabel = new QLabel("第 1 页");
+    m_pageInfoLabel->setStyleSheet("font-size: 13px; color: #475569; margin: 0 15px;");
+
+    paginationLayout->addWidget(m_prevBtn);
+    paginationLayout->addWidget(m_pageInfoLabel);
+    paginationLayout->addWidget(m_nextBtn);
+
+    mainLayout->addWidget(paginationWidget);
+
+    connect(m_prevBtn, &QPushButton::clicked, this, [this]() {
+        if (m_currentPage > 1) {
+            loadOrdersFromServer(m_currentStatus, m_currentKeyword, m_currentPage - 1, m_pageSize);
+        }
+    });
+    connect(m_nextBtn, &QPushButton::clicked, this, [this]() {
+        loadOrdersFromServer(m_currentStatus, m_currentKeyword, m_currentPage + 1, m_pageSize);
+    });
+
     // 底部统计信息
     QWidget *statsWidget = new QWidget();
     QHBoxLayout *statsLayout = new QHBoxLayout(statsWidget);
@@ -174,6 +204,8 @@ void OrdersPage::loadOrdersFromServer(const QString &status, const QString &keyw
     m_currentKeyword = keyword;
     m_currentPage = page;
     m_currentPageSize = pageSize;
+
+    m_pageInfoLabel->setText(QString("第 %1 页").arg(page));
 
     // 调用 ApiService 获取订单列表
     QJsonArray orders = ApiService::instance()->getOrderList(status, page, pageSize, keyword);
@@ -205,6 +237,9 @@ void OrdersPage::loadOrdersFromServer(const QString &status, const QString &keyw
         // 根据状态创建操作按钮
         createActionButtons(row, orderStatus, orderId);
     }
+    bool hasMore = (orders.size() == pageSize);
+    m_nextBtn->setEnabled(hasMore);
+    m_prevBtn->setEnabled(page > 1);
     // 更新统计标签
     int orderCount = ordersTable->rowCount();
     totalLabel->setText(QString("共 %1 个订单").arg(orderCount));
@@ -409,9 +444,6 @@ void OrdersPage::onFilterOrders() {
     else if (status == "已取消") statusParam = "cancelled";
     else if (status == "纠纷处理中") statusParam = "dispute";
 
-    // 将关键词作为额外参数传给 loadOrdersFromServer（但需要服务端支持按关键词搜索订单）
-    // 如果服务端不支持，可以在本地对返回结果再次过滤，但推荐服务端支持
-    // 这里我们假设 loadOrdersFromServer 已经支持 keyword 参数
     loadOrdersFromServer(statusParam, keyword, 1, 20);
 }
 

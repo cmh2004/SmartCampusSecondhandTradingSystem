@@ -48,21 +48,58 @@ void ReportsManagePage::setupUI()
     mainLayout->addLayout(btnLayout);
 
     // 连接信号
-    connect(m_refreshBtn, &QPushButton::clicked, this, &ReportsManagePage::loadReports);
+    connect(m_refreshBtn, &QPushButton::clicked, this, [this]() { loadReports(1); });
+    connect(m_statusFilter, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int) { loadReports(1); });
     connect(m_processBtn, &QPushButton::clicked, this, &ReportsManagePage::onProcessReport);
-    connect(m_statusFilter, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &ReportsManagePage::loadReports);
+
+    // 分页控件
+    QWidget *paginationWidget = new QWidget();
+    QHBoxLayout *paginationLayout = new QHBoxLayout(paginationWidget);
+    paginationLayout->setContentsMargins(0, 10, 0, 0);
+    paginationLayout->setAlignment(Qt::AlignCenter);
+
+    m_prevBtn = new QPushButton("上一页");
+    m_prevBtn->setObjectName("secondaryBtn");
+    m_prevBtn->setFixedSize(80, 32);
+    m_nextBtn = new QPushButton("下一页");
+    m_nextBtn->setObjectName("secondaryBtn");
+    m_nextBtn->setFixedSize(80, 32);
+    m_pageInfoLabel = new QLabel("第 1 页");
+    m_pageInfoLabel->setStyleSheet("font-size: 13px; color: #475569; margin: 0 15px;");
+
+    paginationLayout->addWidget(m_prevBtn);
+    paginationLayout->addWidget(m_pageInfoLabel);
+    paginationLayout->addWidget(m_nextBtn);
+
+    mainLayout->addWidget(paginationWidget);
+
+    // 连接信号
+    connect(m_prevBtn, &QPushButton::clicked, this, [this]() {
+        if (m_currentPage > 1) {
+            loadReports(m_currentPage - 1);
+        }
+    });
+    connect(m_nextBtn, &QPushButton::clicked, this, [this]() {
+        loadReports(m_currentPage + 1);
+    });
 }
 
-void ReportsManagePage::loadReports()
+void ReportsManagePage::loadReports(int page)
 {
+    m_currentPage = page;
+    m_pageInfoLabel->setText(QString("第 %1 页").arg(page));
+
     QString status;
     int idx = m_statusFilter->currentIndex();
-    if (idx == 1) status = "0";      // 待处理
-    else if (idx == 2) status = "1"; // 已处理
+    if (idx == 1) status = "0";
+    else if (idx == 2) status = "1";
 
-    QJsonArray reports = ApiService::instance()->getAllReports(1, 50, status);
-    qDebug()<<reports;
+    QJsonArray reports = ApiService::instance()->getAllReports(page, m_pageSize, status);
     updateTable(reports);
+
+    bool hasMore = (reports.size() == m_pageSize);
+    m_nextBtn->setEnabled(hasMore);
+    m_prevBtn->setEnabled(page > 1);
 }
 
 void ReportsManagePage::updateTable(const QJsonArray &reports)
@@ -102,8 +139,8 @@ void ReportsManagePage::onProcessReport()
         return;
     }
 
-    int reportId = m_table->item(row, 0)->text().toInt();  // 假设第0列是ID
-    // 可选：获取当前状态，防止重复处理
+    int reportId = m_table->item(row, 0)->text().toInt();
+    // 获取当前状态，防止重复处理
     QString status = m_table->item(row, 5)->text();
     if (status == "已处理") {
         QMessageBox::information(this, "提示", "该举报已被处理");

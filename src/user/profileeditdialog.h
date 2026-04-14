@@ -28,8 +28,8 @@ private:
 
     // 基本信息
     QLineEdit *nicknameEdit;
-    QLineEdit *realNameEdit;
     QLineEdit *emailEdit;
+    QLineEdit *phoneEdit;
 
     // 头像
     QLabel *avatarLabel;

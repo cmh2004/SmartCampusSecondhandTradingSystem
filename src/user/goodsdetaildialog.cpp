@@ -158,14 +158,9 @@ void GoodsDetailDialog::setupUI() {
     categoryLabel = new QLabel("电子产品");
     basicLayout->addWidget(categoryLabel, 1, 3);
 
-    // 第3行
-    basicLayout->addWidget(new QLabel("位置:"), 2, 0);
-    locationLabel = new QLabel("学生宿舍10号楼");
-    basicLayout->addWidget(locationLabel, 2, 1);
-
-    basicLayout->addWidget(new QLabel("发布时间:"), 2, 2);
+    basicLayout->addWidget(new QLabel("发布时间:"), 2, 0);
     publishTimeLabel = new QLabel(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm"));
-    basicLayout->addWidget(publishTimeLabel, 2, 3);
+    basicLayout->addWidget(publishTimeLabel, 2, 1);
 
     basicInfoGroup->setLayout(basicLayout);
     rightLayout->addWidget(basicInfoGroup);
@@ -182,9 +177,6 @@ void GoodsDetailDialog::setupUI() {
     collectBtn = new QPushButton("收藏");
     collectBtn->setObjectName("secondaryBtn");
 
-    riskBtn = new QPushButton("风险提醒");
-    riskBtn->setObjectName("warningBtn");
-
     reportBtn = new QPushButton("举报商品");
     reportBtn->setObjectName("warningBtn");
 
@@ -194,7 +186,6 @@ void GoodsDetailDialog::setupUI() {
 
     buttonLayout->addWidget(collectBtn);
     buttonLayout->addWidget(contactBtn);
-    buttonLayout->addWidget(riskBtn);
     buttonLayout->addWidget(reportBtn);
     buttonLayout->addStretch();
     buttonLayout->addWidget(buyBtn);
@@ -244,26 +235,25 @@ void GoodsDetailDialog::setupUI() {
     QGridLayout *aiGrid = new QGridLayout();
 
     aiGrid->addWidget(new QLabel("估价范围:"), 0, 0);
-    aiPriceRangeLabel = new QLabel("¥2300 - ¥2700");
+    aiPriceRangeLabel = new QLabel("¥? - ¥?");
     aiPriceRangeLabel->setStyleSheet("color: #e67e22; font-weight: bold;");
     aiGrid->addWidget(aiPriceRangeLabel, 0, 1);
 
     aiGrid->addWidget(new QLabel("成色评估:"), 1, 0);
-    aiConditionLabel = new QLabel("9成新");
+    aiConditionLabel = new QLabel("?成新");
     aiGrid->addWidget(aiConditionLabel, 1, 1);
 
-    aiGrid->addWidget(new QLabel("品牌识别:"), 2, 0);
-    aiBrandLabel = new QLabel("Apple iPhone 12 128GB");
-    aiGrid->addWidget(aiBrandLabel, 2, 1);
-
-    aiGrid->addWidget(new QLabel("风险等级:"), 3, 0);
-    aiRiskLevelLabel = new QLabel("低风险");
+    aiGrid->addWidget(new QLabel("风险等级:"), 2, 0);
+    aiRiskLevelLabel = new QLabel("?风险");
     aiRiskLevelLabel->setStyleSheet("color: #27ae60; font-weight: bold;");
-    aiGrid->addWidget(aiRiskLevelLabel, 3, 1);
+    aiGrid->addWidget(aiRiskLevelLabel, 2, 1);
 
-    aiGrid->addWidget(new QLabel("购买建议:"), 4, 0);
-    aiRecommendationLabel = new QLabel("价格合理，建议购买");
-    aiGrid->addWidget(aiRecommendationLabel, 4, 1);
+    aiGrid->addWidget(new QLabel("估价理由:"), 3, 0);
+    reasonLabel = new QLabel();
+    reasonLabel->setWordWrap(true);
+    reasonLabel->setStyleSheet("color: #555; font-size: 12px;");
+    reasonLabel->setText("");
+    aiGrid->addWidget(reasonLabel, 3, 1);
 
     aiAssessmentGroup->setLayout(aiGrid);
     aiLayout->addWidget(aiAssessmentGroup);
@@ -288,7 +278,6 @@ void GoodsDetailDialog::setupUI() {
     });
 
     connect(collectBtn, &QPushButton::clicked, this, &GoodsDetailDialog::onCollectGoods);
-    connect(riskBtn, &QPushButton::clicked, this, &GoodsDetailDialog::onShowRiskAssessment);
     connect(aiAssessmentBtn, &QPushButton::clicked, this, &GoodsDetailDialog::onAIAssessment);
     connect(reportBtn, &QPushButton::clicked, [this]() {
         emit reportGoodsRequested(goodsId);
@@ -391,6 +380,7 @@ void GoodsDetailDialog::loadGoodsData(int goodsId) {
     QJsonObject result = ApiService::instance()->getGoodsDetail(goodsId);
     if (result.value("success").toBool()) {
         QJsonObject data = result.value("data").toObject();
+        qDebug() << "Goods detail data:" << QJsonDocument(data).toJson(QJsonDocument::Compact);
 
         // 基本信息
         goodsTitleLabel->setText(data.value("name").toString());
@@ -402,8 +392,12 @@ void GoodsDetailDialog::loadGoodsData(int goodsId) {
 
         // 卖家信息
         sellerLabel->setText(data.value("seller_name").toString());
-        contactLabel->setText("点击联系卖家"); // 或从卖家资料中获取联系方式
-        locationLabel->setText("校园内"); // 可从卖家信息中获取
+        QString sellerPhone = data.value("seller_phone").toString();
+        if (!sellerPhone.isEmpty()) {
+            contactLabel->setText(sellerPhone);
+        } else {
+            contactLabel->setText("未填写手机号");
+        }
 
         // 商品图片
         QJsonArray images = data.value("images").toArray();
@@ -469,18 +463,25 @@ void GoodsDetailDialog::loadGoodsData(int goodsId) {
             collectBtn->setText("收藏");
         }
 
-        // AI评估信息（需要额外调用 estimatePrice，或从商品数据中已有，这里假设从 data 中获取）
-        if (data.contains("min_price") && data.contains("max_price")) {
+        // 检查是否有 AI 估价数据
+        if (data.contains("ai_min_price") && data.contains("ai_max_price")) {
             aiPriceRangeLabel->setText(QString("¥%1 - ¥%2")
-                                           .arg(data.value("min_price").toDouble())
-                                           .arg(data.value("max_price").toDouble()));
+                                           .arg(data.value("ai_min_price").toDouble())
+                                           .arg(data.value("ai_max_price").toDouble()));
+            aiConditionLabel->setText(data.value("ai_condition").toString());
+            aiRiskLevelLabel->setText(data.value("ai_risk_level").toString());
+            // 显示理由 tooltip
+            if (data.contains("ai_reason")) {
+                aiPriceRangeLabel->setToolTip(data.value("ai_reason").toString());
+                reasonLabel->setText(data.value("ai_reason").toString());
+            }
+        } else {
+            // 没有估价记录，显示默认提示或留空
+            aiPriceRangeLabel->setText("未估价");
+            aiConditionLabel->setText("未知");
+            aiRiskLevelLabel->setText("未知");
+            reasonLabel->setText("");
         }
-
-        // 其他 AI 评估字段，若服务端返回则填充
-        aiConditionLabel->setText(data.value("ai_condition").toString());
-        aiBrandLabel->setText(data.value("brand").toString());
-        aiRiskLevelLabel->setText(data.value("risk_level").toString());
-        aiRecommendationLabel->setText(data.value("recommendation").toString());
 
         // 添加浏览记录（异步，不需要等待结果）
         ApiService::instance()->addBrowseHistory(goodsId);
@@ -523,34 +524,25 @@ void GoodsDetailDialog::onCollectGoods() {
 }
 
 void GoodsDetailDialog::onAIAssessment() {
-    // 显示加载提示
-    aiPriceRangeLabel->setText("加载中...");
-    QString description = descriptionText->toPlainText();
-    QJsonObject estimate = ApiService::instance()->estimatePrice(description, "");
-    if (estimate.value("success").toBool()) {
-        QJsonObject data = estimate.value("data").toObject();
-        aiPriceRangeLabel->setText(QString("¥%1 - ¥%2")
-                                       .arg(data.value("min_price").toDouble())
-                                       .arg(data.value("max_price").toDouble()));
-        aiRiskLevelLabel->setText(data.value("risk_level").toString());
-        aiConditionLabel->setText(data.value("ai_condition").toString());
-        aiBrandLabel->setText(data.value("brand").toString());
-        aiRecommendationLabel->setText(data.value("recommendation").toString());
-    } else {
-        aiPriceRangeLabel->setText("估价失败");
-        QMessageBox::warning(this, "AI估价失败", estimate.value("error").toString());
+    QString description = descriptionText->toPlainText().trimmed();
+    if (description.isEmpty()) {
+        QMessageBox::warning(this, "提示", "请先填写商品描述");
+        return;
     }
-}
 
-void GoodsDetailDialog::onShowRiskAssessment() {
-    QMessageBox::warning(this, "风险提醒",
-                         "风险分析结果:\n"
-                         "1. 卖家信用良好，无历史投诉\n"
-                         "2. 价格在合理范围内\n"
-                         "3. 建议线下验货后再付款\n"
-                         "4. 注意保留聊天记录作为凭证");
-}
+    // 如果没有图片，直接调用估价（只传描述）
+    if (m_imageUrls.isEmpty()) {
+        doAIAssessment(description, QStringList());
+        return;
+    }
 
+    // 有图片：异步下载所有图片
+    QList<QUrl> urls;
+    for (const QString &urlStr : m_imageUrls) {
+        urls.append(QUrl(urlStr));
+    }
+    downloadImagesForAI(urls, description);
+}
 
 QString GoodsDetailDialog::getCategoryName(int categoryId) {
     switch (categoryId) {
@@ -597,4 +589,66 @@ void GoodsDetailDialog::onThumbnailClicked(int index)
         nam->deleteLater();
     });
     nam->get(QNetworkRequest(QUrl(imageUrl)));
+}
+
+void GoodsDetailDialog::downloadImagesForAI(const QList<QUrl>& imageUrls, const QString& description) {
+    aiPriceRangeLabel->setText("加载图片中...");
+
+    struct DownloadContext {
+        int remaining = 0;
+        QStringList base64List;
+        QNetworkAccessManager* nam = nullptr;
+    };
+    auto ctx = std::make_shared<DownloadContext>();
+    ctx->remaining = imageUrls.size();
+    ctx->nam = new QNetworkAccessManager(this);
+
+    for (const QUrl &url : imageUrls) {
+        QNetworkReply* reply = ctx->nam->get(QNetworkRequest(url));
+        connect(reply, &QNetworkReply::finished, [this, ctx, reply, description]() {
+            if (reply->error() == QNetworkReply::NoError) {
+                QByteArray data = reply->readAll();
+                QString base64 = data.toBase64();
+                ctx->base64List.append(base64);
+                qDebug() << "Downloaded image size:" << data.size() << ", base64 length:" << base64.size();
+            } else {
+                qWarning() << "Failed to download image for AI:" << reply->errorString();
+                // 下载失败则忽略该图片
+            }
+            reply->deleteLater();
+
+            ctx->remaining--;
+            if (ctx->remaining == 0) {
+                ctx->nam->deleteLater();
+                doAIAssessment(description, ctx->base64List);
+            }
+        });
+    }
+}
+
+void GoodsDetailDialog::doAIAssessment(const QString& description, const QStringList& imageBase64List) {
+    aiPriceRangeLabel->setText("AI 估价中...");
+
+    qDebug() << "=== doAIAssessment ===";
+
+    // 调用 ApiService 的多图估价接口
+    QJsonObject estimate = ApiService::instance()->estimatePrice(description, imageBase64List,goodsId);
+
+    if (estimate.value("success").toBool()) {
+        QJsonObject data = estimate.value("data").toObject();
+        aiPriceRangeLabel->setText(QString("¥%1 - ¥%2")
+                                       .arg(data.value("min_price").toDouble())
+                                       .arg(data.value("max_price").toDouble()));
+        aiRiskLevelLabel->setText(data.value("risk_level").toString());
+        // 注意服务端返回的字段名是 condition_assessment
+        aiConditionLabel->setText(data.value("condition_assessment").toString());
+        QString reason = data.value("reason").toString();
+        if (!reason.isEmpty()) {
+            aiPriceRangeLabel->setToolTip(reason);
+            reasonLabel->setText(reason.size()<=150?reason:reason.left(150) + "...");
+        }
+    } else {
+        aiPriceRangeLabel->setText("估价失败");
+        QMessageBox::warning(this, "AI估价失败", estimate.value("error").toString());
+    }
 }

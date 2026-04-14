@@ -279,23 +279,36 @@ void PublishPage::onAIPriceEstimate() {
         return;
     }
 
-    // 获取第一张图片的路径（如果有），用于AI分析
-    QString imagePath;
-    if (!m_uploadedImagePaths.isEmpty()) {
-        imagePath = m_uploadedImagePaths.first();
+    // 将本地图片文件转换为 Base64 字符串列表
+    QStringList imageBase64List;
+    for (const QString &path : m_uploadedImagePaths) {
+        QFile file(path);
+        if (file.open(QIODevice::ReadOnly)) {
+            QByteArray imageData = file.readAll();
+            QString base64 = imageData.toBase64();
+            imageBase64List.append(base64);
+            file.close();
+        } else {
+            qWarning() << "Failed to open image file:" << path;
+        }
     }
 
     qDebug() << "[AI] Start estimate";
     auto start = QDateTime::currentMSecsSinceEpoch();
-    QJsonObject result = ApiService::instance()->estimatePrice(description, imagePath);
+    QJsonObject result = ApiService::instance()->estimatePrice(description, imageBase64List);
     qDebug() << "[AI] Estimate finished, elapsed:" << (QDateTime::currentMSecsSinceEpoch() - start) << "ms";
     if (result.value("success").toBool()) {
         QJsonObject data = result.value("data").toObject();
         double minPrice = data.value("min_price").toDouble();
         double maxPrice = data.value("max_price").toDouble();
         double confidence = data.value("confidence").toDouble();
-        QString message = QString("AI 估价范围：¥%1 - ¥%2\n置信度：%3%")
-                              .arg(minPrice).arg(maxPrice).arg(confidence);
+        QString reason = data.value("reason").toString();
+        QString condition = data.value("condition_assessment").toString();
+        QString riskLevel = data.value("risk_level").toString();
+
+        QString message = QString("AI 估价范围：¥%1 - ¥%2\n置信度：%3%\n理由：%4\n成色：%5\n风险：%6")
+                              .arg(minPrice).arg(maxPrice).arg(confidence)
+                              .arg(reason).arg(condition).arg(riskLevel);
         QMessageBox::information(this, "AI 估价结果", message);
         // 可以自动填入价格输入框
         goodsPriceEdit->setText(QString::number((minPrice + maxPrice) / 2));

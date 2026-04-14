@@ -5,6 +5,7 @@
 #include <QTableWidget>
 #include <QComboBox>
 #include <QPushButton>
+#include <QLabel>
 
 class ReportsManagePage : public QWidget
 {
@@ -13,7 +14,7 @@ public:
     explicit ReportsManagePage(QWidget *parent = nullptr);
 
 private slots:
-    void loadReports();
+    void loadReports(int page = 1);
     void onProcessReport();
 
 private:
@@ -24,6 +25,12 @@ private:
     QComboBox *m_statusFilter;
     QPushButton *m_refreshBtn;
     QPushButton *m_processBtn;
+
+    int m_currentPage;
+    int m_pageSize = 20;
+    QPushButton *m_prevBtn;
+    QPushButton *m_nextBtn;
+    QLabel *m_pageInfoLabel;
 };
 
 #endif // REPORTSMANAGEPAGE_H

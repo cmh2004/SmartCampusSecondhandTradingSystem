@@ -10,7 +10,7 @@
 CreditScoreDialog::CreditScoreDialog(QWidget *parent, int userId)
     : QDialog(parent), userId(userId), m_animationProgress(0), m_targetScore(0) {
     setWindowTitle("信用分详情");
-    this->setFixedSize(900, 900);  // 增加尺寸
+    this->setFixedSize(900, 700);  // 增加尺寸
     setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog);
     setAttribute(Qt::WA_TranslucentBackground);
 
@@ -88,23 +88,14 @@ void CreditScoreDialog::setupUI() {
         }
     )");
 
-    // 分数趋势标签
-    scoreTrendLabel = new QLabel("↑ 较上月提升5分");
-    scoreTrendLabel->setStyleSheet(R"(
-        font-size: 14px;
-        color: #10b981;
-        font-weight: 500;
-    )");
-
     levelLayout->addWidget(scoreLevelLabel);
     levelLayout->addStretch();
-    levelLayout->addWidget(scoreTrendLabel);
 
     scoreDisplayLayout->addWidget(scoreTitle);
     scoreDisplayLayout->addWidget(currentScoreLabel);
     scoreDisplayLayout->addWidget(levelWidget);
 
-    // 右侧：分数仪表盘
+    // 右侧：分数仪表盘h
     scoreMeterWidget = new QWidget();
     scoreMeterWidget->setFixedSize(200, 150);
 
@@ -126,34 +117,6 @@ void CreditScoreDialog::setupUI() {
     overviewLayout->addWidget(scoreMeterWidget);
 
     mainLayout->addWidget(overviewCard);
-
-    // ========== 中间：分数构成进度条 ==========
-    progressBarsWidget = new QWidget();
-    progressBarsWidget->setObjectName("progressBarsWidget");
-    progressBarsWidget->setMinimumHeight(150);
-
-    QGraphicsDropShadowEffect *barsShadow = new QGraphicsDropShadowEffect();
-    barsShadow->setBlurRadius(15);
-    barsShadow->setColor(QColor(0, 0, 0, 20));
-    barsShadow->setOffset(0, 3);
-    progressBarsWidget->setGraphicsEffect(barsShadow);
-
-    QVBoxLayout *barsLayout = new QVBoxLayout(progressBarsWidget);
-    barsLayout->setContentsMargins(20, 15, 20, 15);
-
-    QLabel *compositionTitle = new QLabel("分数构成分析");
-    compositionTitle->setStyleSheet(R"(
-        font-size: 18px;
-        font-weight: bold;
-        color: #1e293b;
-        margin-bottom: 10px;
-    )");
-    barsLayout->addWidget(compositionTitle);
-
-    // 分数构成进度条将在 loadScoreData 中创建
-    barsLayout->addStretch();
-
-    mainLayout->addWidget(progressBarsWidget);
 
     // ========== 底部：选项卡 ==========
     QTabWidget *detailTabs = new QTabWidget();
@@ -191,15 +154,12 @@ void CreditScoreDialog::setupUI() {
     buttonLayout->setContentsMargins(0, 10, 0, 0);
 
     detailBtn = new QPushButton( "评分规则说明");
-    historyBtn = new QPushButton("申诉记录");
     closeBtn = new QPushButton("关闭");
 
     detailBtn->setObjectName("secondaryBtn");
-    historyBtn->setObjectName("secondaryBtn");
     closeBtn->setObjectName("primaryBtn");
 
     buttonLayout->addWidget(detailBtn);
-    buttonLayout->addWidget(historyBtn);
     buttonLayout->addStretch();
     buttonLayout->addWidget(closeBtn);
 
@@ -208,12 +168,11 @@ void CreditScoreDialog::setupUI() {
     // 连接信号
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::accept);
     connect(detailBtn, &QPushButton::clicked, this, &CreditScoreDialog::onScoreDetailClicked);
-    connect(historyBtn, &QPushButton::clicked, this, &CreditScoreDialog::onScoreHistoryClicked);
 
     // ========== 设置全局样式 ==========
     setStyleSheet(R"(
         /* 卡片样式 */
-        #overviewCard, #progressBarsWidget {
+        #overviewCard {
             background-color: white;
             border-radius: 16px;
             border: 1px solid #e2e8f0;
@@ -332,137 +291,26 @@ void CreditScoreDialog::setupUI() {
     )");
 }
 
-void CreditScoreDialog::createScoreMeter() {
-    // 创建圆形分数仪表盘
-    // 这个函数会在 loadScoreData 中调用
-}
-
-void CreditScoreDialog::createProgressBars() {
-    QVBoxLayout *barsLayout = qobject_cast<QVBoxLayout*>(progressBarsWidget->layout());
-    if (!barsLayout) return;
-
-    // 清空现有内容（除了标题）
-    while (barsLayout->count() > 1) {
-        QLayoutItem* item = barsLayout->takeAt(1);
-        if (item->widget()) {
-            item->widget()->deleteLater();
-        }
-        delete item;
-    }
-
-    barsLayout->setSpacing(0);
-
-    // 分数构成数据
-    QList<QPair<QString, QPair<int, int>>> scoreComponents = {
-        {"交易完成率", {30, 30}},
-        {"好评率", {25, 25}},
-        {"纠纷率", {18, 20}},
-        {"响应速度", {15, 15}},
-        {"活跃度", {8, 10}}
-    };
-
-    QColor colors[] = {
-        QColor("#3b82f6"),  // 蓝色
-        QColor("#10b981"),  // 绿色
-        QColor("#f59e0b"),  // 橙色
-        QColor("#8b5cf6"),  // 紫色
-        QColor("#ef4444")   // 红色
-    };
-
-    for (int i = 0; i < scoreComponents.size(); ++i) {
-        const auto &component = scoreComponents[i];
-        QString name = component.first;
-        int current = component.second.first;
-        int total = component.second.second;
-
-        QWidget *progressWidget = new QWidget();
-        QHBoxLayout *progressLayout = new QHBoxLayout(progressWidget);
-        progressLayout->setContentsMargins(0, 8, 0, 8);
-
-        // 左侧：项目名称和权重
-        QWidget *infoWidget = new QWidget();
-        QVBoxLayout *infoLayout = new QVBoxLayout(infoWidget);
-        infoLayout->setContentsMargins(0, 0, 0, 0);
-        infoLayout->setSpacing(2);
-
-        QLabel *nameLabel = new QLabel(name);
-        nameLabel->setStyleSheet(R"(
-            font-size: 14px;
-            font-weight: 600;
-            color: #1e293b;
-        )");
-
-        QLabel *weightLabel = new QLabel(QString("权重: %1%").arg(total));
-        weightLabel->setStyleSheet(R"(
-            font-size: 12px;
-            color: #64748b;
-        )");
-
-        infoLayout->addWidget(nameLabel);
-        infoLayout->addWidget(weightLabel);
-
-        // 中间：进度条
-        QProgressBar *progressBar = new QProgressBar();
-        progressBar->setRange(0, total);
-        progressBar->setValue(current);
-        progressBar->setFormat(QString("%1/%2").arg(current).arg(total));
-        progressBar->setStyleSheet(QString(R"(
-            QProgressBar {
-                border: none;
-                border-radius: 6px;
-                background-color: #f1f5f9;
-                text-align: center;
-                color: #475569;
-                font-size: 12px;
-                height: 24px;
-            }
-            QProgressBar::chunk {
-                border-radius: 6px;
-                background-color: %1;
-            }
-        )").arg(colors[i].name()));
-
-        // 右侧：得分和百分比
-        QWidget *scoreWidget = new QWidget();
-        QVBoxLayout *scoreLayout = new QVBoxLayout(scoreWidget);
-        scoreLayout->setContentsMargins(0, 0, 0, 0);
-        scoreLayout->setSpacing(2);
-
-        QLabel *scoreLabel = new QLabel(QString("%1分").arg(current));
-        scoreLabel->setStyleSheet(QString(R"(
-            font-size: 16px;
-            font-weight: bold;
-            color: %1;
-        )").arg(colors[i].name()));
-
-        int percentage = total > 0 ? (current * 100 / total) : 0;
-        QLabel *percentageLabel = new QLabel(QString("%1%").arg(percentage));
-        percentageLabel->setStyleSheet(R"(
-            font-size: 12px;
-            color: #64748b;
-        )");
-
-        scoreLayout->addWidget(scoreLabel);
-        scoreLayout->addWidget(percentageLabel);
-
-        // 组装所有部件
-        progressLayout->addWidget(infoWidget, 1);
-        progressLayout->addWidget(progressBar, 3);
-        progressLayout->addWidget(scoreWidget, 1);
-
-        barsLayout->addWidget(progressWidget);
-    }
-}
-
 void CreditScoreDialog::loadScoreData() {
     // 获取信用分
     QJsonObject scoreResult = ApiService::instance()->getCreditScore(userId);
+
     if (!scoreResult.value("success").toBool()) {
         QMessageBox::warning(this, "加载失败", "获取信用分失败：" + scoreResult.value("error").toString());
         return;
     }
-    int score = scoreResult.value("data").toObject().value("credit_score").toInt();
+    QJsonObject dataObj = scoreResult.value("data").toObject();
+    int score = dataObj.value("credit_score").toInt();
+    QString lastUpdateTime = dataObj.value("last_update_time").toString();
     m_targetScore = score;
+    currentScoreLabel->setText(QString::number(score));
+
+    // 更新最后更新时间
+    if (!lastUpdateTime.isEmpty()) {
+        lastUpdateLabel->setText(QString("最后更新: %1").arg(lastUpdateTime));
+    } else {
+        lastUpdateLabel->setText("最后更新: 暂无记录");
+    }
 
     // 创建分数动画
     m_scoreAnimationTimer = new QTimer(this);
@@ -502,12 +350,10 @@ void CreditScoreDialog::loadScoreData() {
         }
     )").arg(levelColor).arg(levelBg));
 
-    // 创建进度条展示
-    createProgressBars();
-
     // 填充历史记录表格
     // 获取历史记录
     QJsonArray history = ApiService::instance()->getCreditHistory(userId, 1, 20);
+
     scoreHistoryTable->setRowCount(0);
     scoreHistoryTable->setRowHeight(0, 50);
 
@@ -585,13 +431,6 @@ void CreditScoreDialog::onScoreDetailClicked() {
 
     QString details =
         "✨ 信用分计算规则 ✨\n\n"
-        "信用分 = 各项指标加权总分（满分100分）\n\n"
-        "📊 各项指标说明：\n"
-        "• 交易完成率（30分）：成功完成的交易比例\n"
-        "• 好评率（25分）：收到的好评占总评价的比例\n"
-        "• 纠纷率（20分）：涉及纠纷的交易比例\n"
-        "• 响应速度（15分）：回复消息的平均时间\n"
-        "• 活跃度（10分）：近期登录和交易频率\n\n"
         "🏆 信用等级划分：\n"
         "• 优秀（90-100分）💎\n"
         "• 良好（75-89分）⭐\n"
@@ -613,15 +452,6 @@ void CreditScoreDialog::onScoreDetailClicked() {
         }
     )");
     msgBox.exec();
-}
-
-void CreditScoreDialog::onScoreHistoryClicked() {
-    QMessageBox::information(this, "📝 申诉记录",
-                             "📋 您的申诉记录\n\n"
-                             "暂无进行中的申诉\n\n"
-                             "✅ 已处理申诉：2条\n"
-                             "• 2024-02-15 申诉成功（误扣信用分已恢复）\n"
-                             "• 2024-01-20 申诉成功（交易纠纷已解决）");
 }
 
 void CreditScoreDialog::mousePressEvent(QMouseEvent *event) {

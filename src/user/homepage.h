@@ -41,12 +41,21 @@ private:
     void clearGoodsGrid();
     QString getSortByValue() const;
     QString getCurrentCategory() const;
+    void updatePageButtons();
+    void goToPrevPage();
+    void goToNextPage();
 
     QListWidget *categoryList;
     QLineEdit *searchEdit;
     QPushButton *searchBtn;
     QComboBox *sortCombo;
     QLabel *welcomeLabel;
+
+    int m_currentPage;
+    int m_totalPages;  // 总页数（可选，可从服务端返回）
+    QPushButton *prevPageBtn;
+    QPushButton *nextPageBtn;
+    QLabel *pageInfoLabel;
 
     // 网格布局相关
     QWidget *goodsGridContainer;

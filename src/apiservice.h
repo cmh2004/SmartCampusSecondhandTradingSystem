@@ -47,7 +47,7 @@ public:
     QJsonArray getRecommendedGoods(int limit = 10);
 
     // AI估价
-    QJsonObject estimatePrice(const QString& description, const QString& imagePath = "");
+    QJsonObject estimatePrice(const QString& description,const QStringList& imageBase64List=QStringList(),int goodsId = 0);
 
     // 订单管理
     QJsonObject createOrder(int goodsId, const QJsonObject& orderInfo);
@@ -99,7 +99,7 @@ public:
     // 管理员接口
     QJsonArray getPendingGoods(int page = 1, int pageSize = 20);
     QJsonObject reviewGoods(int goodsId, bool approved, const QString& comment = "");
-    QJsonArray getUserList(const QString& role = "", int page = 1, int pageSize = 20);
+    QJsonArray getUserList(const QString& status = "", const QString& keyword = "",const QString& role = "", int page = 1, int pageSize = 20);
     QJsonObject updateUserStatus(const QString& userId, const QString& status, const QString& reason = "");
     QJsonArray getDisputeList(const QString& status = "", int page = 1, int pageSize = 20);
     QJsonObject processDispute(int disputeId, const QString& result, const QString& comment);
@@ -107,6 +107,7 @@ public:
     QJsonArray getAllReports(int page = 1, int pageSize = 20, const QString& status = "");
     bool processReport(int reportId, const QString& result);
     QJsonObject updateUserCreditScore(int userId, int newScore, const QString& reason = "");
+    QJsonArray getGoodsForReview(const QString& keyword, const QString& status, const QString& startDate, const QString& endDate, int page, int pageSize);
 
     // 设置认证token
     void setAuthToken(const QString& token);

@@ -11,7 +11,7 @@
 #include "HomePage.h"
 #include "..\apiservice.h"
 
-HomePage::HomePage(QWidget *parent) : QWidget(parent) {
+HomePage::HomePage(QWidget *parent) : QWidget(parent),m_currentPage(1),m_totalPages(1) {
     setupUI();
     loadGoodsFromServer("", "全部", 0, 0, "newest", 1, 20);
 }
@@ -152,6 +152,28 @@ void HomePage::setupUI() {
                             1, 20);
     });
     connect(aiSearchBtn, &QPushButton::clicked, this, &HomePage::onAISearchClicked);
+
+    QWidget *paginationWidget = new QWidget();
+    QHBoxLayout *paginationLayout = new QHBoxLayout(paginationWidget);
+    paginationLayout->setContentsMargins(0, 10, 0, 0);
+    paginationLayout->setAlignment(Qt::AlignCenter);
+
+    prevPageBtn = new QPushButton("上一页");
+    prevPageBtn->setObjectName("primaryBtn");
+    prevPageBtn->setFixedSize(80, 32);
+    nextPageBtn = new QPushButton("下一页");
+    nextPageBtn->setObjectName("primaryBtn");
+    nextPageBtn->setFixedSize(80, 32);
+    pageInfoLabel = new QLabel("第 1 页");
+    pageInfoLabel->setStyleSheet("font-size: 13px; color: #475569; margin: 0 15px;");
+
+    paginationLayout->addWidget(prevPageBtn);
+    paginationLayout->addWidget(pageInfoLabel);
+    paginationLayout->addWidget(nextPageBtn);
+    mainLayout->addWidget(paginationWidget);
+
+    connect(prevPageBtn, &QPushButton::clicked, this, &HomePage::goToPrevPage);
+    connect(nextPageBtn, &QPushButton::clicked, this, &HomePage::goToNextPage);
 }
 
 void HomePage::loadGoodsFromServer(const QString &keyword, const QString &category,
@@ -160,10 +182,15 @@ void HomePage::loadGoodsFromServer(const QString &keyword, const QString &catego
     QJsonArray goodsArray = ApiService::instance()->searchGoods(keyword, category, minPrice, maxPrice, sortBy, page, pageSize);
 
     // 1. 清空现有商品网格
-    clearGoodsGrid();  // 该函数需在 HomePage 中实现
+    clearGoodsGrid();
 
-    // 调试：打印商品数量
-    qDebug() << "Goods array size:" << goodsArray.size();
+    // 判断是否还有更多（如果返回数量小于 pageSize，说明是最后一页）
+    bool hasMore = (goodsArray.size() == pageSize);
+    nextPageBtn->setEnabled(hasMore);
+    prevPageBtn->setEnabled(page > 1);
+
+    pageInfoLabel->setText(QString("第 %1 页").arg(page));
+    m_currentPage = page;
 
     // 2. 添加新商品卡片到网格
     int columns = 4;  // 固定列数，可根据窗口宽度动态调整
@@ -454,4 +481,25 @@ void HomePage::onAISearchClicked()
         int col = i % columns;
         goodsGridLayout->addWidget(card, row, col);
     }
+}
+
+void HomePage::goToPrevPage() {
+    if (m_currentPage <= 1) return;
+    // 重新加载上一页，保持其他筛选条件不变
+    loadGoodsFromServer(searchEdit->text().trimmed(),
+                        getCurrentCategory(),
+                        0, 0,
+                        getSortByValue(),
+                        m_currentPage - 1,
+                        20);
+}
+
+void HomePage::goToNextPage() {
+    // 下一页，页码加1
+    loadGoodsFromServer(searchEdit->text().trimmed(),
+                        getCurrentCategory(),
+                        0, 0,
+                        getSortByValue(),
+                        m_currentPage + 1,
+                        20);
 }
