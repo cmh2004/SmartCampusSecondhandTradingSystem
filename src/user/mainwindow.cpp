@@ -81,14 +81,15 @@ void MainWindow::setupUI() {
         detailDialog->setAttribute(Qt::WA_DeleteOnClose);
 
         // 连接GoodsDetailDialog的所有信号
-        connect(detailDialog, &GoodsDetailDialog::contactSellerRequested, this, [this](int goodsId ,const QString &sellerName) {
-            // 切换到消息页面
-            setActiveTabButton(2);
-            mainTabWidget->setCurrentIndex(2); // 消息页面索引
+        connect(detailDialog, &GoodsDetailDialog::contactSellerRequested,
+                this, [this](int goodsId, const QString &sellerName, int sellerId) {
+                    // 切换到消息页面
+                    setActiveTabButton(2);
+                    mainTabWidget->setCurrentIndex(2); // 消息页面索引
 
-            // 通知消息页面创建或进入对话
-            messagesPage->openOrCreateChat(goodsId,sellerName);
-        });
+                    // 通知消息页面创建或进入对话
+                    messagesPage->openOrCreateChat(goodsId, sellerName, sellerId);
+                });
 
         connect(detailDialog, &GoodsDetailDialog::buyNowRequested, this, [this](int goodsId) {
             QJsonObject result = ApiService::instance()->createOrder(goodsId,  QJsonObject());

@@ -23,7 +23,7 @@ protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 signals:
-    void contactSellerRequested(int goodsId, const QString &sellerName);
+    void contactSellerRequested(int goodsId, const QString &sellerName, int sellerId);
     void buyNowRequested(int goodsId);
     void reportGoodsRequested(int goodsId);
 
@@ -42,6 +42,7 @@ private:
 
 private:
     int goodsId;
+    int m_sellerId;
 
     // 商品信息
     QLabel *goodsImageLabel;

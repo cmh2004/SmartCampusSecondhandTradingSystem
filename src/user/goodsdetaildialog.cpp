@@ -273,7 +273,7 @@ void GoodsDetailDialog::setupUI() {
     });
 
     connect(contactBtn, &QPushButton::clicked, [this]() {
-        emit contactSellerRequested(goodsId, sellerLabel->text());
+        emit contactSellerRequested(goodsId, sellerLabel->text(), m_sellerId);
         showMinimized();
     });
 
@@ -391,6 +391,7 @@ void GoodsDetailDialog::loadGoodsData(int goodsId) {
         conditionLabel->setText(data.value("condition").toString()); // 需要服务端提供，若没有可暂时隐藏或显示默认
 
         // 卖家信息
+        m_sellerId = data.value("seller_id").toInt();
         sellerLabel->setText(data.value("seller_name").toString());
         QString sellerPhone = data.value("seller_phone").toString();
         if (!sellerPhone.isEmpty()) {

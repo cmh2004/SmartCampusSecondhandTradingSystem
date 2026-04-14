@@ -168,7 +168,8 @@ QWidget* LoginPage::createRightPanel() {
     rememberMeCheckBox ->setStyleSheet("color: #666; font-size: 13px;");
     rememberMeCheckBox ->move(0, 5);
 
-    autoLoginCheckBox = new QCheckBox("自动登录", optionsWidget);
+    // autoLoginCheckBox = new QCheckBox("自动登录", optionsWidget);
+    autoLoginCheckBox = new QCheckBox("自动登录");
     autoLoginCheckBox ->setStyleSheet("color: #666; font-size: 13px;");
     autoLoginCheckBox ->move(120, 5);
 

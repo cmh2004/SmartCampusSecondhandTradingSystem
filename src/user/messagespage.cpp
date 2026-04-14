@@ -19,19 +19,15 @@ MessagesPage::MessagesPage(QWidget *parent) : QWidget(parent) {
     connect(ApiService::instance(), &ApiService::newMessageReceived, this, &MessagesPage::onNewMessage);
 }
 
-void MessagesPage::openOrCreateChat(int goodsId, const QString &sellerName) {
-    // 查找是否已经存在该商品的聊天
+void MessagesPage::openOrCreateChat(int goodsId, const QString &sellerName, int sellerId) {
     int existingChatId = findChatByGoodsId(goodsId);
-
     if (existingChatId >= 0) {
-        // 如果已存在，直接选中该聊天
         if (existingChatId < chatList->count()) {
             chatList->setCurrentRow(existingChatId);
             onChatItemClicked(chatList->item(existingChatId));
         }
     } else {
-        // 创建新聊天
-        createNewChat(goodsId, sellerName);
+        createNewChat(goodsId, sellerName, sellerId);  // 传入 sellerId 作为 otherId
     }
 }
 
@@ -44,11 +40,12 @@ int MessagesPage::findChatByGoodsId(int goodsId) {
     return -1;
 }
 
-void MessagesPage::createNewChat(int goodsId, const QString &sellerName) {
+void MessagesPage::createNewChat(int goodsId, const QString &sellerName, int otherId) {
     // 创建聊天数据
     QMap<QString, QVariant> newChat;
     newChat["goodsId"] = goodsId;
     newChat["sellerName"] = sellerName;
+    newChat["otherId"] = otherId;
     newChat["lastMessage"] = "开始对话";
     newChat["lastTime"] = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm");
 
@@ -60,6 +57,7 @@ void MessagesPage::createNewChat(int goodsId, const QString &sellerName) {
     item->setData(Qt::UserRole, sellerName);
     item->setData(Qt::UserRole + 1, goodsId);
     item->setData(Qt::UserRole+2, goodsId);
+    item->setData(Qt::UserRole + 3, otherId);
 
     // 自动选中新创建的聊天
     chatList->setCurrentItem(item);

@@ -14,7 +14,7 @@ public:
     explicit MessagesPage(QWidget *parent = nullptr);
     void loadChatHistory();
     void addMessage(const QString &sender, const QString &message, bool isSelf = false, const QString &timestamp = "");
-    void openOrCreateChat(int goodsId, const QString &sellerName);
+    void openOrCreateChat(int goodsId, const QString &sellerName, int sellerId);
 
 private slots:
     void onSendMessage();
@@ -24,7 +24,7 @@ private slots:
 
 private:
     void setupUI();
-    void createNewChat(int goodsId, const QString &sellerName);
+    void createNewChat(int goodsId, const QString &sellerName, int otherId);
     int findChatByGoodsId(int goodsId);
     void loadChatMessages(const QString &sessionId, int page=1, int pageSize=10);
     void updateChatListLastMessage(const QString &sessionId, const QString &lastMessage);
