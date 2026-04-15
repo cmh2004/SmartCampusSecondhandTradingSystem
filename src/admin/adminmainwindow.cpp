@@ -290,8 +290,6 @@ QWidget* AdminMainWindow::createUserManagementPage() {
     userStatusCombo->addItems({"全部", "正常", "已封禁"});
     filterLayout->addWidget(userStatusCombo);
 
-    filterLayout->addWidget(new QLabel("信用等级:"));
-
     QPushButton *searchBtn = new QPushButton("搜索");
     searchBtn->setObjectName("primaryBtn");
     filterLayout->addWidget(searchBtn);
@@ -513,10 +511,48 @@ void AdminMainWindow::loadGoodsReviewData(const QString& keyword, const QString&
         QPushButton *viewBtn = new QPushButton("查看");
         viewBtn->setObjectName("secondaryBtn");
         viewBtn->setFixedSize(60, 30);
-        connect(viewBtn, &QPushButton::clicked, [this, goodsId]() {
-            // 可打开商品详情对话框
-            QMessageBox::information(this, "商品详情", QString("商品ID: %1")
-                                                           .arg(goodsId));
+        connect(viewBtn, &QPushButton::clicked, [this, goodsId, name, seller, price, publishTime, statusCode]() {
+            // 调用商品详情 API 获取完整信息（包括描述、分类、图片等）
+            QJsonObject detail = ApiService::instance()->getGoodsDetail(goodsId);
+            QString detailText;
+            if (detail.value("success").toBool()) {
+                QJsonObject data = detail.value("data").toObject();
+                QString categoryName = data.value("category_name").toString();
+                if (categoryName.isEmpty()) {
+                    int catId = data.value("category_id").toInt();
+                    categoryName = getCategoryName(catId); // 需要实现一个转换函数
+                }
+                QString description = data.value("description").toString();
+                QString images = data.value("images").toArray().size() > 0 ? "有" : "无";
+                QString statusText;
+                switch (statusCode) {
+                case 0: statusText = "待审核"; break;
+                case 1: statusText = "已上架"; break;
+                case 2: statusText = "交易中"; break;
+                case 3: statusText = "已售出"; break;
+                case 4: statusText = "已拒绝"; break;
+                case 5: statusText = "已下架"; break;
+                default: statusText = "未知";
+                }
+                detailText = QString(
+                                 "📦 商品详情\n"
+                                 "━━━━━━━━━━━━━━━━━━━━\n"
+                                 "商品ID: %1\n"
+                                 "商品名称: %2\n"
+                                 "卖家: %3\n"
+                                 "分类: %4\n"
+                                 "价格: ¥%5\n"
+                                 "发布时间: %6\n"
+                                 "当前状态: %7\n"
+                                 "商品描述:\n%8\n"
+                                 "图片数量: %9"
+                                 ).arg(goodsId).arg(name).arg(seller).arg(categoryName)
+                                 .arg(price).arg(publishTime).arg(statusText)
+                                 .arg(description.isEmpty() ? "无" : description).arg(images);
+            } else {
+                detailText = QString("商品ID: %1\n无法获取详细信息").arg(goodsId);
+            }
+            QMessageBox::information(this, "商品详情", detailText);
         });
 
         switch (statusCode) {
@@ -833,8 +869,42 @@ void AdminMainWindow::loadDisputeData(const QString& status, int page, int pageS
             QPushButton *viewBtn = new QPushButton("查看详情");
             viewBtn->setObjectName("secondaryBtn");
             viewBtn->setFixedSize(80, 30);
-            connect(viewBtn, &QPushButton::clicked, [this, disputeId]() {
-                onViewDisputeDetail(disputeId);
+            connect(viewBtn, &QPushButton::clicked, [this, disputeId, orderId, complainant, defendant, type, createTime, status, progress]() {
+                QJsonObject result = ApiService::instance()->getDisputeDetail(disputeId);
+                QString detailText;
+                if (result.value("success").toBool()) {
+                    QJsonObject data = result.value("data").toObject();
+                    QString description = data.value("description").toString();
+                    QString evidence = data.value("evidence_urls").toString();
+                    QString handleResult = data.value("handle_result").toString();
+                    QString statusText;
+                    int st = data.value("status").toString().toInt();
+                    if (st == 0) statusText = "待处理";
+                    else if (st == 1) statusText = "处理中";
+                    else if (st == 2) statusText = "已解决";
+                    else statusText = "已关闭";
+
+                    detailText = QString(
+                                     "⚖️ 纠纷详情\n"
+                                     "━━━━━━━━━━━━━━━━━━━━\n"
+                                     "纠纷ID: %1\n"
+                                     "订单号: %2\n"
+                                     "投诉方: %3\n"
+                                     "被投诉方: %4\n"
+                                     "纠纷类型: %5\n"
+                                     "提交时间: %6\n"
+                                     "当前状态: %7\n"
+                                     "处理进度: %8\n"
+                                     "详细描述:\n%9\n"
+                                     "证据材料:\n%10"
+                                     ).arg(disputeId).arg(orderId).arg(complainant).arg(defendant)
+                                     .arg(type).arg(createTime).arg(statusText).arg(handleResult.isEmpty() ? "无" : handleResult)
+                                     .arg(description.isEmpty() ? "无" : description)
+                                     .arg(evidence.isEmpty() ? "无" : evidence);
+                } else {
+                    detailText = QString("纠纷ID: %1\n无法获取详细信息").arg(disputeId);
+                }
+                QMessageBox::information(this, "纠纷详情", detailText);
             });
             actionLayout->addWidget(viewBtn);
         }
@@ -898,6 +968,19 @@ QString AdminMainWindow::getDisputeStatusParam() {
     if (status == "待处理") return "0";
     else if (status == "已解决") return "2";
     else return "";
+}
+
+QString AdminMainWindow::getCategoryName(int categoryId) {
+    switch (categoryId) {
+    case 1: return "书籍教材";
+    case 2: return "电子产品";
+    case 3: return "服饰鞋包";
+    case 4: return "生活用品";
+    case 5: return "体育器材";
+    case 6: return "学习工具";
+    case 7: return "美妆个护";
+    default: return "其他";
+    }
 }
 
 AdminMainWindow::~AdminMainWindow() {}

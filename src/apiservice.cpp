@@ -578,7 +578,7 @@ QJsonArray ApiService::getMyReports(int page, int pageSize)
 QJsonObject ApiService::getDisputeDetail(int disputeId)
 {
     QJsonObject params{{"dispute_id", disputeId}};
-    return HttpClient::instance()->syncRequest("/api/dispute/detail", params, "GET");
+    return HttpClient::instance()->syncRequest("/api/dispute/detail", params, "POST");
 }
 
 // 获取我的纠纷列表

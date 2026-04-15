@@ -109,26 +109,93 @@ void ReportsManagePage::updateTable(const QJsonArray &reports)
         QJsonObject obj = val.toObject();
         int row = m_table->rowCount();
         m_table->insertRow(row);
+        m_table->setRowHeight(row, 50);  // 增加行高，防止按钮被截断
 
-        // ID
-        m_table->setItem(row, 0, new QTableWidgetItem(QString::number(obj.value("id").toInt())));
-        // 举报类型 (reported_type: 1=商品,2=用户,3=订单)
-        int type = obj.value("reported_type").toInt();
-        QString typeStr = (type == 1) ? "商品" : (type == 2) ? "用户" : "订单";
-        m_table->setItem(row, 1, new QTableWidgetItem(typeStr));
-        // 被举报ID
-        m_table->setItem(row, 2, new QTableWidgetItem(QString::number(obj.value("reported_id").toInt())));
-        // 举报人ID
-        m_table->setItem(row, 3, new QTableWidgetItem(QString::number(obj.value("reporter_id").toInt())));
-        // 原因
-        m_table->setItem(row, 4, new QTableWidgetItem(obj.value("reason_type").toString()));
-        // 状态
-        int status = obj.value("status").toString().toInt();
+        // 提取数据
+        int reportId = obj.value("id").toInt();
+        int reportedType = obj.value("reported_type").toInt();
+        int reportedId = obj.value("reported_id").toInt();
+        int reporterId = obj.value("reporter_id").toInt();
+        QString reasonType = obj.value("reason_type").toString();
+        int status = obj.value("status").toString().toInt(); // 0=待处理,1=已处理
         QString statusStr = (status == 0) ? "待处理" : "已处理";
+        QString description = obj.value("description").toString();
+        QString evidenceUrls = obj.value("evidence_urls").toString();
+
+        // 设置各列
+        m_table->setItem(row, 0, new QTableWidgetItem(QString::number(reportId)));
+        m_table->setItem(row, 1, new QTableWidgetItem(
+                                     (reportedType == 1) ? "商品" : (reportedType == 2) ? "用户" : "订单"));
+        m_table->setItem(row, 2, new QTableWidgetItem(QString::number(reportedId)));
+        m_table->setItem(row, 3, new QTableWidgetItem(QString::number(reporterId)));
+        m_table->setItem(row, 4, new QTableWidgetItem(reasonType));
         m_table->setItem(row, 5, new QTableWidgetItem(statusStr));
-        // 操作按钮占位
-        m_table->setItem(row, 6, new QTableWidgetItem("..."));
+
+        // ===== 操作列：添加“查看”和“处理”按钮 =====
+        QWidget *actionWidget = new QWidget();
+        QHBoxLayout *actionLayout = new QHBoxLayout(actionWidget);
+        actionLayout->setContentsMargins(5, 1, 5, 1);
+        actionLayout->setSpacing(8);
+
+        // 查看按钮
+        QPushButton *viewBtn = new QPushButton("查看");
+        viewBtn->setObjectName("secondaryBtn");
+        viewBtn->setFixedSize(60, 30);
+        connect(viewBtn, &QPushButton::clicked, [this, reportId, reportedType, reportedId, reporterId, reasonType, description, evidenceUrls]() {
+            QString detailText = QString(
+                                     "📋 举报详情\n"
+                                     "━━━━━━━━━━━━━━━━━━━━\n"
+                                     "举报ID: %1\n"
+                                     "举报类型: %2\n"
+                                     "被举报ID: %3\n"
+                                     "举报人ID: %4\n"
+                                     "原因类型: %5\n"
+                                     "详细描述:\n%6\n"
+                                     "证据材料:\n%7")
+                                     .arg(reportId)
+                                     .arg((reportedType == 1) ? "商品" : (reportedType == 2) ? "用户" : "订单")
+                                     .arg(reportedId)
+                                     .arg(reporterId)
+                                     .arg(reasonType)
+                                     .arg(description.isEmpty() ? "无" : description)
+                                     .arg(evidenceUrls.isEmpty() ? "无" : evidenceUrls);
+            QMessageBox::information(this, "举报详情", detailText);
+        });
+
+        // 处理按钮
+        QPushButton *processBtn = new QPushButton(status == 0 ? "处理" : "已处理");
+        processBtn->setObjectName(status == 0 ? "primaryBtn" : "secondaryBtn");
+        processBtn->setFixedSize(70, 30);
+        if (status != 0) {
+            processBtn->setEnabled(false);
+        }
+        connect(processBtn, &QPushButton::clicked, [this, reportId, status]() {
+            if (status != 0) {
+                QMessageBox::information(this, "提示", "该举报已处理");
+                return;
+            }
+            bool ok;
+            QString result = QInputDialog::getMultiLineText(this, "处理举报",
+                                                            "请输入处理结果（将通知举报人）:",
+                                                            "", &ok);
+            if (!ok || result.trimmed().isEmpty()) return;
+
+            if (ApiService::instance()->processReport(reportId, result)) {
+                QMessageBox::information(this, "成功", "举报已处理");
+                loadReports(m_currentPage); // 刷新当前页
+            } else {
+                QMessageBox::warning(this, "失败", "处理失败，请重试");
+            }
+        });
+
+        actionLayout->addWidget(viewBtn);
+        actionLayout->addWidget(processBtn);
+        actionLayout->addStretch();
+        m_table->setCellWidget(row, 6, actionWidget);
     }
+
+    // 设置操作列宽度，确保两个按钮完整显示
+    m_table->setColumnWidth(6, 150);
 }
 
 void ReportsManagePage::onProcessReport()

@@ -60,6 +60,7 @@ private:
     void onApplyShelfGoods(int goodsId);    // 已下架商品申请上架
 
     QString getDisputeStatusParam();
+    QString getCategoryName(int categoryId);
 
 private:
     // 主标签页

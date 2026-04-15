@@ -10,7 +10,6 @@
 
 UserCenterPage::UserCenterPage(QWidget *parent) : QWidget(parent) {
     setupUI();
-    loadUserInfo();
 }
 
 void UserCenterPage::setupUI() {
@@ -214,7 +213,16 @@ void UserCenterPage::setupUI() {
 
         connect(menuBtn, &QPushButton::clicked, this, [this, i]() {
             userSubTabs->setCurrentIndex(i);
-            // 如果切换到浏览历史标签页（索引3），重新加载数据
+            // 切换标签页，重新加载数据
+            if(i==0){
+                loadMyGoods();
+            }
+            if(i==1){
+                loadFavorites();
+            }
+            if(i==2){
+                loadMyReviews();
+            }
             if (i == 3) {
                 loadBrowseHistory();
             }
