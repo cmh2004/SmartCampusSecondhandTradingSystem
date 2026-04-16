@@ -406,14 +406,11 @@ void MessagesPage::onChatItemClicked(QListWidgetItem *item) {
 }
 
 void MessagesPage::loadChatMessages(const QString &sessionId, int page, int pageSize) {
-    qDebug() << "loadChatMessages: sessionId=" << sessionId;
     QJsonArray messages = ApiService::instance()->getMessageHistory(sessionId, page, pageSize);
-    qDebug() << "loadChatMessages: received messages count=" << messages.size();
     messageListWidget->clear();  // 清空消息列表
     // 注意：返回的消息可能是倒序的，需要反转或按时间正序添加
     for (int i = messages.size() - 1; i >= 0; --i) {
         QJsonObject msg = messages[i].toObject();
-        qDebug()<<msg;
         int senderId = msg.value("sender_id").toInt();
         QString content = msg.value("content").toString();
         QString timestamp = msg.value("create_time").toString();

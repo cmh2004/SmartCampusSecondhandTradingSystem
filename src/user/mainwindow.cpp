@@ -8,6 +8,7 @@
 #include <QGraphicsDropShadowEffect>
 #include "..\apiservice.h"
 #include "..\loginpage.h"
+#include "..\admin\adminmainwindow.h"
 #include "MainWindow.h"
 #include "HomePage.h"
 #include "PublishPage.h"
@@ -81,7 +82,7 @@ void MainWindow::setupUI() {
         detailDialog->setAttribute(Qt::WA_DeleteOnClose);
 
         // 连接GoodsDetailDialog的所有信号
-        connect(detailDialog, &GoodsDetailDialog::contactSellerRequested,
+        bool conn = connect(detailDialog, &GoodsDetailDialog::contactSellerRequested,
                 this, [this](int goodsId, const QString &sellerName, int sellerId) {
                     // 切换到消息页面
                     setActiveTabButton(2);
@@ -140,6 +141,23 @@ void MainWindow::setupUI() {
             this, &MainWindow::onShowProfileEdit);
     connect(userCenterPage, &UserCenterPage::creditScoreRequested,
             this, &MainWindow::onShowCreditScore);
+    connect(userCenterPage, &UserCenterPage::goodsDetailRequested, this, [this](int goodsId) {
+        // 显示商品详情
+        GoodsDetailDialog *detailDialog = new GoodsDetailDialog(this, goodsId);
+        detailDialog->setAttribute(Qt::WA_DeleteOnClose);
+
+        // 连接联系卖家信号
+        connect(detailDialog, &GoodsDetailDialog::contactSellerRequested,
+                this, [this](int goodsId, const QString &sellerName, int sellerId) {
+                    // 切换到消息页面
+                    setActiveTabButton(2);
+                    mainTabWidget->setCurrentIndex(2);
+                    // 打开或创建聊天
+                    messagesPage->openOrCreateChat(goodsId, sellerName, sellerId);
+                });
+
+        detailDialog->show();
+    });
 
     mainTabWidget->addTab(homePage, "");
     mainTabWidget->addTab(publishPage, "");
@@ -454,11 +472,6 @@ void MainWindow::setupUI() {
     connect(ApiService::instance(), &ApiService::favoriteChanged, this, [this]() {
         userCenterPage->refreshFavorites(); // 刷新收藏列表
     });
-    connect(userCenterPage, &UserCenterPage::goodsDetailRequested, this, [this](int goodsId) {
-        GoodsDetailDialog *dialog = new GoodsDetailDialog(this, goodsId);
-        dialog->setAttribute(Qt::WA_DeleteOnClose);
-        dialog->show();
-    });
 }
 
 void MainWindow::setupCustomTitleBar() {
@@ -700,7 +713,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event) {
 
 void MainWindow::onTabChanged(int index) {
     if (index == 0) { // 首页
-        homePage->loadGoodsFromServer("", "全部", 0, 0, "newest", 1, 20);
+        homePage->refreshWithCurrentState();
     }
     else if (index == 4) {  // 个人中心标签页索引
         userCenterPage->loadUserInfo();
@@ -891,9 +904,18 @@ void MainWindow::onLogout() {
     // 4. 重新显示登录页
     LoginPage loginPage;
     if (loginPage.exec() == QDialog::Accepted) {
-        // 登录成功，重新创建主窗口（注意：当前窗口已关闭）
-        MainWindow *newWindow = new MainWindow();
-        newWindow->show();
+        // 获取登录角色
+        QString selectedRole = loginPage.getSelectedRole();
+
+        if (selectedRole == "admin") {
+            // 进入管理员系统
+            AdminMainWindow *adminWindow = new AdminMainWindow();
+            adminWindow->show();
+        } else {
+            // 进入普通用户系统
+            MainWindow *newWindow = new MainWindow();
+            newWindow->show();
+        }
     } else {
         // 用户取消登录，退出整个应用程序
         QApplication::quit();

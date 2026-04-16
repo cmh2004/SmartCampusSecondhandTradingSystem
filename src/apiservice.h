@@ -129,6 +129,10 @@ public:
     // 更新商品状态（下架/上架等）
     QJsonObject updateGoodsStatus(int goodsId, int status);
 
+    QJsonArray getSystemMessages(bool unreadOnly = false, int page = 1, int pageSize = 20);
+    bool markSystemMessageRead(int messageId);
+    int getUnreadSystemMessageCount();  // 获取未读消息总数，用于红点显示
+
 signals:
     void unauthorized();  // 认证失效
     void newMessageReceived(const QJsonObject& message);

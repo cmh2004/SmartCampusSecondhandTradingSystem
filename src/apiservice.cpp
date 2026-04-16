@@ -778,3 +778,27 @@ QJsonArray ApiService::getGoodsForReview(const QString& keyword, const QString& 
     }
     return QJsonArray();
 }
+
+QJsonArray ApiService::getSystemMessages(bool unreadOnly, int page, int pageSize) {
+    QJsonObject params{{"unread_only", unreadOnly}, {"page", page}, {"page_size", pageSize}};
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/system/messages", params, "POST");
+    if (response.value("success").toBool()) {
+        QJsonObject dataObj = response.value("data").toObject();
+        return dataObj.value("messages").toArray();
+    }
+    return QJsonArray();
+}
+
+bool ApiService::markSystemMessageRead(int messageId) {
+    QJsonObject data{{"message_id", messageId}};
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/system/messages/read", data, "POST");
+    return response.value("success").toBool();
+}
+
+int ApiService::getUnreadSystemMessageCount() {
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/system/messages/unread_count", {}, "GET");
+    if (response.value("success").toBool()) {
+        return response.value("data").toObject().value("count").toInt();
+    }
+    return 0;
+}

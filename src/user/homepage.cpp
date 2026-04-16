@@ -11,9 +11,13 @@
 #include "HomePage.h"
 #include "..\apiservice.h"
 
-HomePage::HomePage(QWidget *parent) : QWidget(parent),m_currentPage(1),m_totalPages(1) {
+HomePage::HomePage(QWidget *parent) : QWidget(parent),
+    m_currentKeyword(""), m_currentCategory("全部"), m_currentMinPrice(0),
+    m_currentMaxPrice(0), m_currentSortBy("newest"), m_currentPage(1), m_currentPageSize(20) {
     setupUI();
-    loadGoodsFromServer("", "全部", 0, 0, "newest", 1, 20);
+    loadGoodsFromServer(m_currentKeyword, m_currentCategory,
+                        m_currentMinPrice, m_currentMaxPrice,
+                        m_currentSortBy, m_currentPage, m_currentPageSize);
 }
 
 void HomePage::setupUI() {
@@ -179,6 +183,15 @@ void HomePage::setupUI() {
 void HomePage::loadGoodsFromServer(const QString &keyword, const QString &category,
                                    double minPrice, double maxPrice, const QString &sortBy,
                                    int page, int pageSize) {
+    // 保存当前筛选状态
+    m_currentKeyword = keyword;
+    m_currentCategory = category;
+    m_currentMinPrice = minPrice;
+    m_currentMaxPrice = maxPrice;
+    m_currentSortBy = sortBy;
+    m_currentPage = page;
+    m_currentPageSize = pageSize;
+
     QJsonArray goodsArray = ApiService::instance()->searchGoods(keyword, category, minPrice, maxPrice, sortBy, page, pageSize);
 
     // 1. 清空现有商品网格
@@ -502,4 +515,10 @@ void HomePage::goToNextPage() {
                         getSortByValue(),
                         m_currentPage + 1,
                         20);
+}
+
+void HomePage::refreshWithCurrentState() {
+    loadGoodsFromServer(m_currentKeyword, m_currentCategory,
+                        m_currentMinPrice, m_currentMaxPrice,
+                        m_currentSortBy, m_currentPage, m_currentPageSize);
 }

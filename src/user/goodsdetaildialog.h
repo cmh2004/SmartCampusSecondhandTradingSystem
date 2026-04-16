@@ -54,6 +54,7 @@ private:
     QLabel *conditionLabel;
     QLabel *categoryLabel;
     QTextEdit *descriptionText;
+    QLabel *sellerCreditLabel;   // 卖家信用分标签
 
     // AI评估信息
     QLabel *aiPriceRangeLabel;

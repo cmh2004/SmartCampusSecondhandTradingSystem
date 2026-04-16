@@ -162,6 +162,11 @@ void GoodsDetailDialog::setupUI() {
     publishTimeLabel = new QLabel(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm"));
     basicLayout->addWidget(publishTimeLabel, 2, 1);
 
+    basicLayout->addWidget(new QLabel("信用分:"), 2, 2);
+    sellerCreditLabel = new QLabel("100");
+    sellerCreditLabel->setStyleSheet("color: #f39c12; font-weight: bold;");
+    basicLayout->addWidget(sellerCreditLabel, 2, 3);
+
     basicInfoGroup->setLayout(basicLayout);
     rightLayout->addWidget(basicInfoGroup);
 
@@ -173,6 +178,9 @@ void GoodsDetailDialog::setupUI() {
 
     contactBtn = new QPushButton("联系卖家");
     contactBtn->setObjectName("secondaryBtn");
+    bool connResult = connect(contactBtn, &QPushButton::clicked, [this]() {
+        emit contactSellerRequested(goodsId, sellerLabel->text(), m_sellerId);
+    });
 
     collectBtn = new QPushButton("收藏");
     collectBtn->setObjectName("secondaryBtn");
@@ -273,8 +281,11 @@ void GoodsDetailDialog::setupUI() {
     });
 
     connect(contactBtn, &QPushButton::clicked, [this]() {
-        emit contactSellerRequested(goodsId, sellerLabel->text(), m_sellerId);
-        showMinimized();
+        int sellerId = m_sellerId;           // 保存卖家ID
+        QString seller = sellerLabel->text(); // 保存卖家昵称
+        int gid = goodsId;                   // 保存商品ID
+        accept();                            // 关闭对话框
+        emit contactSellerRequested(gid, seller, sellerId);
     });
 
     connect(collectBtn, &QPushButton::clicked, this, &GoodsDetailDialog::onCollectGoods);
@@ -388,7 +399,9 @@ void GoodsDetailDialog::loadGoodsData(int goodsId) {
         descriptionText->setText(data.value("description").toString());
         categoryLabel->setText(getCategoryName(data.value("category_id").toInt())); // 或从分类表获取名称
         publishTimeLabel->setText(data.value("publish_time").toString());
-        conditionLabel->setText(data.value("condition").toString()); // 需要服务端提供，若没有可暂时隐藏或显示默认
+        conditionLabel->setText(data.value("condition").toString());
+        int sellerCredit = data.value("seller_credit").toInt();
+        sellerCreditLabel->setText(QString::number(sellerCredit));
 
         // 卖家信息
         m_sellerId = data.value("seller_id").toInt();

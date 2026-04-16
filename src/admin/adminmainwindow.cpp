@@ -11,6 +11,9 @@
 #include <QMenu>
 #include <QAction>
 #include <QInputDialog>
+#include <QApplication>
+#include "../loginpage.h"
+#include "../user/mainwindow.h"
 #include "../apiservice.h"
 #include "adminmainwindow.h"
 #include "reportsmanagepage.h"
@@ -442,7 +445,31 @@ QWidget* AdminMainWindow::createDisputeManagementPage() {
 void AdminMainWindow::onLogoutClicked() {
     QMessageBox::StandardButton reply = QMessageBox::question(this, "退出登录", "确定要退出管理员账号吗？");
     if (reply == QMessageBox::Yes) {
-        close();
+        // 1. 调用退出 API（可选，服务端会清除 token）
+        ApiService::instance()->logout();
+
+        // 2. 清除本地认证信息
+        ApiService::instance()->clearAuthToken();
+        ApiService::instance()->setCurrentUserId(-1);
+
+        // 3. 关闭当前窗口
+        this->close();
+
+        // 4. 重新显示登录页
+        LoginPage loginPage;
+        if (loginPage.exec() == QDialog::Accepted) {
+            QString selectedRole = loginPage.getSelectedRole();
+            if (selectedRole == "admin") {
+                AdminMainWindow *adminWindow = new AdminMainWindow();
+                adminWindow->show();
+            } else {
+                MainWindow *userWindow = new MainWindow();
+                userWindow->show();
+            }
+        } else {
+            // 用户取消登录，退出整个应用程序
+            QApplication::quit();
+        }
     }
 }
 

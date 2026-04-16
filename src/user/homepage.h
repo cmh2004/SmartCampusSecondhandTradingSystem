@@ -17,6 +17,7 @@ public:
     void loadGoodsFromServer(const QString &keyword, const QString &category,
                                    double minPrice, double maxPrice, const QString &sortBy,
                              int page, int pageSize);
+    void refreshWithCurrentState();
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -60,6 +61,13 @@ private:
     // 网格布局相关
     QWidget *goodsGridContainer;
     QGridLayout *goodsGridLayout;
+
+    QString m_currentKeyword;
+    QString m_currentCategory;   // 存储分类名称（如“全部商品”处理后的名称）
+    double m_currentMinPrice;
+    double m_currentMaxPrice;
+    QString m_currentSortBy;
+    int m_currentPageSize;
 };
 
 #endif // HOMEPAGE_H

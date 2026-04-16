@@ -34,9 +34,8 @@ private:
     void setupStyles();
     QWidget* createLeftPanel();
     QWidget* createRightPanel();
-    void saveLoginInfo(const QString& username, const QString& password, bool remember, bool autoLogin);
+    void saveLoginInfo(const QString& username, const QString& password, bool remember);
     void loadLoginInfo();
-    void attemptAutoLogin();
 
 private:
     QLineEdit *usernameEdit;
@@ -56,7 +55,6 @@ private:
     QString selectedRole;
 
     QCheckBox *rememberMeCheckBox;
-    QCheckBox *autoLoginCheckBox;
 };
 
 #endif // LOGINPAGE_H

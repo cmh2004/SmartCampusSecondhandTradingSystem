@@ -6,6 +6,7 @@
 #include <QGraphicsDropShadowEffect>
 #include "UserCenterPage.h"
 #include "..\apiservice.h"
+#include "SystemMessageDialog.h"
 #include "GoodsEditDialog.h"
 
 UserCenterPage::UserCenterPage(QWidget *parent) : QWidget(parent) {
@@ -136,9 +137,36 @@ void UserCenterPage::setupUI() {
     connect(creditScoreBtn, &QPushButton::clicked, this, &UserCenterPage::onShowCreditScore);
     connect(logoutBtn, &QPushButton::clicked, this, &UserCenterPage::onLogout);
 
+    QPushButton *sysMsgBtn = new QPushButton("系统消息");
+    sysMsgBtn->setFixedSize(120, 40);
+    sysMsgBtn->setObjectName("systemMsgBtn");  // 用于样式表
+    sysMsgBtn->setStyleSheet(R"(
+        QPushButton#systemMsgBtn {
+            background-color: #2ecc71;
+            color: white;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-weight: 600;
+            font-size: 14px;
+            border: none;
+        }
+        QPushButton#systemMsgBtn:hover {
+            background-color: #27ae60;
+        }
+        QPushButton#systemMsgBtn:pressed {
+            background-color: #1e8449;
+        }
+    )");
+    connect(sysMsgBtn, &QPushButton::clicked, [this](){
+        SystemMessageDialog dlg(this);
+        dlg.exec();
+    });
+
     buttonLayout->addWidget(editProfileBtn);
     buttonLayout->addSpacing(20);
     buttonLayout->addWidget(creditScoreBtn);
+    buttonLayout->addSpacing(20);
+    buttonLayout->addWidget(sysMsgBtn);
     buttonLayout->addSpacing(20);
     buttonLayout->addWidget(logoutBtn);
     buttonLayout->addStretch();

@@ -20,7 +20,6 @@ LoginPage::LoginPage(QWidget *parent) : QDialog(parent), isDragging(false), sele
     setupUI();
     setupStyles();
     loadLoginInfo();
-    attemptAutoLogin();
 
     // 连接信号槽
     connect(toRegisterBtn, &QPushButton::clicked, this, &LoginPage::onRegisterClicked);
@@ -167,11 +166,6 @@ QWidget* LoginPage::createRightPanel() {
     rememberMeCheckBox  = new QCheckBox("记住密码", optionsWidget);
     rememberMeCheckBox ->setStyleSheet("color: #666; font-size: 13px;");
     rememberMeCheckBox ->move(0, 5);
-
-    // autoLoginCheckBox = new QCheckBox("自动登录", optionsWidget);
-    autoLoginCheckBox = new QCheckBox("自动登录");
-    autoLoginCheckBox ->setStyleSheet("color: #666; font-size: 13px;");
-    autoLoginCheckBox ->move(120, 5);
 
     QWidget *roleWidget = new QWidget(rightPanel);
     roleWidget->setFixedSize(104, 32);
@@ -414,12 +408,11 @@ void LoginPage::onLoginClicked() {
     if (result.value("success").toBool()) {
         // 保存登录信息
         bool remember = rememberMeCheckBox->isChecked();
-        bool autoLogin = autoLoginCheckBox->isChecked();
-        if (autoLogin && !remember) {
+        if (!remember) {
             // 如果只勾选了自动登录，则自动勾选记住密码
             remember = true;
         }
-        saveLoginInfo(username, password, remember, autoLogin);
+        saveLoginInfo(username, password, remember);
         // 登录成功，保存用户信息
         QJsonObject data = result.value("data").toObject();
         // 设置当前用户 ID 等
@@ -432,19 +425,17 @@ void LoginPage::onLoginClicked() {
     }
 }
 
-void LoginPage::saveLoginInfo(const QString& username, const QString& password, bool remember, bool autoLogin)
+void LoginPage::saveLoginInfo(const QString& username, const QString& password, bool remember)
 {
     QSettings settings("CampusSecondhand", "Login");
     if (remember) {
         settings.setValue("username", username);
         // 实际生产环境应对密码进行加密存储，这里仅作演示
         settings.setValue("password", password);
-        settings.setValue("autoLogin", autoLogin);
         settings.setValue("role", selectedRole);   // 保存当前角色
     } else {
         settings.remove("username");
         settings.remove("password");
-        settings.remove("autoLogin");
         settings.remove("role");
     }
 }
@@ -454,14 +445,12 @@ void LoginPage::loadLoginInfo()
     QSettings settings("CampusSecondhand", "Login");
     QString savedUsername = settings.value("username").toString();
     QString savedPassword = settings.value("password").toString();
-    bool autoLoginFlag = settings.value("autoLogin", false).toBool();
     QString savedRole = settings.value("role").toString();
 
     if (!savedUsername.isEmpty()) {
         usernameEdit->setText(savedUsername);
         passwordEdit->setText(savedPassword);
         rememberMeCheckBox->setChecked(true);
-        autoLoginCheckBox->setChecked(autoLoginFlag);
     }
     // 恢复角色下拉框
     if (savedRole == "admin") {
@@ -470,27 +459,5 @@ void LoginPage::loadLoginInfo()
     } else {
         roleCombo->setCurrentIndex(0);
         selectedRole = "user";
-    }
-}
-
-void LoginPage::attemptAutoLogin()
-{
-    QSettings settings("CampusSecondhand", "Login");
-    if (settings.value("autoLogin", false).toBool()) {
-        QString username = settings.value("username").toString();
-        QString password = settings.value("password").toString();
-        QString savedRole = settings.value("role").toString();
-        if (!username.isEmpty() && !password.isEmpty()) {
-            // 静默尝试登录，不弹任何消息框
-            // 使用保存的角色，若无则默认为普通用户
-            QString autoRole = savedRole.isEmpty() ? "user" : savedRole;
-            QJsonObject result = ApiService::instance()->login(username, password, autoRole);
-            if (result.value("success").toBool()) {
-                QJsonObject data = result.value("data").toObject();
-                ApiService::instance()->setCurrentUserId(data.value("user_id").toInt());
-                selectedRole = data.value("role").toString();
-                accept();  // 自动登录成功，关闭登录窗口
-            }
-        }
     }
 }
