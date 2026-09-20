@@ -8,6 +8,7 @@
 #include "..\apiservice.h"
 #include "SystemMessageDialog.h"
 #include "GoodsEditDialog.h"
+#include "ImageViewerDialog.h"
 
 UserCenterPage::UserCenterPage(QWidget *parent) : QWidget(parent) {
     setupUI();
@@ -520,6 +521,13 @@ void UserCenterPage::createMyCollectionTab() {
         "font-size: 13px;"
         );
     m_favNextBtn->setFixedSize(80, 32);
+    m_favPrevBtn->setStyleSheet(R"(
+        QPushButton:disabled {
+            background-color: #cbd5e0;
+            color: #a0aec0;
+        }
+    )");
+    m_favNextBtn->setStyleSheet(m_favPrevBtn->styleSheet());
     m_favPageLabel = new QLabel("第 1 页");
     m_favPageLabel->setStyleSheet("font-size: 13px; color: #475569; margin: 0 15px;");
 
@@ -626,9 +634,10 @@ void UserCenterPage::createReviewTab() {
     loadMyReviews(1, m_reviewPageSize);
 }
 
-// 辅助函数：添加评价项
 void UserCenterPage::addReviewItem(const QString &date, const QString &orderId,
-                                   const QString &item, int rating, const QString &comment) {
+                                   const QString &item, int rating, const QString &comment,
+                                   const QStringList &imageUrls)
+{
     QWidget *reviewWidget = new QWidget();
     reviewWidget->setObjectName("reviewWidget");
     reviewWidget->setStyleSheet(R"(
@@ -638,6 +647,8 @@ void UserCenterPage::addReviewItem(const QString &date, const QString &orderId,
         }
         #reviewWidget {
             border:1px solid #F0F0F0;
+            border-radius: 8px;
+            margin: 5px 0;
         }
     )");
 
@@ -652,30 +663,16 @@ void UserCenterPage::addReviewItem(const QString &date, const QString &orderId,
     headerLayout->setSpacing(8);
 
     QLabel *dateLabel = new QLabel(date);
-    dateLabel->setStyleSheet(R"(
-        font-size: 13px;
-        color: #718096;
-        font-weight: 500;
-    )");
-
+    dateLabel->setStyleSheet("font-size: 13px; color: #718096; font-weight: 500;");
     QLabel *orderLabel = new QLabel(orderId);
-    orderLabel->setStyleSheet(R"(
-        font-size: 13px;
-        color: #4299E1;
-        font-weight: 500;
-    )");
-
+    orderLabel->setStyleSheet("font-size: 13px; color: #4299E1; font-weight: 500;");
     headerLayout->addWidget(dateLabel);
     headerLayout->addWidget(orderLabel);
     headerLayout->addStretch();
 
     // 商品信息
     QLabel *itemLabel = new QLabel("商品：" + item);
-    itemLabel->setStyleSheet(R"(
-        font-size: 14px;
-        font-weight: 600;
-        color: #2D3748;
-    )");
+    itemLabel->setStyleSheet("font-size: 14px; font-weight: 600; color: #2D3748;");
 
     // 评分区域
     QWidget *ratingWidget = new QWidget();
@@ -686,7 +683,6 @@ void UserCenterPage::addReviewItem(const QString &date, const QString &orderId,
     QLabel *ratingText = new QLabel("评分：");
     ratingText->setStyleSheet("font-size: 13px; color: #718096;");
 
-    // 星级显示
     QWidget *starsWidget = new QWidget();
     QHBoxLayout *starsLayout = new QHBoxLayout(starsWidget);
     starsLayout->setContentsMargins(0, 0, 0, 0);
@@ -696,27 +692,16 @@ void UserCenterPage::addReviewItem(const QString &date, const QString &orderId,
         QLabel *starLabel = new QLabel();
         if (i < rating) {
             starLabel->setText("★");
-            starLabel->setStyleSheet(R"(
-                color: #F6AD55;
-                font-size: 16px;
-            )");
+            starLabel->setStyleSheet("color: #F6AD55; font-size: 16px;");
         } else {
             starLabel->setText("☆");
-            starLabel->setStyleSheet(R"(
-                color: #E2E8F0;
-                font-size: 16px;
-            )");
+            starLabel->setStyleSheet("color: #E2E8F0; font-size: 16px;");
         }
         starsLayout->addWidget(starLabel);
     }
 
-    // 评分数字
     QLabel *ratingNumLabel = new QLabel(QString("(%1星)").arg(rating));
-    ratingNumLabel->setStyleSheet(R"(
-        font-size: 13px;
-        color: #718096;
-        margin-left: 4px;
-    )");
+    ratingNumLabel->setStyleSheet("font-size: 13px; color: #718096; margin-left: 4px;");
 
     ratingLayout->addWidget(ratingText);
     ratingLayout->addWidget(starsWidget);
@@ -725,23 +710,69 @@ void UserCenterPage::addReviewItem(const QString &date, const QString &orderId,
 
     // 评价内容
     QLabel *commentLabel = new QLabel(comment);
-    commentLabel->setStyleSheet(R"(
-        font-size: 13px;
-        color: #4A5568;
-        line-height: 1.5;
-        padding-top: 4px;
-    )");
+    commentLabel->setStyleSheet("font-size: 13px; color: #4A5568; line-height: 1.5; padding-top: 4px;");
     commentLabel->setWordWrap(true);
+
+    QWidget *imagesWidget = nullptr;
+    if (!imageUrls.isEmpty()) {
+        imagesWidget = new QWidget();
+        QHBoxLayout *imagesLayout = new QHBoxLayout(imagesWidget);
+        imagesLayout->setContentsMargins(0, 8, 0, 0);
+        imagesLayout->setSpacing(8);
+        imagesLayout->setAlignment(Qt::AlignLeft);
+
+        for (const QString &url : imageUrls) {
+            if (url.isEmpty()) continue;
+            // 构造完整URL
+            QString fullUrl = url.startsWith("http") ? url : "http://127.0.0.1:8080" + url;
+
+            QLabel *thumbLabel = new QLabel();
+            thumbLabel->setFixedSize(80, 80);
+            thumbLabel->setStyleSheet("border: 1px solid #E2E8F0; border-radius: 6px; background-color: #F8FAFC;");
+            thumbLabel->setAlignment(Qt::AlignCenter);
+            thumbLabel->setCursor(Qt::PointingHandCursor);
+            thumbLabel->installEventFilter(this);
+            thumbLabel->setProperty("imageUrl", fullUrl);
+
+            // 异步加载缩略图
+            QNetworkAccessManager *nam = new QNetworkAccessManager(this);
+            connect(nam, &QNetworkAccessManager::finished, [thumbLabel, nam, fullUrl](QNetworkReply *reply) {
+                if (reply->error() == QNetworkReply::NoError) {
+                    QPixmap pixmap;
+                    pixmap.loadFromData(reply->readAll());
+                    if (!pixmap.isNull()) {
+                        thumbLabel->setPixmap(pixmap.scaled(80, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                    } else {
+                        thumbLabel->setText("加载失败");
+                    }
+                } else {
+                    thumbLabel->setText("加载失败");
+                }
+                reply->deleteLater();
+                nam->deleteLater();
+            });
+            nam->get(QNetworkRequest(QUrl(fullUrl)));
+
+            imagesLayout->addWidget(thumbLabel);
+        }
+        imagesLayout->addStretch();
+    }
 
     // 组装所有组件
     itemLayout->addWidget(headerWidget);
     itemLayout->addWidget(itemLabel);
     itemLayout->addWidget(ratingWidget);
     itemLayout->addWidget(commentLabel);
+    if (imagesWidget) {
+        itemLayout->addWidget(imagesWidget);
+    }
 
     // 创建列表项
     QListWidgetItem *itemWidget = new QListWidgetItem();
-    itemWidget->setSizeHint(QSize(0, 190)); // 设置固定高度
+    // 动态计算高度：基础高度 + 图片区域高度（如果有图片则增加约90）
+    int baseHeight = 190;
+    if (!imageUrls.isEmpty()) baseHeight += 100;
+    itemWidget->setSizeHint(QSize(0, baseHeight));
     reviewList->addItem(itemWidget);
     reviewList->setItemWidget(itemWidget, reviewWidget);
 }
@@ -974,6 +1005,13 @@ void UserCenterPage::loadMyGoods(int page, int pageSize) {
     bool hasMore = (goodsList.size() == pageSize);
     m_publishNextBtn->setEnabled(hasMore);
     m_publishPrevBtn->setEnabled(page > 1);
+    m_publishPrevBtn->setStyleSheet(R"(
+        QPushButton:disabled {
+            background-color: #cbd5e0;
+            color: #a0aec0;
+        }
+    )");
+    m_publishNextBtn->setStyleSheet(m_publishPrevBtn->styleSheet());
 }
 
 void UserCenterPage::loadMyReviews(int page, int pageSize) {
@@ -990,12 +1028,26 @@ void UserCenterPage::loadMyReviews(int page, int pageSize) {
         QString goodsName = review.value("goods_name").toString();
         int rating = review.value("score").toString().toInt();
         QString comment = review.value("content").toString();
-        addReviewItem(date, "订单 #" + orderId, goodsName, rating, comment);
+
+        QString imageUrlsStr = review.value("image_urls").toString();
+        QStringList imageUrls;
+        if (!imageUrlsStr.isEmpty()) {
+            imageUrls = imageUrlsStr.split(',', Qt::SkipEmptyParts);
+        }
+
+        addReviewItem(date, "订单 #" + orderId, goodsName, rating, comment, imageUrls);
     }
 
     bool hasMore = (reviews.size() == pageSize);
     m_reviewNextBtn->setEnabled(hasMore);
     m_reviewPrevBtn->setEnabled(page > 1);
+    m_reviewPrevBtn->setStyleSheet(R"(
+        QPushButton:disabled {
+            background-color: #cbd5e0;
+            color: #a0aec0;
+        }
+    )");
+    m_reviewNextBtn->setStyleSheet(m_reviewPrevBtn->styleSheet());
 }
 
 void UserCenterPage::loadBrowseHistory(int page, int pageSize) {
@@ -1026,6 +1078,13 @@ void UserCenterPage::loadBrowseHistory(int page, int pageSize) {
     bool hasMore = (history.size() == pageSize);
     m_historyNextBtn->setEnabled(hasMore);
     m_historyPrevBtn->setEnabled(page > 1);
+    m_historyPrevBtn->setStyleSheet(R"(
+        QPushButton:disabled {
+            background-color: #cbd5e0;
+            color: #a0aec0;
+        }
+    )");
+    m_historyNextBtn->setStyleSheet(m_historyPrevBtn->styleSheet());
 }
 
 QWidget* UserCenterPage::createHistoryItem(const QJsonObject &goods) {
@@ -1055,7 +1114,7 @@ void UserCenterPage::onOffShelf() {
     QPushButton *btn = qobject_cast<QPushButton*>(sender());
     if (!btn) return;
     int goodsId = btn->property("goodsId").toInt();
-    // 调用下架 API (假设 updateGoodsStatus 或类似)
+    // 调用下架 API
     QJsonObject result = ApiService::instance()->updateGoodsStatus(goodsId, 5); // 4=下架
     if (result.value("success").toBool()) {
         QMessageBox::information(this, "成功", "商品已下架");
@@ -1071,8 +1130,6 @@ void UserCenterPage::onEditGoods()
     if (!btn) return;
     int goodsId = btn->property("goodsId").toInt();
 
-    // 获取当前商品的完整数据（可从表格中已有的数据构建，或重新从服务端获取）
-    // 简单起见，可以从服务端重新获取商品详情
     QJsonObject result = ApiService::instance()->getGoodsDetail(goodsId);
     if (!result.value("success").toBool()) {
         QMessageBox::warning(this, "错误", "获取商品信息失败");
@@ -1124,4 +1181,18 @@ void UserCenterPage::onApplyShelve()
     } else {
         QMessageBox::warning(this, "失败", result.value("error").toString());
     }
+}
+
+bool UserCenterPage::eventFilter(QObject *watched, QEvent *event) {
+    if (event->type() == QEvent::MouseButtonPress) {
+        QLabel *label = qobject_cast<QLabel*>(watched);
+        if (label && label->property("imageUrl").isValid()) {
+            QString imageUrl = label->property("imageUrl").toString();
+            ImageViewerDialog *dialog = new ImageViewerDialog(imageUrl, this);
+            dialog->setAttribute(Qt::WA_DeleteOnClose);
+            dialog->show();
+            return true;
+        }
+    }
+    return QWidget::eventFilter(watched, event);
 }

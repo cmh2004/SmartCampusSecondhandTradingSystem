@@ -11,7 +11,6 @@ SystemMessageDialog::SystemMessageDialog(QWidget *parent)
 {
     setupUI();
     loadMessages();
-    updateUnreadCount();
 }
 
 void SystemMessageDialog::setupUI()
@@ -27,9 +26,6 @@ void SystemMessageDialog::setupUI()
     QHBoxLayout *toolLayout = new QHBoxLayout(toolBar);
     toolLayout->setContentsMargins(0, 0, 0, 0);
 
-    m_unreadLabel = new QLabel("未读消息: 0");
-    m_unreadLabel->setStyleSheet("color: #e74c3c; font-weight: bold;");
-
     m_refreshBtn = new QPushButton("刷新");
     m_markReadBtn = new QPushButton("标记选中为已读");
     m_markAllReadBtn = new QPushButton("全部标记已读");
@@ -38,7 +34,6 @@ void SystemMessageDialog::setupUI()
     m_markReadBtn->setObjectName("secondaryBtn");
     m_markAllReadBtn->setObjectName("secondaryBtn");
 
-    toolLayout->addWidget(m_unreadLabel);
     toolLayout->addStretch();
     toolLayout->addWidget(m_refreshBtn);
     toolLayout->addWidget(m_markReadBtn);
@@ -149,7 +144,6 @@ void SystemMessageDialog::onMarkRead()
     int msgId = m_table->item(row, 4)->text().toInt();
     if (ApiService::instance()->markSystemMessageRead(msgId)) {
         loadMessages();      // 刷新列表
-        updateUnreadCount(); // 更新未读数
     } else {
         QMessageBox::warning(this, "失败", "标记失败，请重试");
     }
@@ -181,7 +175,6 @@ void SystemMessageDialog::onMarkAllRead()
 
     if (allSuccess) {
         loadMessages();
-        updateUnreadCount();
         QMessageBox::information(this, "成功", "所有消息已标记为已读");
     } else {
         QMessageBox::warning(this, "失败", "部分消息标记失败，请重试");
@@ -191,16 +184,4 @@ void SystemMessageDialog::onMarkAllRead()
 void SystemMessageDialog::onRefresh()
 {
     loadMessages();
-    updateUnreadCount();
-}
-
-void SystemMessageDialog::updateUnreadCount()
-{
-    int unreadCount = ApiService::instance()->getUnreadSystemMessageCount();
-    m_unreadLabel->setText(QString("未读消息: %1").arg(unreadCount));
-    if (unreadCount > 0) {
-        m_unreadLabel->setStyleSheet("color: #e74c3c; font-weight: bold;");
-    } else {
-        m_unreadLabel->setStyleSheet("color: #2ecc71; font-weight: bold;");
-    }
 }

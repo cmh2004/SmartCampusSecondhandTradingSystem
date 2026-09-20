@@ -9,6 +9,7 @@
 #include <QMouseEvent>
 #include <QComboBox>
 #include <QApplication>
+#include "websocketclient.h"
 
 class LoginPage : public QDialog {
     Q_OBJECT

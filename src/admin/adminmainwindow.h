@@ -37,7 +37,7 @@ private slots:
 
     // 纠纷处理相关
     void onViewDisputeDetail(int disputeId);
-    void onProcessDispute(int disputeId, const QString& decision);
+    void onProcessDispute(int disputeId, const QString& result, const QString& responsibility, int changeValue);
     void onFilterDisputes();
 
 private:
@@ -58,9 +58,18 @@ private:
     void onOffShelfGoods(int goodsId);      // 下架商品
     void onReapplyGoods(int goodsId);       // 已拒绝商品重新申请审核
     void onApplyShelfGoods(int goodsId);    // 已下架商品申请上架
+    void onShelfGoods(int goodsId);
 
     QString getDisputeStatusParam();
     QString getCategoryName(int categoryId);
+    void showGoodsDetailDialog(int goodsId, const QString& name,
+                                const QString& seller, double price,
+                                const QString& publishTime, int statusCode);
+    void showDisputeDetailDialog(int disputeId, int orderId,
+                                const QString& complainant, const QString& defendant,
+                                const QString& type, const QString& createTime,
+                                int status, const QString& progress,
+                                const QString& description, const QString& evidenceUrls);
 
 private:
     // 主标签页

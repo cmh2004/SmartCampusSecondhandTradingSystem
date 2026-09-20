@@ -21,13 +21,11 @@ private slots:
 
 private:
     void setupUI();
-    void updateUnreadCount();     // 更新未读消息数量显示
 
     QTableWidget *m_table;
     QPushButton *m_refreshBtn;
     QPushButton *m_markReadBtn;
     QPushButton *m_markAllReadBtn;
-    QLabel *m_unreadLabel;
 };
 
 #endif // SYSTEMMESSAGEDIALOG_H

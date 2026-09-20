@@ -25,7 +25,7 @@ protected:
 signals:
     void contactSellerRequested(int goodsId, const QString &sellerName, int sellerId);
     void buyNowRequested(int goodsId);
-    void reportGoodsRequested(int goodsId);
+    void reportGoodsRequested(int goodsId, const QString &goodsName);
 
 private slots:
     void onCollectGoods();
@@ -48,7 +48,7 @@ private:
     QLabel *goodsImageLabel;
     QLabel *goodsTitleLabel;
     QLabel *priceLabel;
-    QLabel *sellerLabel;
+    QPushButton *sellerLabel;
     QLabel *contactLabel;
     QLabel *publishTimeLabel;
     QLabel *conditionLabel;
@@ -76,6 +76,7 @@ private:
     QList<QLabel*> m_thumbnailLabels;   // 存储缩略图控件
 
     bool m_isFavorited;  // 当前商品是否已收藏
+    QString m_currentGoodsName;
 };
 
 #endif // GOODSDETAILDIALOG_H

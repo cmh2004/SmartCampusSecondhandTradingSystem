@@ -30,11 +30,12 @@ private:
     void updateChatListLastMessage(const QString &sessionId, const QString &lastMessage);
     QWidget* createMessageWidget(const QString &senderName, const QString &message, bool isSelf, const QString &timestamp);
     QString formatMessageTime(const QString &timestamp);
+    void updateCurrentChatTitle();   // 更新当前会话的标题栏
 
     QListWidget *chatList;
     QListWidget *messageListWidget;
     QLineEdit *messageEdit;
-    QLabel *currentChatLabel;
+    // QLabel *currentChatLabel;
 
     int m_currentChatOtherId = -1;
 

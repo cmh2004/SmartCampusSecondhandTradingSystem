@@ -187,7 +187,7 @@ QWidget* AdminMainWindow::createGoodsReviewPage() {
 
     filterLayout->addWidget(new QLabel("发布时间:"));
     goodsDateFromEdit = new QDateEdit();
-    goodsDateFromEdit->setDate(QDate::currentDate().addDays(-7));
+    goodsDateFromEdit->setDate(QDate::currentDate().addDays(-365));
     goodsDateFromEdit->setDisplayFormat("yyyy-MM-dd");
     goodsDateFromEdit->setFixedWidth(120);
     filterLayout->addWidget(goodsDateFromEdit);
@@ -235,10 +235,12 @@ QWidget* AdminMainWindow::createGoodsReviewPage() {
     paginationLayout->setAlignment(Qt::AlignCenter);
 
     goodsPrevBtn = new QPushButton("上一页");
-    goodsPrevBtn->setObjectName("secondaryBtn");
+    goodsPrevBtn->setObjectName("primaryBtn");
+    goodsPrevBtn->setStyleSheet("QPushButton:disabled { background-color: #cbd5e0; color: #a0aec0; }");
     goodsPrevBtn->setFixedSize(80, 32);
     goodsNextBtn = new QPushButton("下一页");
-    goodsNextBtn->setObjectName("secondaryBtn");
+    goodsNextBtn->setObjectName("primaryBtn");
+    goodsNextBtn->setStyleSheet(goodsPrevBtn->styleSheet());
     goodsNextBtn->setFixedSize(80, 32);
     goodsPageInfoLabel = new QLabel("第 1 页");
     goodsPageInfoLabel->setStyleSheet("font-size: 13px; color: #475569; margin: 0 15px;");
@@ -330,10 +332,12 @@ QWidget* AdminMainWindow::createUserManagementPage() {
     paginationLayout->setAlignment(Qt::AlignCenter);
 
     userPrevBtn = new QPushButton("上一页");
-    userPrevBtn->setObjectName("secondaryBtn");
+    userPrevBtn->setObjectName("primaryBtn");
+    userPrevBtn->setStyleSheet("QPushButton:disabled { background-color: #cbd5e0; color: #a0aec0; }");
     userPrevBtn->setFixedSize(80, 32);
     userNextBtn = new QPushButton("下一页");
-    userNextBtn->setObjectName("secondaryBtn");
+    userNextBtn->setObjectName("primaryBtn");
+    userNextBtn->setStyleSheet(userPrevBtn->styleSheet());
     userNextBtn->setFixedSize(80, 32);
     userPageInfoLabel = new QLabel("第 1 页");
     userPageInfoLabel->setStyleSheet("font-size: 13px; color: #475569; margin: 0 15px;");
@@ -416,10 +420,12 @@ QWidget* AdminMainWindow::createDisputeManagementPage() {
     paginationLayout->setAlignment(Qt::AlignCenter);
 
     disputePrevBtn = new QPushButton("上一页");
-    disputePrevBtn->setObjectName("secondaryBtn");
+    disputePrevBtn->setObjectName("primaryBtn");
+    disputePrevBtn->setStyleSheet("QPushButton:disabled { background-color: #cbd5e0; color: #a0aec0; }");
     disputePrevBtn->setFixedSize(80, 32);
     disputeNextBtn = new QPushButton("下一页");
-    disputeNextBtn->setObjectName("secondaryBtn");
+    disputeNextBtn->setObjectName("primaryBtn");
+    disputeNextBtn->setStyleSheet(disputePrevBtn->styleSheet());
     disputeNextBtn->setFixedSize(80, 32);
     disputePageInfoLabel = new QLabel("第 1 页");
     disputePageInfoLabel->setStyleSheet("font-size: 13px; color: #475569; margin: 0 15px;");
@@ -474,11 +480,35 @@ void AdminMainWindow::onLogoutClicked() {
 }
 
 void AdminMainWindow::onTabChanged(int index) {
-    // 根据标签页切换加载数据
     switch(index) {
-    case 0: loadGoodsReviewData("", "全部", "", ""); break;
-    case 1: loadUserManagementData(); break;
-    case 2: loadDisputeData(); break;
+    case 0: {
+        // 读取当前筛选控件的值
+        QString keyword = goodsSearchEdit->text().trimmed();
+        QString status = goodsStatusCombo->currentText();
+        QString startDate = goodsDateFromEdit->date().toString("yyyy-MM-dd");
+        QString endDate = goodsDateToEdit->date().toString("yyyy-MM-dd");
+        loadGoodsReviewData(keyword, status, startDate, endDate, m_goodsCurrentPage);
+        break;
+    }
+    case 1: {
+        QString keyword = userSearchEdit->text().trimmed();
+        QString status = userStatusCombo->currentText();
+        loadUserManagementData(keyword, status, m_userCurrentPage);
+        break;
+    }
+    case 2: {
+        QString statusParam = getDisputeStatusParam();
+        loadDisputeData(statusParam, m_disputeCurrentPage);
+        break;
+    }
+    case 3: {
+        // 举报管理
+        ReportsManagePage *reportsPage = qobject_cast<ReportsManagePage*>(mainTabWidget->widget(3));
+        if (reportsPage) {
+            reportsPage->refresh();
+        }
+        break;
+    }
     }
 }
 
@@ -488,22 +518,39 @@ void AdminMainWindow::loadGoodsReviewData(const QString& keyword, const QString&
                                           int page, int pageSize) {
     m_goodsCurrentPage = page;
     goodsPageInfoLabel->setText(QString("第 %1 页").arg(page));
-
     goodsReviewTable->setRowCount(0);
 
-    QJsonArray goodsList = ApiService::instance()->getGoodsForReview(keyword, status, startDate, endDate, page, pageSize);
+    QJsonObject params;
+    params["keyword"] = keyword;
+    params["status"] = status;
+    params["start_date"] = startDate;
+    params["end_date"] = endDate;
+    params["page"] = page;
+    params["page_size"] = pageSize;
+
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/admin/goods_review_list", params, "POST");
+    if (!response.value("success").toBool()) {
+        qWarning() << "Failed to load goods review data:" << response.value("error").toString();
+        return;
+    }
+
+    QJsonObject data = response.value("data").toObject();
+    QJsonArray goodsList = data.value("list").toArray();
+    int total = data.value("total").toInt();
+    int totalPages = (total + pageSize - 1) / pageSize;
+
     for (const QJsonValue &val : goodsList) {
         QJsonObject goods = val.toObject();
         int goodsId = goods.value("id").toInt();
         QString name = goods.value("name").toString();
-        QString seller = goods.value("seller_name").toString(); // 需确保服务端返回 seller_name
+        QString seller = goods.value("seller_name").toString();
         double price = goods.value("price").toDouble();
         QString publishTime = goods.value("publish_time").toString();
         int statusCode = goods.value("status").toString().toInt();
         QString statusText;
         switch (statusCode) {
         case 0: statusText = "待审核"; break;
-        case 1: statusText = "已上架"; break;
+        case 1: statusText = "在售"; break;
         case 2: statusText = "交易中"; break;
         case 3: statusText = "已售出"; break;
         case 4: statusText = "已拒绝"; break;
@@ -524,7 +571,7 @@ void AdminMainWindow::loadGoodsReviewData(const QString& keyword, const QString&
         // 状态列
         QTableWidgetItem *statusItem = new QTableWidgetItem(statusText);
         if (statusText == "待审核") statusItem->setForeground(QColor(230, 126, 34));
-        else if (statusText == "已上架") statusItem->setForeground(QColor(46, 204, 113));
+        else if (statusText == "在售") statusItem->setForeground(QColor(46, 204, 113));
         else if (statusText == "已拒绝") statusItem->setForeground(QColor(231, 76, 60));
         goodsReviewTable->setItem(row, 5, statusItem);
 
@@ -539,47 +586,7 @@ void AdminMainWindow::loadGoodsReviewData(const QString& keyword, const QString&
         viewBtn->setObjectName("secondaryBtn");
         viewBtn->setFixedSize(60, 30);
         connect(viewBtn, &QPushButton::clicked, [this, goodsId, name, seller, price, publishTime, statusCode]() {
-            // 调用商品详情 API 获取完整信息（包括描述、分类、图片等）
-            QJsonObject detail = ApiService::instance()->getGoodsDetail(goodsId);
-            QString detailText;
-            if (detail.value("success").toBool()) {
-                QJsonObject data = detail.value("data").toObject();
-                QString categoryName = data.value("category_name").toString();
-                if (categoryName.isEmpty()) {
-                    int catId = data.value("category_id").toInt();
-                    categoryName = getCategoryName(catId); // 需要实现一个转换函数
-                }
-                QString description = data.value("description").toString();
-                QString images = data.value("images").toArray().size() > 0 ? "有" : "无";
-                QString statusText;
-                switch (statusCode) {
-                case 0: statusText = "待审核"; break;
-                case 1: statusText = "已上架"; break;
-                case 2: statusText = "交易中"; break;
-                case 3: statusText = "已售出"; break;
-                case 4: statusText = "已拒绝"; break;
-                case 5: statusText = "已下架"; break;
-                default: statusText = "未知";
-                }
-                detailText = QString(
-                                 "📦 商品详情\n"
-                                 "━━━━━━━━━━━━━━━━━━━━\n"
-                                 "商品ID: %1\n"
-                                 "商品名称: %2\n"
-                                 "卖家: %3\n"
-                                 "分类: %4\n"
-                                 "价格: ¥%5\n"
-                                 "发布时间: %6\n"
-                                 "当前状态: %7\n"
-                                 "商品描述:\n%8\n"
-                                 "图片数量: %9"
-                                 ).arg(goodsId).arg(name).arg(seller).arg(categoryName)
-                                 .arg(price).arg(publishTime).arg(statusText)
-                                 .arg(description.isEmpty() ? "无" : description).arg(images);
-            } else {
-                detailText = QString("商品ID: %1\n无法获取详细信息").arg(goodsId);
-            }
-            QMessageBox::information(this, "商品详情", detailText);
+            showGoodsDetailDialog(goodsId, name, seller, price, publishTime, statusCode);
         });
 
         switch (statusCode) {
@@ -606,7 +613,7 @@ void AdminMainWindow::loadGoodsReviewData(const QString& keyword, const QString&
             actionLayout->addWidget(viewBtn);
             break;
         }
-        case 1: // 已上架
+        case 1:
         {
             QPushButton *offShelfBtn = new QPushButton("下架");
             offShelfBtn->setObjectName("warningBtn");
@@ -634,14 +641,14 @@ void AdminMainWindow::loadGoodsReviewData(const QString& keyword, const QString&
         }
         case 5: // 已下架
         {
-            QPushButton *applyShelfBtn = new QPushButton("申请上架");
-            applyShelfBtn->setObjectName("primaryBtn");
-            applyShelfBtn->setFixedSize(80, 30);
-            applyShelfBtn->setProperty("goodsId", goodsId);
-            connect(applyShelfBtn, &QPushButton::clicked, [this, applyShelfBtn]() {
-                onApplyShelfGoods(applyShelfBtn->property("goodsId").toInt());
+            QPushButton *shelfBtn = new QPushButton("上架");
+            shelfBtn->setObjectName("successBtn");  // 使用绿色按钮
+            shelfBtn->setFixedSize(60, 30);
+            shelfBtn->setProperty("goodsId", goodsId);
+            connect(shelfBtn, &QPushButton::clicked, [this, shelfBtn]() {
+                onShelfGoods(shelfBtn->property("goodsId").toInt());
             });
-            actionLayout->addWidget(applyShelfBtn);
+            actionLayout->addWidget(shelfBtn);
             actionLayout->addWidget(viewBtn);
             break;
         }
@@ -658,10 +665,8 @@ void AdminMainWindow::loadGoodsReviewData(const QString& keyword, const QString&
         goodsReviewTable->setCellWidget(row, 6, actionWidget);
     }
 
-    // 根据返回数量判断是否有下一页（如果返回数量小于 pageSize，则禁用下一页）
-    bool hasMore = (goodsList.size() == pageSize);
-    goodsNextBtn->setEnabled(hasMore);
     goodsPrevBtn->setEnabled(page > 1);
+    goodsNextBtn->setEnabled(page < totalPages);
 }
 
 void AdminMainWindow::onReviewGoods(int goodsId, bool approve) {
@@ -680,7 +685,7 @@ void AdminMainWindow::onReviewGoods(int goodsId, bool approve) {
         QString status = goodsStatusCombo->currentText();
         QString startDate = goodsDateFromEdit->date().toString("yyyy-MM-dd");
         QString endDate = goodsDateToEdit->date().toString("yyyy-MM-dd");
-        loadGoodsReviewData(keyword, status, startDate, endDate);
+        loadGoodsReviewData(keyword, status, startDate, endDate, m_goodsCurrentPage);
     } else {
         QMessageBox::warning(this, "审核失败", result.value("error").toString());
     }
@@ -702,7 +707,9 @@ void AdminMainWindow::onBlockUser(const QString &userId, bool block) {
     QJsonObject result = ApiService::instance()->updateUserStatus(userId, newStatus, block ? "管理员封禁" : "管理员解封");
     if (result.value("success").toBool()) {
         QMessageBox::information(this, "操作成功", result.value("message").toString());
-        loadUserManagementData(); // 刷新列表
+        loadUserManagementData(userSearchEdit->text().trimmed(),
+                               userStatusCombo->currentText(),
+                               m_userCurrentPage);
     } else {
         QMessageBox::warning(this, "操作失败", result.value("error").toString());
     }
@@ -718,7 +725,9 @@ void AdminMainWindow::onAdjustCreditScore(int userId, int newScore) {
     QJsonObject result = ApiService::instance()->updateUserCreditScore(userId, newScore, reason);
     if (result.value("success").toBool()) {
         QMessageBox::information(this, "调整成功", "信用分已更新");
-        loadUserManagementData();  // 刷新表格
+        loadUserManagementData(userSearchEdit->text().trimmed(),
+                               userStatusCombo->currentText(),
+                               m_userCurrentPage);
     } else {
         QMessageBox::warning(this, "调整失败", result.value("error").toString());
     }
@@ -737,13 +746,15 @@ void AdminMainWindow::onViewDisputeDetail(int disputeId) {
                              QString("查看纠纷ID %1 的详细信息").arg(disputeId));
 }
 
-void AdminMainWindow::onProcessDispute(int disputeId, const QString &result) {
-    QJsonObject response = ApiService::instance()->processDispute(disputeId, result, "");
+void AdminMainWindow::onProcessDispute(int disputeId, const QString& result,
+                                       const QString& responsibility, int changeValue)
+{
+    QJsonObject response = ApiService::instance()->processDispute(disputeId, result, responsibility, changeValue);
     if (response.value("success").toBool()) {
-        QMessageBox::information(this, "处理成功", "纠纷已处理");
-        loadDisputeData();
+        QMessageBox::information(this, "成功", "纠纷已处理");
+        loadDisputeData(getDisputeStatusParam(), m_disputeCurrentPage);
     } else {
-        QMessageBox::warning(this, "处理失败", response.value("error").toString());
+        QMessageBox::warning(this, "失败", response.value("error").toString());
     }
 }
 
@@ -754,15 +765,28 @@ void AdminMainWindow::onFilterDisputes() {
 void AdminMainWindow::loadUserManagementData(const QString& keyword, const QString& status, int page, int pageSize)  {
     m_userCurrentPage = page;
     userPageInfoLabel->setText(QString("第 %1 页").arg(page));
-
     userTable->setRowCount(0);
 
-    QString apiStatus;
-    if (status == "正常") apiStatus = "1";
-    else if (status == "已封禁") apiStatus = "0";
-    else apiStatus = ""; // 全部
+    QJsonObject params;
+    if (!status.isEmpty()) {
+        int statusInt = (status == "正常") ? 1 : 0;
+        params["status"] = statusInt;
+    }
+    if (!keyword.isEmpty()) params["keyword"] = keyword;
+    params["page"] = page;
+    params["page_size"] = pageSize;
 
-    QJsonArray users = ApiService::instance()->getUserList(apiStatus, keyword, "0", page, pageSize);
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/admin/user_list", params, "POST");
+    if (!response.value("success").toBool()) {
+        qWarning() << "Failed to load user list:" << response.value("error").toString();
+        return;
+    }
+
+    QJsonObject data = response.value("data").toObject();
+    QJsonArray users = data.value("list").toArray();
+    int total = data.value("total").toInt();
+    int totalPages = (total + pageSize - 1) / pageSize;
+
     for (const QJsonValue &val : users) {
         QJsonObject user = val.toObject();
         int userId = user.value("id").toInt();
@@ -830,17 +854,31 @@ void AdminMainWindow::loadUserManagementData(const QString& keyword, const QStri
         userTable->setCellWidget(row, 6, actionWidget);
     }
     // 更新按钮状态
-    bool hasMore = (users.size() == pageSize);
-    userNextBtn->setEnabled(hasMore);
     userPrevBtn->setEnabled(page > 1);
+    userNextBtn->setEnabled(page < totalPages);
 }
 
 void AdminMainWindow::loadDisputeData(const QString& status, int page, int pageSize)  {
     m_disputeCurrentPage = page;
     disputePageInfoLabel->setText(QString("第 %1 页").arg(page));
-
     disputeTable->setRowCount(0);
-    QJsonArray disputes = ApiService::instance()->getDisputeList(status, page, pageSize);
+
+    QJsonObject params;
+    if (!status.isEmpty()) params["status"] = status;
+    params["page"] = page;
+    params["page_size"] = pageSize;
+
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/admin/dispute_list", params, "POST");
+    if (!response.value("success").toBool()) {
+        qWarning() << "Failed to load dispute list:" << response.value("error").toString();
+        return;
+    }
+
+    QJsonObject data = response.value("data").toObject();
+    QJsonArray disputes = data.value("list").toArray();
+    int total = data.value("total").toInt();
+    int totalPages = (total + pageSize - 1) / pageSize;
+
     for (const QJsonValue &val : disputes) {
         QJsonObject dispute = val.toObject();
         int disputeId = dispute.value("id").toInt();
@@ -851,6 +889,8 @@ void AdminMainWindow::loadDisputeData(const QString& status, int page, int pageS
         QString createTime = dispute.value("create_time").toString();
         int status = dispute.value("status").toString().toInt(); // 0待处理,1处理中,2已解决,3已关闭
         QString progress = dispute.value("handle_result").toString();
+        QString description = dispute.value("description").toString();
+        QString evidenceUrls = dispute.value("evidence_urls").toString();
 
         int row = disputeTable->rowCount();
         disputeTable->insertRow(row);
@@ -876,72 +916,94 @@ void AdminMainWindow::loadDisputeData(const QString& status, int page, int pageS
         actionLayout->setContentsMargins(5, 1, 5, 1);
         actionLayout->setSpacing(5);
 
+        QPushButton *viewBtn = new QPushButton("查看详情");
+        viewBtn->setObjectName("secondaryBtn");
+        viewBtn->setFixedSize(80, 30);
+        connect(viewBtn, &QPushButton::clicked, [this, disputeId, orderId, complainant, defendant, type, createTime, status, progress, description, evidenceUrls]() {
+            showDisputeDetailDialog(disputeId, orderId, complainant, defendant, type, createTime, status, progress, description, evidenceUrls);
+        });
+        actionLayout->addWidget(viewBtn);
+
         if (status == 0 || status == 1) {
             QPushButton *processBtn = new QPushButton("处理");
             processBtn->setObjectName("primaryBtn");
             processBtn->setFixedSize(60, 30);
             processBtn->setProperty("disputeId", disputeId);
-            connect(processBtn, &QPushButton::clicked, [this, processBtn]() {
-                bool ok;
-                QString result = QInputDialog::getText(this, "处理纠纷",
-                                                       "请输入处理结果:",
-                                                       QLineEdit::Normal,
-                                                       "", &ok);
-                if (ok && !result.isEmpty()) {
-                    onProcessDispute(processBtn->property("disputeId").toInt(), result);
-                }
+            connect(processBtn, &QPushButton::clicked, [this, processBtn, disputeId]() {
+                // 创建自定义对话框
+                QDialog dialog(this);
+                dialog.setWindowTitle("处理纠纷");
+                dialog.setMinimumSize(450, 350);
+
+                QVBoxLayout *layout = new QVBoxLayout(&dialog);
+
+                // 责任方选择
+                QLabel *respLabel = new QLabel("责任方:");
+                QComboBox *respCombo = new QComboBox();
+                respCombo->addItems({"卖家责任", "买家责任"});
+                layout->addWidget(respLabel);
+                layout->addWidget(respCombo);
+
+                // 扣分分值（根据责任方动态变化）
+                QLabel *scoreLabel = new QLabel("扣分分值:");
+                QComboBox *scoreCombo = new QComboBox();
+                scoreCombo->addItems({"10分", "15分", "20分"}); // 初始为卖家选项
+                layout->addWidget(scoreLabel);
+                layout->addWidget(scoreCombo);
+
+                // 根据责任方切换可选分值范围
+                connect(respCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), [scoreCombo](int index) {
+                    scoreCombo->clear();
+                    if (index == 0) { // 卖家责任：10-20分
+                        scoreCombo->addItems({"10分", "15分", "20分"});
+                    } else { // 买家责任：5-10分
+                        scoreCombo->addItems({"5分", "8分", "10分"});
+                    }
+                });
+
+                // 处理结果输入
+                QLabel *resultLabel = new QLabel("处理结果:");
+                QTextEdit *resultEdit = new QTextEdit();
+                resultEdit->setPlaceholderText("请输入处理结果说明（将通知双方用户）");
+                resultEdit->setMaximumHeight(100);
+                layout->addWidget(resultLabel);
+                layout->addWidget(resultEdit);
+
+                // 按钮
+                QHBoxLayout *btnLayout = new QHBoxLayout();
+                QPushButton *okBtn = new QPushButton("确定");
+                QPushButton *cancelBtn = new QPushButton("取消");
+                okBtn->setObjectName("primaryBtn");
+                cancelBtn->setObjectName("secondaryBtn");
+                btnLayout->addStretch();
+                btnLayout->addWidget(cancelBtn);
+                btnLayout->addWidget(okBtn);
+                layout->addLayout(btnLayout);
+
+                connect(okBtn, &QPushButton::clicked, [&]() {
+                    QString result = resultEdit->toPlainText().trimmed();
+                    if (result.isEmpty()) {
+                        QMessageBox::warning(&dialog, "提示", "请填写处理结果");
+                        return;
+                    }
+                    QString responsibility = (respCombo->currentIndex() == 0) ? "seller" : "buyer";
+                    QString changeText = scoreCombo->currentText();
+                    int changeValue = changeText.left(changeText.length() - 1).toInt(); // 去掉“分”字
+                    onProcessDispute(disputeId, result, responsibility, changeValue);
+                    dialog.accept();
+                });
+                connect(cancelBtn, &QPushButton::clicked, &dialog, &QDialog::reject);
+
+                dialog.exec();
             });
             actionLayout->addWidget(processBtn);
-        } else {
-            QPushButton *viewBtn = new QPushButton("查看详情");
-            viewBtn->setObjectName("secondaryBtn");
-            viewBtn->setFixedSize(80, 30);
-            connect(viewBtn, &QPushButton::clicked, [this, disputeId, orderId, complainant, defendant, type, createTime, status, progress]() {
-                QJsonObject result = ApiService::instance()->getDisputeDetail(disputeId);
-                QString detailText;
-                if (result.value("success").toBool()) {
-                    QJsonObject data = result.value("data").toObject();
-                    QString description = data.value("description").toString();
-                    QString evidence = data.value("evidence_urls").toString();
-                    QString handleResult = data.value("handle_result").toString();
-                    QString statusText;
-                    int st = data.value("status").toString().toInt();
-                    if (st == 0) statusText = "待处理";
-                    else if (st == 1) statusText = "处理中";
-                    else if (st == 2) statusText = "已解决";
-                    else statusText = "已关闭";
-
-                    detailText = QString(
-                                     "⚖️ 纠纷详情\n"
-                                     "━━━━━━━━━━━━━━━━━━━━\n"
-                                     "纠纷ID: %1\n"
-                                     "订单号: %2\n"
-                                     "投诉方: %3\n"
-                                     "被投诉方: %4\n"
-                                     "纠纷类型: %5\n"
-                                     "提交时间: %6\n"
-                                     "当前状态: %7\n"
-                                     "处理进度: %8\n"
-                                     "详细描述:\n%9\n"
-                                     "证据材料:\n%10"
-                                     ).arg(disputeId).arg(orderId).arg(complainant).arg(defendant)
-                                     .arg(type).arg(createTime).arg(statusText).arg(handleResult.isEmpty() ? "无" : handleResult)
-                                     .arg(description.isEmpty() ? "无" : description)
-                                     .arg(evidence.isEmpty() ? "无" : evidence);
-                } else {
-                    detailText = QString("纠纷ID: %1\n无法获取详细信息").arg(disputeId);
-                }
-                QMessageBox::information(this, "纠纷详情", detailText);
-            });
-            actionLayout->addWidget(viewBtn);
         }
         actionLayout->addStretch();
         disputeTable->setCellWidget(row, 8, actionWidget);
     }
 
-    bool hasMore = (disputes.size() == pageSize);
-    disputeNextBtn->setEnabled(hasMore);
     disputePrevBtn->setEnabled(page > 1);
+    disputeNextBtn->setEnabled(page < totalPages);
 }
 
 void AdminMainWindow::onOffShelfGoods(int goodsId)
@@ -953,7 +1015,11 @@ void AdminMainWindow::onOffShelfGoods(int goodsId)
         if (result.value("success").toBool()) {
             QMessageBox::information(this, "成功", "商品已下架");
             // 刷新当前列表
-            onFilterGoods();
+            loadGoodsReviewData(goodsSearchEdit->text().trimmed(),
+                                goodsStatusCombo->currentText(),
+                                goodsDateFromEdit->date().toString("yyyy-MM-dd"),
+                                goodsDateToEdit->date().toString("yyyy-MM-dd"),
+                                m_goodsCurrentPage);
         } else {
             QMessageBox::warning(this, "失败", result.value("error").toString());
         }
@@ -968,7 +1034,11 @@ void AdminMainWindow::onReapplyGoods(int goodsId)
         QJsonObject result = ApiService::instance()->updateGoodsStatus(goodsId, 0); // 0 = 待审核
         if (result.value("success").toBool()) {
             QMessageBox::information(this, "成功", "已重新提交审核");
-            onFilterGoods();
+            loadGoodsReviewData(goodsSearchEdit->text().trimmed(),
+                                goodsStatusCombo->currentText(),
+                                goodsDateFromEdit->date().toString("yyyy-MM-dd"),
+                                goodsDateToEdit->date().toString("yyyy-MM-dd"),
+                                m_goodsCurrentPage);
         } else {
             QMessageBox::warning(this, "失败", result.value("error").toString());
         }
@@ -983,7 +1053,11 @@ void AdminMainWindow::onApplyShelfGoods(int goodsId)
         QJsonObject result = ApiService::instance()->updateGoodsStatus(goodsId, 0); // 0 = 待审核
         if (result.value("success").toBool()) {
             QMessageBox::information(this, "成功", "已提交上架申请，等待审核");
-            onFilterGoods();
+            loadGoodsReviewData(goodsSearchEdit->text().trimmed(),
+                                goodsStatusCombo->currentText(),
+                                goodsDateFromEdit->date().toString("yyyy-MM-dd"),
+                                goodsDateToEdit->date().toString("yyyy-MM-dd"),
+                                m_goodsCurrentPage);
         } else {
             QMessageBox::warning(this, "失败", result.value("error").toString());
         }
@@ -1011,3 +1085,185 @@ QString AdminMainWindow::getCategoryName(int categoryId) {
 }
 
 AdminMainWindow::~AdminMainWindow() {}
+
+void AdminMainWindow::showGoodsDetailDialog(int goodsId, const QString& name,
+                                            const QString& seller, double price,
+                                            const QString& publishTime, int statusCode)
+{
+    QDialog dialog(this);
+    dialog.setWindowTitle("商品详情");
+    dialog.setMinimumSize(500, 600);
+
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+
+    // 文本信息区域
+    QTextEdit *infoEdit = new QTextEdit();
+    infoEdit->setReadOnly(true);
+    QString statusText;
+    switch (statusCode) {
+    case 0: statusText = "待审核"; break;
+    case 1: statusText = "在售"; break;
+    case 2: statusText = "交易中"; break;
+    case 3: statusText = "已售出"; break;
+    case 4: statusText = "已拒绝"; break;
+    case 5: statusText = "已下架"; break;
+    default: statusText = "未知";
+    }
+    QString info = QString("商品ID: %1\n商品名称: %2\n卖家: %3\n价格: ¥%4\n发布时间: %5\n当前状态: %6")
+                       .arg(goodsId).arg(name).arg(seller).arg(price).arg(publishTime).arg(statusText);
+    infoEdit->setPlainText(info);
+    layout->addWidget(infoEdit);
+
+    // 图片区域：使用 QTabWidget 支持多图
+    QTabWidget *imageTabWidget = new QTabWidget();
+    imageTabWidget->setTabPosition(QTabWidget::North);
+    imageTabWidget->setStyleSheet("QTabWidget::pane { border: 1px solid #ddd; border-radius: 4px; }");
+
+    // 异步加载商品图片列表
+    QJsonObject detail = ApiService::instance()->getGoodsDetail(goodsId);
+    if (detail.value("success").toBool()) {
+        QJsonObject data = detail.value("data").toObject();
+        QJsonArray images = data.value("images").toArray();
+        if (!images.isEmpty()) {
+            for (const QJsonValue &imgVal : images) {
+                QJsonObject imgObj = imgVal.toObject();
+                QString imageUrl = imgObj.value("image_url").toString();
+                if (imageUrl.isEmpty()) continue;
+                QString fullUrl = "http://127.0.0.1:8080" + imageUrl;
+
+                QLabel *imageLabel = new QLabel();
+                imageLabel->setAlignment(Qt::AlignCenter);
+                imageLabel->setMinimumSize(400, 300);
+                imageLabel->setStyleSheet("border: 1px solid #ddd; background-color: #f8f9fa;");
+
+                QNetworkAccessManager *nam = new QNetworkAccessManager(&dialog);
+                connect(nam, &QNetworkAccessManager::finished, [imageLabel, nam](QNetworkReply *reply) {
+                    if (reply->error() == QNetworkReply::NoError) {
+                        QPixmap pixmap;
+                        pixmap.loadFromData(reply->readAll());
+                        if (!pixmap.isNull()) {
+                            imageLabel->setPixmap(pixmap.scaled(400, 300, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                        } else {
+                            imageLabel->setText("图片格式错误");
+                        }
+                    } else {
+                        imageLabel->setText("图片加载失败");
+                    }
+                    reply->deleteLater();
+                    nam->deleteLater();
+                });
+                nam->get(QNetworkRequest(QUrl(fullUrl)));
+
+                // 用文件名作为标签标题，如无则用序号
+                QString tabName = QFileInfo(imageUrl).fileName();
+                if (tabName.isEmpty()) tabName = QString("图片 %1").arg(imageTabWidget->count() + 1);
+                imageTabWidget->addTab(imageLabel, tabName);
+            }
+        } else {
+            QLabel *noImageLabel = new QLabel("无商品图片");
+            noImageLabel->setAlignment(Qt::AlignCenter);
+            imageTabWidget->addTab(noImageLabel, "无图片");
+        }
+    } else {
+        QLabel *errorLabel = new QLabel("无法获取商品详情");
+        errorLabel->setAlignment(Qt::AlignCenter);
+        imageTabWidget->addTab(errorLabel, "错误");
+    }
+
+    layout->addWidget(imageTabWidget, 1);
+
+    QPushButton *closeBtn = new QPushButton("关闭");
+    connect(closeBtn, &QPushButton::clicked, &dialog, &QDialog::accept);
+    layout->addWidget(closeBtn, 0, Qt::AlignCenter);
+
+    dialog.exec();
+}
+
+void AdminMainWindow::showDisputeDetailDialog(int disputeId, int orderId,
+                                              const QString& complainant, const QString& defendant,
+                                              const QString& type, const QString& createTime,
+                                              int status, const QString& progress,
+                                              const QString& description, const QString& evidenceUrls)
+{
+    QDialog dialog(this);
+    dialog.setWindowTitle("纠纷详情");
+    dialog.setMinimumSize(500, 600);
+
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+
+    QTextEdit *infoEdit = new QTextEdit();
+    infoEdit->setReadOnly(true);
+    QString statusText;
+    if (status == 0) statusText = "待处理";
+    else if (status == 1) statusText = "处理中";
+    else if (status == 2) statusText = "已解决";
+    else statusText = "已关闭";
+
+    QString info = QString("纠纷ID: %1\n订单号: %2\n投诉方: %3\n被投诉方: %4\n纠纷类型: %5\n提交时间: %6\n当前状态: %7\n处理进度: %8\n详细描述:\n%9")
+                       .arg(disputeId).arg(orderId).arg(complainant).arg(defendant)
+                       .arg(type).arg(createTime).arg(statusText).arg(progress.isEmpty() ? "无" : progress)
+                       .arg(description.isEmpty() ? "无" : description);
+    infoEdit->setPlainText(info);
+    layout->addWidget(infoEdit);
+
+    // 证据图片
+    if (!evidenceUrls.isEmpty()) {
+        QLabel *evidenceLabel = new QLabel("证据图片：");
+        layout->addWidget(evidenceLabel);
+
+        QTabWidget *tabWidget = new QTabWidget();
+        QStringList urls = evidenceUrls.split(',', Qt::SkipEmptyParts);
+        for (const QString &url : urls) {
+            QLabel *imageLabel = new QLabel();
+            imageLabel->setAlignment(Qt::AlignCenter);
+            QString fullUrl = url.startsWith("http") ? url : "http://127.0.0.1:8080" + url;
+            QNetworkAccessManager *nam = new QNetworkAccessManager(&dialog);
+            connect(nam, &QNetworkAccessManager::finished, [imageLabel, nam](QNetworkReply *reply) {
+                if (reply->error() == QNetworkReply::NoError) {
+                    QPixmap pixmap;
+                    pixmap.loadFromData(reply->readAll());
+                    if (!pixmap.isNull()) {
+                        imageLabel->setPixmap(pixmap.scaled(400, 300, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                    } else {
+                        imageLabel->setText("图片加载失败");
+                    }
+                } else {
+                    imageLabel->setText("图片加载失败");
+                }
+                reply->deleteLater();
+                nam->deleteLater();
+            });
+            nam->get(QNetworkRequest(QUrl(fullUrl)));
+            tabWidget->addTab(imageLabel, QFileInfo(url).fileName());
+        }
+        layout->addWidget(tabWidget);
+    } else {
+        layout->addWidget(new QLabel("无证据图片"));
+    }
+
+    QPushButton *closeBtn = new QPushButton("关闭");
+    connect(closeBtn, &QPushButton::clicked, &dialog, &QDialog::accept);
+    layout->addWidget(closeBtn, 0, Qt::AlignCenter);
+
+    dialog.exec();
+}
+
+void AdminMainWindow::onShelfGoods(int goodsId)
+{
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this, "确认上架", "确定要将该商品直接上架吗？");
+    if (reply == QMessageBox::Yes) {
+        QJsonObject result = ApiService::instance()->updateGoodsStatus(goodsId, 1); // 1 = 在售
+        if (result.value("success").toBool()) {
+            QMessageBox::information(this, "成功", "商品已上架");
+            // 刷新当前列表，保持筛选条件和页码
+            loadGoodsReviewData(goodsSearchEdit->text().trimmed(),
+                                goodsStatusCombo->currentText(),
+                                goodsDateFromEdit->date().toString("yyyy-MM-dd"),
+                                goodsDateToEdit->date().toString("yyyy-MM-dd"),
+                                m_goodsCurrentPage);
+        } else {
+            QMessageBox::warning(this, "失败", result.value("error").toString());
+        }
+    }
+}

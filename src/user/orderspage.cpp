@@ -8,6 +8,7 @@
 #include <QJsonArray>
 #include "PaymentDialog.h"
 #include "DisputeSubmitDialog.h"
+#include "DisputeDetailDialog.h"
 #include "ReviewDialog.h"
 #include "..\apiservice.h"
 #include "OrdersPage.h"
@@ -79,7 +80,7 @@ void OrdersPage::setupUI() {
     filterBtn->setFixedSize(80, 36);
 
     refreshBtn = new QPushButton("刷新");
-    refreshBtn->setObjectName("secondaryBtn");
+    refreshBtn->setObjectName("primaryBtn");
     refreshBtn->setFixedSize(80, 36);
 
     filterLayout->addWidget(statusLabel);
@@ -158,6 +159,13 @@ void OrdersPage::setupUI() {
     m_nextBtn = new QPushButton("下一页");
     m_nextBtn->setObjectName("primaryBtn");
     m_nextBtn->setFixedSize(80, 32);
+    m_prevBtn->setStyleSheet(R"(
+        QPushButton:disabled {
+            background-color: #cbd5e0;
+            color: #a0aec0;
+        }
+    )");
+    m_nextBtn->setStyleSheet(m_prevBtn->styleSheet());
     m_pageInfoLabel = new QLabel("第 1 页");
     m_pageInfoLabel->setStyleSheet("font-size: 13px; color: #475569; margin: 0 15px;");
 
@@ -275,19 +283,24 @@ void OrdersPage::createActionButtons(int row, const QString &status, int orderId
         connect(payBtn, &QPushButton::clicked, [this, orderId]() {
             // 获取订单金额（可以从表格中获取或从全局数据获取）
             double amount = 0;
+            QString goodsName;
             for (int i = 0; i < ordersTable->rowCount(); i++) {
                 QTableWidgetItem *idItem = ordersTable->item(i, 0);
                 if (idItem && idItem->text().toInt() == orderId) {
                     QTableWidgetItem *priceItem = ordersTable->item(i, 2);
                     if (priceItem) {
                         amount = priceItem->text().replace("¥", "").toDouble();
-                        break;
                     }
+                    QTableWidgetItem *goodsItem = ordersTable->item(i, 1);
+                    if (goodsItem) {
+                        goodsName = goodsItem->text();
+                    }
+                    break;
                 }
             }
 
             // 弹出支付对话框
-            PaymentDialog *dialog = new PaymentDialog(this, orderId, amount);
+            PaymentDialog *dialog = new PaymentDialog(this, orderId, amount, goodsName);
             connect(dialog, &PaymentDialog::accepted, [this, orderId,amount]() {
                 // 支付成功，调用支付 API
                 QJsonObject result = ApiService::instance()->payOrder(orderId, "微信支付",amount);
@@ -345,20 +358,26 @@ void OrdersPage::createActionButtons(int row, const QString &status, int orderId
         });
         actionLayout->addWidget(confirmBtn);
 
-        QPushButton *disputeBtn = new QPushButton("售后");
-        disputeBtn->setStyleSheet(buttonStyle + R"(
-            QPushButton { background-color: #F59E0B; color: white; }
-            QPushButton:hover { background-color: #D97706; }
-        )");
-        connect(disputeBtn, &QPushButton::clicked, [this, orderId]() {
-            // 弹出纠纷对话框
-            DisputeSubmitDialog *dialog = new DisputeSubmitDialog(this, orderId);
-            connect(dialog, &DisputeSubmitDialog::accepted, [this]() {
-                loadOrdersFromServer(m_currentStatus, m_currentKeyword, m_currentPage, m_currentPageSize);
-            });
-            dialog->show();
+        QPushButton *refundBtn = new QPushButton("退款");
+        refundBtn->setStyleSheet(buttonStyle + R"(
+        QPushButton { background-color: #F97316; color: white; }
+        QPushButton:hover { background-color: #EA580C; }
+    )");
+        connect(refundBtn, &QPushButton::clicked, [this, orderId]() {
+            QMessageBox::StandardButton reply = QMessageBox::question(
+                this, "申请退款", "确认要申请退款吗？退款后订单将取消，商品会重新上架。",
+                QMessageBox::Yes | QMessageBox::No);
+            if (reply == QMessageBox::Yes) {
+                QJsonObject result = ApiService::instance()->cancelOrder(orderId, "用户申请退款");
+                if (result.value("success").toBool()) {
+                    QMessageBox::information(this, "退款成功", "订单已取消，款项将原路退回。");
+                    loadOrdersFromServer(m_currentStatus, m_currentKeyword, m_currentPage, m_currentPageSize);
+                } else {
+                    QMessageBox::warning(this, "退款失败", result.value("error").toString());
+                }
+            }
         });
-        actionLayout->addWidget(disputeBtn);
+        actionLayout->addWidget(refundBtn);
 
     } else if (status == "已完成") {
         QPushButton *reviewBtn = new QPushButton("评价");
@@ -369,15 +388,18 @@ void OrdersPage::createActionButtons(int row, const QString &status, int orderId
         connect(reviewBtn, &QPushButton::clicked, [this, orderId]() {
             // 获取卖家名称（从表格中获取）
             QString sellerName;
+            QString goodsName;
             for (int i = 0; i < ordersTable->rowCount(); i++) {
                 QTableWidgetItem *idItem = ordersTable->item(i, 0);
                 if (idItem && idItem->text().toInt() == orderId) {
                     QTableWidgetItem *sellerItem = ordersTable->item(i, 5);
                     if (sellerItem) sellerName = sellerItem->text();
+                    QTableWidgetItem *goodsItem = ordersTable->item(i, 1);
+                    if (goodsItem) goodsName = goodsItem->text();
                     break;
                 }
             }
-            ReviewDialog *dialog = new ReviewDialog(this, orderId, sellerName);
+            ReviewDialog *dialog = new ReviewDialog(this, orderId, sellerName, goodsName);
             connect(dialog, &ReviewDialog::reviewSubmitted, [this, orderId](int,int rating, const QString &comment) {
                 QJsonObject result = ApiService::instance()->submitReview(orderId, rating, comment);
                 if (result.value("success").toBool()) {
@@ -414,11 +436,9 @@ void OrdersPage::createActionButtons(int row, const QString &status, int orderId
             QJsonObject result = ApiService::instance()->getDisputeByOrder(orderId);
             if (result.value("success").toBool()) {
                 QJsonObject dispute = result.value("data").toObject();
-                QString detail = QString("纠纷类型：%1\n描述：%2\n处理结果：%3")
-                                     .arg(dispute.value("type").toString())
-                                     .arg(dispute.value("description").toString())
-                                     .arg(dispute.value("handle_result").toString());
-                QMessageBox::information(this, "纠纷详情", detail);
+                DisputeDetailDialog *dialog = new DisputeDetailDialog(dispute, this);
+                dialog->setAttribute(Qt::WA_DeleteOnClose);
+                dialog->show();
             } else {
                 QMessageBox::warning(this, "提示", "未找到相关纠纷信息");
             }

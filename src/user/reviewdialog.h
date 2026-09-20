@@ -17,7 +17,9 @@ class ReviewDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit ReviewDialog(QWidget *parent = nullptr, int orderId = -1, QString sellerName = "");
+    explicit ReviewDialog(QWidget *parent = nullptr, int orderId = -1,
+                          const QString &sellerName = "", const QString &goodsName = "");
+
 
 signals:
     void reviewSubmitted(int orderId, int rating, QString comment="");
@@ -32,6 +34,7 @@ private:
 
     int orderId;
     QString sellerName;
+    QString m_goodsName;
 
     // 评分
     QList<QRadioButton*> starButtons;

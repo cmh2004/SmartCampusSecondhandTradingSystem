@@ -12,10 +12,15 @@ class ReportsManagePage : public QWidget
     Q_OBJECT
 public:
     explicit ReportsManagePage(QWidget *parent = nullptr);
+    void showReportDetailDialog(int reportId, int reportedType, int reportedId,
+                                int reporterId, const QString& reasonType,
+                                const QString& description, const QString& evidenceUrls);
+        void refresh();
 
 private slots:
     void loadReports(int page = 1);
     void onProcessReport();
+    void showProcessDialog(int reportId);
 
 private:
     void setupUI();
@@ -24,7 +29,6 @@ private:
     QTableWidget *m_table;
     QComboBox *m_statusFilter;
     QPushButton *m_refreshBtn;
-    QPushButton *m_processBtn;
 
     int m_currentPage;
     int m_pageSize = 20;

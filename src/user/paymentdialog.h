@@ -13,7 +13,7 @@ class PaymentDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit PaymentDialog(QWidget *parent = nullptr, int orderId = -1, double amount = 0.0);
+    explicit PaymentDialog(QWidget *parent = nullptr, int orderId = -1, double amount = 0.0, const QString &goodsName = "");
 
 private slots:
     void onConfirmPayment();
@@ -24,6 +24,7 @@ private:
 
     int orderId;
     double amount;
+    QString m_goodsName;
 
     // 支付方式
     QRadioButton *wechatRadio;

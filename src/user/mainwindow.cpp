@@ -565,6 +565,7 @@ void MainWindow::setupCustomTitleBar() {
     maximizeBtn->setObjectName("maximizeBtn");
     maximizeBtn->setFixedSize(40, 40);
     maximizeBtn->setToolTip("最大化");
+    maximizeBtn->setVisible(false);   // 直接隐藏
 
     closeBtn = new QPushButton("×");
     closeBtn->setObjectName("closeBtn");
@@ -679,22 +680,22 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event) {
     if (isDragging && (event->buttons() & Qt::LeftButton)) {
         QPoint targetPos = event->globalPosition().toPoint() - dragStartPosition;
 
-        // // 获取当前屏幕
-        // QScreen *screen = QApplication::screenAt(targetPos);
-        // if (!screen) {
-        //     screen = QApplication::primaryScreen();
-        // }
+        // 获取当前屏幕
+        QScreen *screen = QApplication::screenAt(targetPos);
+        if (!screen) {
+            screen = QApplication::primaryScreen();
+        }
 
-        // QRect screenRect = screen->availableGeometry();
-        // QSize windowSize = size();
+        QRect screenRect = screen->availableGeometry();
+        QSize windowSize = size();
 
-        // // 限制窗口在屏幕内
-        // targetPos.setX(qMax(screenRect.left(),
-        //                     qMin(targetPos.x(),
-        //                          screenRect.right() - windowSize.width())));
-        // targetPos.setY(qMax(screenRect.top(),
-        //                     qMin(targetPos.y(),
-        //                          screenRect.bottom() - windowSize.height())));
+        // 限制窗口在屏幕内
+        targetPos.setX(qMax(screenRect.left(),
+                            qMin(targetPos.x(),
+                                 screenRect.right() - windowSize.width())));
+        targetPos.setY(qMax(screenRect.top(),
+                            qMin(targetPos.y(),
+                                 screenRect.bottom() - windowSize.height())));
 
         move(targetPos);
         event->accept();
@@ -717,6 +718,9 @@ void MainWindow::onTabChanged(int index) {
     }
     else if (index == 4) {  // 个人中心标签页索引
         userCenterPage->loadUserInfo();
+    }
+    else if (index == 2) {  // 消息页面
+        messagesPage->loadChatHistory();
     }
 }
 
@@ -768,14 +772,11 @@ void MainWindow::onShowCreditScore() {
     creditScoreDialog->activateWindow();
 }
 
-void MainWindow::onReportGoods(int goodsId) {
+void MainWindow::onReportGoods(int goodsId, const QString &goodsName) {
     if (reportDialog) {
         reportDialog->close();
         reportDialog->deleteLater();
     }
-
-    // 获取商品名称 - 实际应从数据库获取
-    QString goodsName = QString("商品 #%1").arg(goodsId);
 
     reportDialog = new ReportSubmitDialog(this, goodsId, "goods", goodsName);
     reportDialog->setAttribute(Qt::WA_DeleteOnClose);

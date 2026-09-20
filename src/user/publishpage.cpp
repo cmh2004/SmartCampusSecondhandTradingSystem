@@ -5,10 +5,11 @@
 #include <QGraphicsDropShadowEffect>
 #include <QJsonObject>
 #include <QScrollArea>
+#include <QApplication>
 #include "..\apiservice.h"
 #include "PublishPage.h"
 
-PublishPage::PublishPage(QWidget *parent) : QWidget(parent) {
+PublishPage::PublishPage(QWidget *parent) : QWidget(parent), m_isPublishing(false) {
     setupUI();
 }
 
@@ -101,7 +102,7 @@ void PublishPage::setupUI() {
     goodsPriceEdit->setPlaceholderText("单位：元");
 
     QPushButton *aiPriceBtn = new QPushButton("AI估价");
-    aiPriceBtn->setObjectName("secondaryBtn");
+    aiPriceBtn->setObjectName("primaryBtn");
 
     priceLayout->addWidget(priceLabel);
     priceLayout->addWidget(goodsPriceEdit, 1);
@@ -115,7 +116,7 @@ void PublishPage::setupUI() {
 
     QLabel *descLabel = new QLabel("商品描述:");
     goodsDescEdit = new QTextEdit();
-    goodsDescEdit->setPlaceholderText("请详细描述商品信息、使用状况、包含附件等");
+    goodsDescEdit->setPlaceholderText("请详细描述商品信息");
     goodsDescEdit->setMaximumHeight(150);
 
     descLayout->addWidget(descLabel);
@@ -208,6 +209,11 @@ void PublishPage::setupUI() {
 }
 
 void PublishPage::onPublishGoods() {
+    if (m_isPublishing) {
+        QMessageBox::warning(this, "提示", "正在发布中，请稍候...");
+        return;
+    }
+
     QString name = goodsNameEdit->text().trimmed();
     QString price = goodsPriceEdit->text().trimmed();
     QString desc = goodsDescEdit->toPlainText().trimmed();
@@ -218,7 +224,6 @@ void PublishPage::onPublishGoods() {
         return;
     }
 
-    // 验证价格是否为数字
     bool ok;
     double priceValue = price.toDouble(&ok);
     if (!ok || priceValue <= 0) {
@@ -231,6 +236,17 @@ void PublishPage::onPublishGoods() {
         return;
     }
 
+    // 开始发布：禁用按钮，显示加载状态
+    m_isPublishing = true;
+    QPushButton *submitBtn = qobject_cast<QPushButton*>(sender());
+    if (submitBtn) {
+        submitBtn->setEnabled(false);
+        submitBtn->setText("发布中...");
+    }
+    // 强制刷新界面，让按钮文本立即更新
+    QApplication::processEvents();
+
+    // 图片上传
     QStringList imageUrls;
     for (const QString &path : m_uploadedImagePaths) {
         QJsonObject uploadResult = ApiService::instance()->uploadImage(path);
@@ -239,6 +255,12 @@ void PublishPage::onPublishGoods() {
             imageUrls.append(url);
         } else {
             QMessageBox::warning(this, "图片上传失败", uploadResult.value("error").toString());
+            // 恢复按钮状态
+            if (submitBtn) {
+                submitBtn->setEnabled(true);
+                submitBtn->setText("发布商品");
+            }
+            m_isPublishing = false;
             return;
         }
     }
@@ -248,6 +270,13 @@ void PublishPage::onPublishGoods() {
     goodsData["price"] = priceValue;
     goodsData["description"] = desc;
     goodsData["category"] = category;
+    if (!imageUrls.isEmpty()) {
+        QJsonArray imagesArray;
+        for (const QString &url : imageUrls) {
+            imagesArray.append(url);
+        }
+        goodsData["images"] = imagesArray;
+    }
 
     QJsonObject result = ApiService::instance()->publishGoods(goodsData, m_uploadedImagePaths);
     if (result.value("success").toBool()) {
@@ -270,6 +299,13 @@ void PublishPage::onPublishGoods() {
     } else {
         QMessageBox::warning(this, "失败", result.value("error").toString());
     }
+
+    // 恢复按钮状态
+    if (submitBtn) {
+        submitBtn->setEnabled(true);
+        submitBtn->setText("发布商品");
+    }
+    m_isPublishing = false;
 }
 
 void PublishPage::onAIPriceEstimate() {
@@ -278,6 +314,11 @@ void PublishPage::onAIPriceEstimate() {
         QMessageBox::warning(this, "提示", "请先填写商品描述");
         return;
     }
+
+    // 禁用按钮，设置等待光标
+    QPushButton *btn = qobject_cast<QPushButton*>(sender());
+    if (btn) btn->setEnabled(false);
+    QApplication::setOverrideCursor(Qt::WaitCursor);
 
     // 将本地图片文件转换为 Base64 字符串列表
     QStringList imageBase64List;
@@ -297,6 +338,11 @@ void PublishPage::onAIPriceEstimate() {
     auto start = QDateTime::currentMSecsSinceEpoch();
     QJsonObject result = ApiService::instance()->estimatePrice(description, imageBase64List);
     qDebug() << "[AI] Estimate finished, elapsed:" << (QDateTime::currentMSecsSinceEpoch() - start) << "ms";
+
+    // 恢复光标和按钮
+    QApplication::restoreOverrideCursor();
+    if (btn) btn->setEnabled(true);
+
     if (result.value("success").toBool()) {
         QJsonObject data = result.value("data").toObject();
         double minPrice = data.value("min_price").toDouble();
@@ -364,7 +410,8 @@ void PublishPage::addImagePreview(const QString &filePath)
     // 删除按钮
     QPushButton *removeBtn = new QPushButton("×", container);
     removeBtn->setFixedSize(20, 20);
-    removeBtn->setStyleSheet("background-color: rgba(231, 76, 60, 0.9); color: white; border-radius: 10px; border: none;");
+    removeBtn->setFont(QFont("Arial", 14, QFont::Bold));
+    removeBtn->setStyleSheet("background-color: rgba(231, 76, 60, 0.9); color: white; border-radius: 10px; border: none; padding: 0px;");
     removeBtn->move(80, 0);
     removeBtn->setCursor(Qt::PointingHandCursor);
 

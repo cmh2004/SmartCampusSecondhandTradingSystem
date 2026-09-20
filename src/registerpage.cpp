@@ -15,7 +15,7 @@
 RegisterPage::RegisterPage(QWidget *parent) : QDialog(parent), isDragging(false), isPasswordVisible(false) {
     setWindowFlags(Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
-    setFixedSize(420, 475);
+    setFixedSize(420, 520);
 
     setupUI();
     setupStyles();
@@ -35,7 +35,7 @@ void RegisterPage::setupUI() {
     // 主容器
     QWidget *mainContainer = new QWidget(this);
     mainContainer->setObjectName("mainContainer");
-    mainContainer->setFixedSize(420, 470);
+    mainContainer->setFixedSize(420, 520);
 
     // 添加阴影效果
     QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect(mainContainer);
@@ -67,11 +67,11 @@ void RegisterPage::setupUI() {
     QWidget *formContainer = new QWidget(mainContainer);
     formContainer->setObjectName("formContainer");
     formContainer->move(0, 45);
-    formContainer->setFixedSize(420, 475);
+    formContainer->setFixedSize(420, 520);
 
     // 输入框容器
     QWidget *inputContainer = new QWidget(formContainer);
-    inputContainer->setFixedSize(320, 260);
+    inputContainer->setFixedSize(320, 310);
     inputContainer->setContentsMargins(0, 0, 0, 0); // 清除边距
 
     // 定义输入框配置
@@ -85,6 +85,7 @@ void RegisterPage::setupUI() {
                                   {"设置密码", true},
                                   {"昵称", false},
                                   {"邮箱", false},
+                                  {"学校", false}
                                   };
 
     QVBoxLayout *inputLayout = new QVBoxLayout(inputContainer);
@@ -124,6 +125,7 @@ void RegisterPage::setupUI() {
         case 1: passwordEdit = lineEdit; break;
         case 2: nicknameEdit = lineEdit; break;
         case 3: emailEdit = lineEdit; break;
+        case 4: schoolEdit = lineEdit; break;
         }
 
         inputLayout->addWidget(inputWidget);
@@ -308,6 +310,7 @@ void RegisterPage::onRegisterClicked() {
     QString nickname = nicknameEdit->text().trimmed();
     QString email = emailEdit->text().trimmed();
     QString phone = ""; // 未提供
+    QString school = schoolEdit->text().trimmed();
 
     // 1. 用户名验证
     if (username.isEmpty()) {
@@ -318,7 +321,7 @@ void RegisterPage::onRegisterClicked() {
         showMessageBox(this, "提示", "账号长度应为4-20个字符", QMessageBox::Warning);
         return;
     }
-    // 可选：只允许字母、数字、下划线
+    // 只允许字母、数字、下划线
     QRegularExpression usernameRegex("^[a-zA-Z0-9_]{4,20}$");
     if (!usernameRegex.match(username).hasMatch()) {
         showMessageBox(this, "提示", "账号只能包含字母、数字和下划线，长度4-20位", QMessageBox::Warning);
@@ -367,7 +370,7 @@ void RegisterPage::onRegisterClicked() {
     }
 
     // 调用注册 API
-    QJsonObject result = ApiService::instance()->registerUser(username, password, email, phone, nickname);
+    QJsonObject result = ApiService::instance()->registerUser(username, password, email, phone, nickname, school);
     if (result.value("success").toBool()) {
         showMessageBox(this, "成功", "注册成功！请登录", QMessageBox::Information);
         accept(); // 关闭注册页面，回到登录页

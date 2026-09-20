@@ -41,7 +41,7 @@ private slots:
     void onShowProfileEdit();
     void onShowCreditScore();  // 显示信用分详情
 
-    void onReportGoods(int goodsId);      // 举报商品
+    void onReportGoods(int goodsId, const QString &goodsName);      // 举报商品
     void onReportUser(const QString &userId);    // 举报用户
     void onReportOrder(int orderId);      // 举报订单
     void onReportSubmitted(int targetId, QString targetType); // 举报提交后的处理

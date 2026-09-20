@@ -30,6 +30,7 @@ private:
     QLineEdit *nicknameEdit;
     QLineEdit *emailEdit;
     QLineEdit *phoneEdit;
+    QLineEdit *schoolEdit;
 
     // 头像
     QLabel *avatarLabel;

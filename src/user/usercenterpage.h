@@ -6,6 +6,7 @@
 #include <QTabWidget>
 #include <QTableWidget>
 #include <QListWidget>
+#include <QEvent>
 #include <QTextEdit>
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -18,6 +19,9 @@ public:
     void updateUserInfo(const QString &name, int creditScore, const QString &joinDate);
     void loadUserInfo();
     void refreshFavorites();
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event);
 
 signals:
     void editProfileRequested();
@@ -41,7 +45,8 @@ private:
     void createHistoryTab();
     void setupMenuTabs();
     void addReviewItem(const QString &date, const QString &orderId,
-                       const QString &item, int rating, const QString &comment);
+                       const QString &item, int rating, const QString &comment,
+                       const QStringList &imageUrls = QStringList());
     void loadMyGoods(int page=1, int pageSize=20);
     void loadFavorites(int page = 1, int pageSize = 10);
     void loadMyReviews(int page = 1, int pageSize = 10);

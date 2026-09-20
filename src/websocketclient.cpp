@@ -48,12 +48,12 @@ bool WebSocketClient::connectToServer(const QString& url)
     if (m_webSocket->state() == QAbstractSocket::ConnectedState) {
         return true;
     }
+    qDebug()<<"connect----------------------------------------------";
 
     m_serverUrl = url;
 
-    // 添加认证token到URL（如果有）
+    // 添加认证token到URL
     QUrl qUrl(url);
-    // 如果需要，可以在这里添加查询参数
 
     m_webSocket->open(qUrl);
     return true;
@@ -111,21 +111,26 @@ void WebSocketClient::onConnected()
     m_heartbeatTimer->start();
 
     // 发送认证消息
-    if (ApiService::instance()->getCurrentUserId() != -1) {
+    int userId = ApiService::instance()->getCurrentUserId();
+    QString token = ApiService::instance()->getAuthToken();
+    if (userId != -1 && !token.isEmpty()) {
         QJsonObject authMsg;
-        authMsg["type"] = 0;  // 约定类型 0 为认证
-        authMsg["userId"] = ApiService::instance()->getCurrentUserId();
-        authMsg["token"] = ApiService::instance()->getAuthToken();
-        sendMessage(WsMessageType::SYSTEM_ALERT, authMsg);
+        authMsg["type"] = 0;                    // 认证消息类型
+        authMsg["userId"] = userId;
+        authMsg["token"] = token;
+        QJsonDocument doc(authMsg);
+        m_webSocket->sendTextMessage(doc.toJson(QJsonDocument::Compact));
+        qDebug() << "Sent WebSocket auth for user" << userId;
     }
 
-    // 发送连接成功的消息
-    QJsonObject data{
-        {"client_type", "desktop"},
-        {"version", "1.0.0"},
-        {"timestamp", QDateTime::currentSecsSinceEpoch()}
-    };
-    sendMessage(WsMessageType::SYSTEM_ALERT, data);
+
+    // // 发送连接成功的消息
+    // QJsonObject data{
+    //     {"client_type", "desktop"},
+    //     {"version", "1.0.0"},
+    //     {"timestamp", QDateTime::currentSecsSinceEpoch()}
+    // };
+    // sendMessage(WsMessageType::SYSTEM_ALERT, data);
 
     emit connected();
 }
@@ -245,5 +250,16 @@ void WebSocketClient::processMessage(const QJsonObject& message)
     default:
         qWarning() << "Unknown WebSocket message type:" << type;
         break;
+    }
+}
+
+void WebSocketClient::reauthenticate() {
+    if (isConnected() && ApiService::instance()->getCurrentUserId() != -1) {
+        QJsonObject authMsg;
+        authMsg["type"] = 0;
+        authMsg["userId"] = ApiService::instance()->getCurrentUserId();
+        authMsg["token"] = ApiService::instance()->getAuthToken();
+        sendMessage(WsMessageType::SYSTEM_ALERT, authMsg);
+        qDebug() << "Re-authenticated WebSocket for user" << ApiService::instance()->getCurrentUserId();
     }
 }

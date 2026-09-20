@@ -22,7 +22,7 @@ public:
     // 用户认证
     QJsonObject login(const QString& username, const QString& password, const QString& role);
     QJsonObject registerUser(const QString& username, const QString& password,
-                             const QString& email, const QString& phone, const QString& nickname);
+                             const QString& email, const QString& phone, const QString& nickname, const QString& school = "");
     QJsonObject logout();
     QJsonObject refreshToken();
 
@@ -34,17 +34,18 @@ public:
 
     // 商品管理
     QJsonObject publishGoods(const QJsonObject& goodsData, const QStringList& imagePaths);
-    QJsonArray searchGoods(const QString& keyword = "",
+    QJsonObject  searchGoods(const QString& keyword = "",
                            const QString& category = "",
                            double minPrice = 0,
                            double maxPrice = 0,
                            const QString& sortBy = "newest",
                            int page = 1,
-                           int pageSize = 20);
+                           int pageSize = 20,bool schoolOnly = false);
     QJsonObject getGoodsDetail(int goodsId);
     QJsonObject updateGoods(int goodsId, const QJsonObject& goodsData);
     QJsonObject deleteGoods(int goodsId);
     QJsonArray getRecommendedGoods(int limit = 10);
+    QJsonArray getCollaborativeRecommendations(int limit = 10, bool schoolOnly = true);
 
     // AI估价
     QJsonObject estimatePrice(const QString& description,const QStringList& imageBase64List=QStringList(),int goodsId = 0);
@@ -102,10 +103,10 @@ public:
     QJsonArray getUserList(const QString& status = "", const QString& keyword = "",const QString& role = "", int page = 1, int pageSize = 20);
     QJsonObject updateUserStatus(const QString& userId, const QString& status, const QString& reason = "");
     QJsonArray getDisputeList(const QString& status = "", int page = 1, int pageSize = 20);
-    QJsonObject processDispute(int disputeId, const QString& result, const QString& comment);
+    QJsonObject processDispute(int disputeId, const QString& result, const QString& responsibility, int changeValue);
     QJsonObject getStatistics(const QString& period = "daily");
     QJsonArray getAllReports(int page = 1, int pageSize = 20, const QString& status = "");
-    bool processReport(int reportId, const QString& result);
+    QJsonObject processReport(int reportId, bool isTrue, const QString& result);
     QJsonObject updateUserCreditScore(int userId, int newScore, const QString& reason = "");
     QJsonArray getGoodsForReview(const QString& keyword, const QString& status, const QString& startDate, const QString& endDate, int page, int pageSize);
 

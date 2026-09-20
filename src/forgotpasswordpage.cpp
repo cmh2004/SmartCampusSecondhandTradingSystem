@@ -4,7 +4,9 @@
 #include <QScreen>
 #include <QApplication>
 #include <QMouseEvent>
+#include <QJsonObject>
 #include "ForgotPasswordPage.h"
+#include "httpclient.h"
 #include "commonwidgets.h"
 
 static QPoint g_dragPos;
@@ -98,7 +100,7 @@ void ForgotPasswordPage::setupUI() {
     topLayout->addWidget(closeBtn);
 
     // 步骤说明
-    stepLabel = new QLabel("请输入注册时使用的邮箱");
+    stepLabel = new QLabel("请输入注册时使用的账号");
     stepLabel->setStyleSheet(R"(
         QLabel {
             font-size: 15px;
@@ -109,14 +111,36 @@ void ForgotPasswordPage::setupUI() {
     stepLabel->setAlignment(Qt::AlignCenter);
     stepLabel->setWordWrap(true);
 
-    // 邮箱输入
+    // 账号输入
+    usernameEdit = new QLineEdit();
+    usernameEdit->setPlaceholderText("账号");
+    usernameEdit->setStyleSheet(R"(
+        QLineEdit {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 15px;
+            font-size: 15px;
+            color: #2d3748;
+            background-color: #f7fafc;
+        }
+        QLineEdit:focus {
+            border-color: #4299e1;
+            background-color: white;
+            outline: none;
+        }
+        QLineEdit:disabled {
+            background-color: #fafafa;
+            color: #94a3b8;
+        }
+    )");
+
     emailEdit = new QLineEdit();
-    emailEdit->setPlaceholderText("邮箱地址");
+    emailEdit->setPlaceholderText("注册邮箱");
     emailEdit->setStyleSheet(R"(
         QLineEdit {
             border: 1px solid #e2e8f0;
             border-radius: 8px;
-            padding: 12px 15px;
+            padding: 8px 15px;
             font-size: 15px;
             color: #2d3748;
             background-color: #f7fafc;
@@ -191,7 +215,7 @@ void ForgotPasswordPage::setupUI() {
         QLineEdit {
             border: 1px solid #e2e8f0;
             border-radius: 8px;
-            padding: 12px 15px;
+            padding: 8px 15px;
             font-size: 15px;
             color: #2d3748;
             background-color: #f7fafc;
@@ -212,7 +236,7 @@ void ForgotPasswordPage::setupUI() {
         QLineEdit {
             border: 1px solid #e2e8f0;
             border-radius: 8px;
-            padding: 12px 15px;
+            padding: 8px 15px;
             font-size: 15px;
             color: #2d3748;
             background-color: #f7fafc;
@@ -326,6 +350,7 @@ void ForgotPasswordPage::setupUI() {
     mainLayout->addSpacing(15);
     mainLayout->addWidget(stepLabel);
     mainLayout->addSpacing(10);
+    mainLayout->addWidget(usernameEdit);
     mainLayout->addWidget(emailEdit);
     mainLayout->addWidget(codeWidget);
     mainLayout->addWidget(newPasswordEdit);
@@ -360,27 +385,55 @@ void ForgotPasswordPage::mouseMoveEvent(QMouseEvent *event) {
     }
 }
 
-void ForgotPasswordPage::onSendCodeClicked() {
+void ForgotPasswordPage::onSendCodeClicked()
+{
+    // 防止倒计时期间重复点击
+    if (countdownTimer->isActive()) {
+        showMessageBox(this, "提示", QString("请等待 %1 秒后再试").arg(countdownSeconds), QMessageBox::Warning);
+        return;
+    }
+
+    QString username = usernameEdit->text().trimmed();
     QString email = emailEdit->text().trimmed();
 
-    if (email.isEmpty()) {
-        showMessageBox(this, "提示", "请输入邮箱地址", QMessageBox::Warning);
+    if (username.isEmpty() || email.isEmpty()) {
+        showMessageBox(this, "提示", "请输入账号和注册邮箱", QMessageBox::Warning);
         return;
     }
 
-    QRegularExpression emailRegex(R"(^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$)");
-    if (!emailRegex.match(email).hasMatch()) {
-        showMessageBox(this, "提示", "邮箱格式不正确", QMessageBox::Warning);
-        return;
+    // 调用服务端 API
+    QJsonObject request;
+    request["username"] = username;
+    request["email"] = email;
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/auth/send_reset_code", request, "POST");
+
+    if (response.value("success").toBool()) {
+        QJsonObject data = response.value("data").toObject();
+        m_maskedEmail = data.value("masked_email").toString();
+        m_tempCode = data.value("code").toString();   // 演示模式：服务端返回验证码
+
+        QString msg = QString("已向您的安全邮箱 %1 发送验证码\n演示验证码：%2\n（实际系统将通过邮件发送）")
+                          .arg(m_maskedEmail).arg(m_tempCode);
+        showMessageBox(this, "验证码已生成", msg, QMessageBox::Information);
+
+        // 切换到步骤1（输入验证码）
+        step = 1;
+        stepLabel->setText("请输入验证码");
+        usernameEdit->setEnabled(false);   // 禁止修改账号
+        emailEdit->setEnabled(false);      // 禁止修改邮箱
+        codeEdit->parentWidget()->show();
+        backBtn->show();
+        nextBtn->setText("验证");
+        // 清空验证码输入框
+        codeEdit->clear();
+
+        countdownSeconds = 60;
+        sendCodeBtn->setEnabled(false);
+        sendCodeBtn->setText(QString("%1秒后重发").arg(countdownSeconds));
+        countdownTimer->start(1000);   // 每秒触发一次 updateCountdown
+    } else {
+        showMessageBox(this, "失败", response.value("error").toString(), QMessageBox::Warning);
     }
-
-    // 开始倒计时
-    countdownSeconds = 60;
-    sendCodeBtn->setEnabled(false);
-    sendCodeBtn->setText("60秒后重发");
-    countdownTimer->start(1000);
-
-    showMessageBox(this, "提示", "验证码已发送到您的邮箱", QMessageBox::Information);
 }
 
 void ForgotPasswordPage::updateCountdown() {
@@ -394,46 +447,49 @@ void ForgotPasswordPage::updateCountdown() {
     }
 }
 
-void ForgotPasswordPage::onNextClicked() {
+void ForgotPasswordPage::onNextClicked()
+{
     if (step == 0) {
-        // 检查邮箱
+        QString username = usernameEdit->text().trimmed();
         QString email = emailEdit->text().trimmed();
-        if (email.isEmpty()) {
-            showMessageBox(this, "提示", "请输入邮箱地址", QMessageBox::Warning);
+        if (username.isEmpty() || email.isEmpty()) {
+            showMessageBox(this, "提示", "请输入账号和注册邮箱", QMessageBox::Warning);
             return;
         }
 
-        QRegularExpression emailRegex(R"(^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$)");
-        if (!emailRegex.match(email).hasMatch()) {
-            showMessageBox(this, "提示", "邮箱格式不正确", QMessageBox::Warning);
+        // 调用服务端验证账号和邮箱是否匹配
+        QJsonObject request;
+        request["username"] = username;
+        request["email"] = email;
+        QJsonObject response = HttpClient::instance()->syncRequest("/api/auth/check_account_email", request, "POST");
+
+        if (!response.value("success").toBool()) {
+            showMessageBox(this, "验证失败", response.value("error").toString(), QMessageBox::Warning);
             return;
         }
 
-        // 切换到验证码步骤
+        // 验证通过，进入 step1（输验证码）
         step = 1;
-        stepLabel->setText("请输入发送到您邮箱的6位验证码");
+        stepLabel->setText("请输入验证码");
+        usernameEdit->setEnabled(false);
         emailEdit->setEnabled(false);
         codeEdit->parentWidget()->show();
+        // 显示“获取验证码”按钮
+        sendCodeBtn->setEnabled(true);   // 确保按钮启用
         backBtn->show();
         nextBtn->setText("验证");
+        codeEdit->clear();
+        return;
     }
-    else if (step == 1) {
-        // 检查验证码
+    if (step == 1) {
+        // 验证码输入后点击“验证” -> 进入 step2（设置新密码）
         QString code = codeEdit->text().trimmed();
-        if (code.isEmpty() || code.length() != 6) {
-            showMessageBox(this, "提示", "请输入6位验证码", QMessageBox::Warning);
+        if (code.isEmpty()) {
+            showMessageBox(this, "提示", "请输入验证码", QMessageBox::Warning);
             return;
         }
-
-        // 简单验证码验证（实际应该从服务器验证）
-        if (code != "123456") {
-            showMessageBox(this, "提示", "验证码错误", QMessageBox::Warning);
-            return;
-        }
-
-        // 切换到设置密码步骤
         step = 2;
-        stepLabel->setText("请设置您的新密码（6-20位，含字母+数字）");
+        stepLabel->setText("请设置新密码");
         codeEdit->parentWidget()->hide();
         newPasswordEdit->show();
         confirmPasswordEdit->show();
@@ -446,9 +502,9 @@ void ForgotPasswordPage::onNextClicked() {
 
 void ForgotPasswordPage::onBackClicked() {
     if (step == 1) {
-        // 返回到邮箱步骤
         step = 0;
-        stepLabel->setText("请输入注册时使用的邮箱");
+        stepLabel->setText("请输入注册时使用的账号和邮箱");
+        usernameEdit->setEnabled(true);
         emailEdit->setEnabled(true);
         codeEdit->parentWidget()->hide();
         backBtn->hide();
@@ -456,7 +512,10 @@ void ForgotPasswordPage::onBackClicked() {
     }
 }
 
-void ForgotPasswordPage::onResetClicked() {
+void ForgotPasswordPage::onResetClicked()
+{
+    QString username = usernameEdit->text().trimmed();
+    QString code = codeEdit->text().trimmed();
     QString newPassword = newPasswordEdit->text().trimmed();
     QString confirmPassword = confirmPasswordEdit->text().trimmed();
 
@@ -464,33 +523,31 @@ void ForgotPasswordPage::onResetClicked() {
         showMessageBox(this, "提示", "请输入密码", QMessageBox::Warning);
         return;
     }
-
     if (newPassword != confirmPassword) {
         showMessageBox(this, "提示", "两次输入的密码不一致", QMessageBox::Warning);
         return;
     }
-
+    // 密码强度校验
     if (newPassword.length() < 6 || newPassword.length() > 20) {
         showMessageBox(this, "提示", "密码长度应为6-20位", QMessageBox::Warning);
         return;
     }
 
-    // 简单密码强度验证
-    bool hasLetter = false;
-    bool hasDigit = false;
-    for (QChar ch : newPassword) {
-        if (ch.isLetter()) hasLetter = true;
-        if (ch.isDigit()) hasDigit = true;
-    }
+    // 客户端 MD5（与服务端约定一致）
+    QString newPasswordMd5 = QCryptographicHash::hash(newPassword.toUtf8(), QCryptographicHash::Md5).toHex();
 
-    if (!hasLetter || !hasDigit) {
-        showMessageBox(this, "提示", "密码需包含字母和数字", QMessageBox::Warning);
-        return;
-    }
+    QJsonObject request;
+    request["username"] = username;
+    request["code"] = code;
+    request["new_password"] = newPasswordMd5;   // 传递 MD5
 
-    // 重置密码成功
-    showMessageBox(this, "成功", "密码重置成功！\n请使用新密码登录。", QMessageBox::Information);
-    accept();
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/auth/reset_password", request, "POST");
+    if (response.value("success").toBool()) {
+        showMessageBox(this, "成功", "密码已重置，请重新登录", QMessageBox::Information);
+        accept();  // 关闭对话框
+    } else {
+        showMessageBox(this, "失败", response.value("error").toString(), QMessageBox::Warning);
+    }
 }
 
 void ForgotPasswordPage::onShowPasswordChanged(int state) {

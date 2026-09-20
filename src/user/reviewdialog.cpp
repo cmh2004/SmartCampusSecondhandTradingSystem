@@ -5,12 +5,12 @@
 #include "..\apiservice.h"
 #include "reviewdialog.h"
 
-ReviewDialog::ReviewDialog(QWidget *parent, int orderId, QString sellerName)
-    : QDialog(parent), orderId(orderId), sellerName(sellerName) {
+ReviewDialog::ReviewDialog(QWidget *parent, int orderId, const QString &sellerName, const QString &goodsName)
+    : QDialog(parent), orderId(orderId), sellerName(sellerName), m_goodsName(goodsName)
+{
     setWindowTitle("评价订单");
-    setFixedSize(600, 800);
+    setFixedSize(600, 750);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
-
     setupUI();
 }
 
@@ -23,7 +23,7 @@ void ReviewDialog::setupUI() {
 
     QLabel *orderLabel = new QLabel(QString("订单号: %1").arg(orderId));
     QLabel *sellerLabel = new QLabel(QString("卖家: %1").arg(sellerName));
-    QLabel *goodsLabel = new QLabel("商品: 二手iPhone 12 128GB");
+    QLabel *goodsLabel = new QLabel(QString("商品: %1").arg(m_goodsName.isEmpty() ? "未知商品" : m_goodsName));
 
     orderLayout->addWidget(orderLabel);
     orderLayout->addWidget(sellerLabel);
@@ -95,25 +95,6 @@ void ReviewDialog::setupUI() {
     contentGroup->setLayout(contentLayout);
     mainLayout->addWidget(contentGroup);
 
-    // 标签选择
-    QGroupBox *tagGroup = new QGroupBox("选择标签（可选）");
-    QVBoxLayout *tagLayout = new QVBoxLayout();
-
-    QWidget *tagWidget = new QWidget();
-    QGridLayout *tagGrid = new QGridLayout(tagWidget);
-
-    QStringList tags = {"商品与描述一致", "发货速度快", "卖家态度好",
-                        "包装完好", "性价比高", "会推荐给同学"};
-
-    for (int i = 0; i < tags.size(); i++) {
-        QCheckBox *tagCheck = new QCheckBox(tags[i]);
-        tagGrid->addWidget(tagCheck, i / 2, i % 2);
-    }
-
-    tagLayout->addWidget(tagWidget);
-    tagGroup->setLayout(tagLayout);
-    mainLayout->addWidget(tagGroup);
-
     // 上传图片
     QGroupBox *imageGroup = new QGroupBox("上传图片（可选）");
     QVBoxLayout *imageLayout = new QVBoxLayout();
@@ -156,6 +137,13 @@ void ReviewDialog::setupUI() {
         QStringList fileNames = QFileDialog::getOpenFileNames(this, "选择评价图片",
                                                               "", "Images (*.png *.jpg *.jpeg *.bmp)");
         if (!fileNames.isEmpty()) {
+            int currentCount = uploadedImages.size();
+            int newCount = fileNames.size();
+            if (currentCount + newCount > 5) {
+                QMessageBox::warning(this, "提示", QString("最多只能上传5张图片，当前已有%1张，您选择了%2张。").arg(currentCount).arg(newCount));
+                return;
+            }
+
             // 检查是否已存在"添加图片"按钮
             bool hasAddButton = false;
             for (int i = 0; i < imageContainerLayout->count(); i++) {

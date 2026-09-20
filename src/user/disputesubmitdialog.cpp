@@ -315,23 +315,25 @@ void DisputeSubmitDialog::setupUI() {
 }
 
 void DisputeSubmitDialog::loadOrderInfo(int orderId) {
-    this->orderId = orderId;
-    switch(orderId % 3) {
-    case 0:
-        goodsNameLabel->setText("二手iPhone 12 128GB 国行版");
-        orderAmountLabel->setText("¥2500.00");
-        sellerNameLabel->setText("张三同学（学号：2022001）");
-        break;
-    case 1:
-        goodsNameLabel->setText("大学物理（第七版）上下册 + 习题解答");
-        orderAmountLabel->setText("¥35.00");
-        sellerNameLabel->setText("李四同学（学号：2022002）");
-        break;
-    case 2:
-        goodsNameLabel->setText("Nike Air Zoom 篮球鞋 43码 95新");
-        orderAmountLabel->setText("¥280.00");
-        sellerNameLabel->setText("王五同学（学号：2022003）");
-        break;
+    // 显示加载中
+    goodsNameLabel->setText("加载中...");
+    orderAmountLabel->setText("--");
+    sellerNameLabel->setText("--");
+
+    QJsonObject result = ApiService::instance()->getOrderDetail(orderId);
+    if (result.value("success").toBool()) {
+        QJsonObject data = result.value("data").toObject();
+        goodsNameLabel->setText(data.value("goods_title").toString());
+        double price = data.value("deal_price").toDouble();
+        orderAmountLabel->setText(QString("¥%1").arg(price));
+        int sellerId = data.value("seller_id").toInt();
+        sellerNameLabel->setText(data.value("seller_name").toString());
+    } else {
+        // 降级：显示订单号
+        goodsNameLabel->setText(QString("订单 #%1").arg(orderId));
+        orderAmountLabel->setText("未知");
+        sellerNameLabel->setText("未知");
+        qWarning() << "Failed to load order info:" << result.value("error").toString();
     }
 }
 
@@ -347,6 +349,7 @@ void DisputeSubmitDialog::onUploadEvidence() {
             QString shortName = QFileInfo(fileName).fileName();
             QListWidgetItem *item = new QListWidgetItem(shortName);
             item->setToolTip(fileName); // 悬停显示完整路径
+            item->setData(Qt::UserRole, fileName);
             evidenceList->addItem(item);
         }
     }
@@ -361,23 +364,16 @@ void DisputeSubmitDialog::onSubmitDispute() {
     }
 
     // 上传证据文件
-    QStringList evidenceUrls;
+    QStringList evidencePaths;
     for (int i = 0; i < evidenceList->count(); ++i) {
         QListWidgetItem *item = evidenceList->item(i);
         QString filePath = item->data(Qt::UserRole).toString();
         if (!filePath.isEmpty()) {
-            QJsonObject uploadResult = ApiService::instance()->uploadImage(filePath);
-            if (uploadResult.value("success").toBool()) {
-                QString url = uploadResult.value("data").toObject().value("file_url").toString();
-                evidenceUrls.append(url);
-            } else {
-                QMessageBox::warning(this, "证据上传失败", uploadResult.value("error").toString());
-                return; // 可选择继续或中止
-            }
+            evidencePaths.append(filePath);
         }
     }
 
-    QJsonObject result = ApiService::instance()->submitDispute(orderId, disputeType, description, evidenceUrls);
+    QJsonObject result = ApiService::instance()->submitDispute(orderId, disputeType, description, evidencePaths);
     if (result.value("success").toBool()) {
         QMessageBox::information(this, "成功", "纠纷已提交");
         accept();

@@ -141,8 +141,8 @@ void MessagesPage::setupUI() {
     QHBoxLayout *headerLayout = new QHBoxLayout(chatHeader);
     headerLayout->setContentsMargins(20, 0, 20, 0);
 
-    currentChatLabel = new QLabel("请选择一个聊天");
-    currentChatLabel->setStyleSheet("font-weight: bold; font-size: 16px; color: #1E293B;");
+    // currentChatLabel = new QLabel("请选择一个聊天");
+    // currentChatLabel->setStyleSheet("font-weight: bold; font-size: 16px; color: #1E293B;");
 
     QPushButton *reportBtn = new QPushButton("举报");
     reportBtn->setObjectName("warningBtn");
@@ -166,7 +166,7 @@ void MessagesPage::setupUI() {
         }
     )");
 
-    headerLayout->addWidget(currentChatLabel);
+    // headerLayout->addWidget(currentChatLabel);
     headerLayout->addStretch();
     headerLayout->addWidget(reportBtn);
 
@@ -314,18 +314,28 @@ void MessagesPage::loadChatHistory() {
         chatItem["sessionId"] = sessionId;
         chatItem["otherName"] = otherName;
         chatItem["goodsId"] = goodsId;
+        chatItem["goodsName"] = chat.value("goods_name").toString();
         chatItem["lastMessage"] = lastMessage;
         chatItem["lastTime"] = lastTime;
         chatItem["otherId"] = otherId;
         chatData.append(chatItem);
 
-        QString display = QString("%1 - 商品#%2\n%3\n%4").arg(otherName).arg(goodsId).arg(lastMessage).arg(lastTime);
+        QString goodsName = chat.value("goods_name").toString();
+
+        QString display = QString("%1 - %2\n%3\n%4")
+                              .arg(otherName)
+                              .arg(goodsName)
+                              .arg(lastMessage)
+                              .arg(lastTime);
         QListWidgetItem *item = new QListWidgetItem(display, chatList);
         item->setData(Qt::UserRole, sessionId);
         item->setData(Qt::UserRole+1, otherName);
         item->setData(Qt::UserRole+2, goodsId);
         item->setData(Qt::UserRole+3, otherId);
+        item->setData(Qt::UserRole+4, chat.value("goods_name").toString());
     }
+    // 刷新标题栏
+    updateCurrentChatTitle();
 }
 
 void MessagesPage::addMessage(const QString &sender, const QString &message, bool isSelf, const QString &timestamp) {
@@ -370,6 +380,17 @@ void MessagesPage::onSendMessage() {
         // 在界面上添加自己发送的消息
         addMessage("我", message, true);
         messageEdit->clear();
+
+        // 刷新整个聊天列表（更新商品名、最后消息时间等）
+        loadChatHistory();
+
+        // 同时确保当前选中的会话仍然处于选中状态
+        for (int i = 0; i < chatList->count(); ++i) {
+            if (chatList->item(i)->data(Qt::UserRole).toString() == sessionId) {
+                chatList->setCurrentRow(i);
+                break;
+            }
+        }
     } else {
         QMessageBox::warning(this, "发送失败", result.value("error").toString());
     }
@@ -382,9 +403,10 @@ void MessagesPage::onChatItemClicked(QListWidgetItem *item) {
     QString chatWith = item->data(Qt::UserRole+1).toString(); // 对方昵称
     int goodsId = item->data(Qt::UserRole+2).toInt();         // 商品ID
     m_currentChatOtherId = item->data(Qt::UserRole + 3).toInt(); // 存储对方ID
+    QString goodsName = item->data(Qt::UserRole+4).toString();
 
     // 更新聊天头部
-    currentChatLabel->setText(QString("与 %1 的对话 (商品#%2)").arg(chatWith).arg(goodsId));
+    // currentChatLabel->setText(QString("与 %1 的对话 (%2)").arg(chatWith).arg(goodsName));
 
     // 启用输入框和按钮
     messageEdit->setEnabled(true);
@@ -431,9 +453,11 @@ void MessagesPage::onNewMessage(const QJsonObject &message) {
         addMessage(senderId, content, false,timestamp);
         // 标记已读（调用 API）
         ApiService::instance()->markMessageRead(sessionId);
+        loadChatHistory();
     } else {
         // 否则更新聊天列表中的最后一条消息显示
         updateChatListLastMessage(sessionId, content);
+        loadChatHistory();
     }
 }
 
@@ -443,9 +467,10 @@ void MessagesPage::updateChatListLastMessage(const QString &sessionId, const QSt
         if (item->data(Qt::UserRole).toString() == sessionId) {
             QString otherName = item->data(Qt::UserRole+1).toString();
             int goodsId = item->data(Qt::UserRole+2).toInt();
-            QString display = QString("%1 - 商品#%2\n%3\n%4")
+            QString goodsName = item->data(Qt::UserRole+4).toString();
+            QString display = QString("%1 - %2\n%3\n%4")
                                   .arg(otherName)
-                                  .arg(goodsId)
+                                  .arg(goodsName)
                                   .arg(lastMessage)
                                   .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm"));
             item->setText(display);
@@ -552,4 +577,15 @@ QString MessagesPage::formatMessageTime(const QString &timestamp) {
         // 显示月-日 时:分
         return msgTime.toString("MM-dd HH:mm");
     }
+}
+
+void MessagesPage::updateCurrentChatTitle() {
+    // QListWidgetItem *currentItem = chatList->currentItem();
+    // if (!currentItem) {
+    //     currentChatLabel->setText("请选择一个聊天");
+    //     return;
+    // }
+    // QString chatWith = currentItem->data(Qt::UserRole + 1).toString();
+    // QString goodsName = currentItem->data(Qt::UserRole + 4).toString();
+    // currentChatLabel->setText(QString("与 %1 的对话 (%2)").arg(chatWith).arg(goodsName));
 }

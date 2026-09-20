@@ -124,21 +124,6 @@ void ReportSubmitDialog::setupUI() {
     evidenceGroup->setLayout(evidenceLayout);
     mainLayout->addWidget(evidenceGroup);
 
-    // 联系方式
-    QGroupBox *contactGroup = new QGroupBox("联系方式（选填）");
-    QVBoxLayout *contactLayout = new QVBoxLayout();
-
-    QLabel *contactHint = new QLabel("便于我们与您联系核实情况：");
-    contactHint->setStyleSheet("color: #666;");
-
-    contactEdit = new QLineEdit();
-    contactEdit->setPlaceholderText("邮箱或手机号（选填）");
-
-    contactLayout->addWidget(contactHint);
-    contactLayout->addWidget(contactEdit);
-    contactGroup->setLayout(contactLayout);
-    mainLayout->addWidget(contactGroup);
-
     // 注意事项
     QGroupBox *noticeGroup = new QGroupBox("注意事项");
     QVBoxLayout *noticeLayout = new QVBoxLayout();
@@ -230,19 +215,16 @@ void ReportSubmitDialog::setupUI() {
 void ReportSubmitDialog::loadTargetInfo() {
     if (targetType == "goods") {
         targetTitleLabel->setText("举报商品");
-        targetInfoLabel->setText(QString("商品ID: %1\n商品名称: %2")
-                                     .arg(targetId)
+        targetInfoLabel->setText(QString("商品名称: %1")
                                      .arg(targetName.isEmpty() ? "未知商品" : targetName));
     } else if (targetType == "user") {
         targetTitleLabel->setText("举报用户");
-        targetInfoLabel->setText(QString("用户ID: %1\n用户名: %2")
-                                     .arg(targetId)
+        targetInfoLabel->setText(QString("用户名: %1")
                                      .arg(targetName.isEmpty() ? "未知用户" : targetName));
     } else if (targetType == "order") {
         targetTitleLabel->setText("举报订单");
-        targetInfoLabel->setText(QString("订单号: %1\n相关商品: %2")
-                                     .arg(targetId)
-                                     .arg(targetName.isEmpty() ? "未知订单" : targetName));
+        targetInfoLabel->setText(QString("订单号: %1")
+                                     .arg(targetName.isEmpty() ? QString::number(targetId) : targetName));
     }
 }
 
@@ -254,9 +236,20 @@ void ReportSubmitDialog::onSubmitReport() {
         QMessageBox::warning(this, "提示", "请填写举报描述");
         return;
     }
+
+    // 收集证据文件路径
+    QStringList evidencePaths;
+    for (int i = 0; i < evidenceList->count(); ++i) {
+        QListWidgetItem *item = evidenceList->item(i);
+        QString path = item->data(Qt::UserRole).toString();
+        if (!path.isEmpty()) {
+            evidencePaths.append(path);
+        }
+    }
+
     // 将举报类型映射到服务端接受的类型ID
     int reasonType = mapReasonType(reportType);
-    QJsonObject result = ApiService::instance()->submitReport(targetId, targetType, reasonType, description);
+    QJsonObject result = ApiService::instance()->submitReport(targetId, targetType, reasonType, description, evidencePaths);
     if (result.value("success").toBool()) {
         QMessageBox::information(this, "成功", "举报已提交");
         accept();

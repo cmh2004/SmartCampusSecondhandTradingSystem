@@ -72,6 +72,10 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         src/admin/reportsmanagepage.h src/admin/reportsmanagepage.cpp
         src/user/goodseditdialog.h src/user/goodseditdialog.cpp
         src/user/systemmessagedialog.h src/user/systemmessagedialog.cpp
+        src/user/recommenddialog.h src/user/recommenddialog.cpp
+        src/user/disputedetaildialog.h src/user/disputedetaildialog.cpp
+        src/user/imageviewerdialog.h src/user/imageviewerdialog.cpp
+        src/user/sellerinfodialog.h src/user/sellerinfodialog.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET SmartCampusSecondhandTradingSystem APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

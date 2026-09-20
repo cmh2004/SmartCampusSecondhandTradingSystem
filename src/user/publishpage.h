@@ -38,6 +38,8 @@ private:
     QWidget *m_imageContainer;                // 放置预览图片的容器
     QHBoxLayout *m_imageLayout;               // 水平布局
     QPushButton *m_addImageBtn;               // 添加图片按钮
+
+    bool m_isPublishing;  // 防止重复提交标志
 };
 
 #endif // PUBLISHPAGE_H

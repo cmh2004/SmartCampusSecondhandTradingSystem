@@ -6,10 +6,12 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QLineEdit>
+#include <QApplication>
 #include <QEvent>
 #include <QNetworkRequest>
 #include "..\apiservice.h"
 #include "goodsdetaildialog.h"
+#include "SellerInfoDialog.h"
 
 GoodsDetailDialog::GoodsDetailDialog(QWidget *parent, int goodsId)
     : QDialog(parent), goodsId(goodsId) {
@@ -134,8 +136,11 @@ void GoodsDetailDialog::setupUI() {
 
     // 第1行
     basicLayout->addWidget(new QLabel("卖家:"), 0, 0);
-    sellerLabel = new QLabel("张三同学");
-    sellerLabel->setStyleSheet("color: #3498db; font-weight: 500;");
+    sellerLabel = new QPushButton("张三同学");
+    sellerLabel->setFlat(true);                         // 扁平样式，看起来像标签
+    sellerLabel->setCursor(Qt::PointingHandCursor);     // 手型光标
+    sellerLabel->setStyleSheet("QPushButton {font-size: 16px; font-weight: bold; text-align: left; color: #3498db; font-weight: 800; }");
+    sellerLabel->setToolTip("点击查看卖家详细信息及评价");
     basicLayout->addWidget(sellerLabel, 0, 1);
 
     basicLayout->addWidget(new QLabel("商品状态:"), 0, 2);
@@ -291,7 +296,7 @@ void GoodsDetailDialog::setupUI() {
     connect(collectBtn, &QPushButton::clicked, this, &GoodsDetailDialog::onCollectGoods);
     connect(aiAssessmentBtn, &QPushButton::clicked, this, &GoodsDetailDialog::onAIAssessment);
     connect(reportBtn, &QPushButton::clicked, [this]() {
-        emit reportGoodsRequested(goodsId);
+        emit reportGoodsRequested(goodsId, m_currentGoodsName);
     });
 
     // 样式表
@@ -402,10 +407,25 @@ void GoodsDetailDialog::loadGoodsData(int goodsId) {
         conditionLabel->setText(data.value("condition").toString());
         int sellerCredit = data.value("seller_credit").toInt();
         sellerCreditLabel->setText(QString::number(sellerCredit));
+        m_currentGoodsName = data.value("name").toString();
 
         // 卖家信息
         m_sellerId = data.value("seller_id").toInt();
         sellerLabel->setText(data.value("seller_name").toString());
+        connect(sellerLabel, &QPushButton::clicked, [this]() {
+            // 弹出查看卖家信息及评价的对话框
+            SellerInfoDialog *dialog = new SellerInfoDialog(m_sellerId, sellerLabel->text(), this);
+            dialog->setAttribute(Qt::WA_DeleteOnClose);
+            dialog->show();
+        });
+
+        int currentUserId = ApiService::instance()->getCurrentUserId();
+        if (currentUserId == m_sellerId) {
+            buyBtn->setEnabled(false);
+            buyBtn->setToolTip("不能购买自己发布的商品");
+            buyBtn->setStyleSheet("QPushButton:disabled { background-color: #d3d3d3; color: #808080; }");
+        }
+
         QString sellerPhone = data.value("seller_phone").toString();
         if (!sellerPhone.isEmpty()) {
             contactLabel->setText(sellerPhone);
@@ -641,12 +661,18 @@ void GoodsDetailDialog::downloadImagesForAI(const QList<QUrl>& imageUrls, const 
 }
 
 void GoodsDetailDialog::doAIAssessment(const QString& description, const QStringList& imageBase64List) {
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    aiAssessmentBtn->setEnabled(false);
+
     aiPriceRangeLabel->setText("AI 估价中...");
 
     qDebug() << "=== doAIAssessment ===";
 
     // 调用 ApiService 的多图估价接口
     QJsonObject estimate = ApiService::instance()->estimatePrice(description, imageBase64List,goodsId);
+
+    aiAssessmentBtn->setEnabled(true);
+    QApplication::restoreOverrideCursor();
 
     if (estimate.value("success").toBool()) {
         QJsonObject data = estimate.value("data").toObject();

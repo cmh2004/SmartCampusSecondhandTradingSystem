@@ -34,6 +34,7 @@ private:
     QLineEdit *passwordEdit;
     QLineEdit *emailEdit;
     QLineEdit *nicknameEdit;
+    QLineEdit *schoolEdit;
 
     // 按钮控件
     QPushButton *registerBtn;

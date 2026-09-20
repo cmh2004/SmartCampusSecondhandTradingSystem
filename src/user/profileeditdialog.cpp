@@ -51,6 +51,8 @@ void ProfileEditDialog::setupUI() {
     basicLayout->addRow("昵称:", nicknameEdit);
     basicLayout->addRow("邮箱:", emailEdit);
     basicLayout->addRow("手机号:", phoneEdit);
+    schoolEdit = new QLineEdit();
+    basicLayout->addRow("学校:", schoolEdit);
 
     basicGroup->setLayout(basicLayout);
     mainLayout->addWidget(basicGroup);
@@ -166,6 +168,7 @@ void ProfileEditDialog::loadCurrentProfile() {
         nicknameEdit->setText(data.value("nickname").toString());
         emailEdit->setText(data.value("email").toString());
         phoneEdit->setText(data.value("phone").toString());
+        schoolEdit->setText(data.value("school").toString());
 
         // 加载头像（如果有）
         QString avatarUrl = data.value("avatar_url").toString();
@@ -198,6 +201,7 @@ void ProfileEditDialog::onSaveProfile() {
     QString nickname = nicknameEdit->text().trimmed();
     QString email = emailEdit->text().trimmed();
     QString phone=phoneEdit->text().trimmed();
+    QString school = schoolEdit->text().trimmed();
 
     if (nickname.isEmpty()) {
         QMessageBox::warning(this, "提示", "昵称不能为空");
@@ -227,6 +231,7 @@ void ProfileEditDialog::onSaveProfile() {
     updates["nickname"] = nickname;
     updates["email"] = email;
     updates["phone"]=phone;
+    updates["school"] = school;
     if (!m_newAvatarUrl.isEmpty()) {
         updates["avatar_url"] = m_newAvatarUrl;
     }

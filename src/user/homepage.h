@@ -7,6 +7,7 @@
 #include <QPushButton>
 #include <QComboBox>
 #include <QLabel>
+#include <QCheckBox>
 #include <QGridLayout>
 
 class HomePage : public QWidget {
@@ -15,7 +16,7 @@ class HomePage : public QWidget {
 public:
     explicit HomePage(QWidget *parent = nullptr);
     void loadGoodsFromServer(const QString &keyword, const QString &category,
-                                   double minPrice, double maxPrice, const QString &sortBy,
+                             double minPrice, double maxPrice, const QString &sortBy,
                              int page, int pageSize);
     void refreshWithCurrentState();
 
@@ -26,10 +27,13 @@ private slots:
     void onCategoryClicked(QListWidgetItem* item);
     void onSearchClicked();
     void onAISearchClicked();
+    void showRecommendDialog();
+    void onPriceFilterClicked();
+    void onSchoolOnlyToggled();
 
 signals:
     void goodsDetailRequested(int goodsId);
-    void reportGoodsRequested(int goodsId);
+    void reportGoodsRequested(int goodsId, const QString &goodsName);
     void contactSellerRequested(int goodsId);
     void buyNowRequested(int goodsId);
     void makeOfferRequested(int goodsId);
@@ -51,6 +55,10 @@ private:
     QPushButton *searchBtn;
     QComboBox *sortCombo;
     QLabel *welcomeLabel;
+    QLineEdit *minPriceEdit;
+    QLineEdit *maxPriceEdit;
+    QPushButton *priceFilterBtn;
+    QCheckBox *schoolOnlyCheck;
 
     int m_currentPage;
     int m_totalPages;  // 总页数（可选，可从服务端返回）

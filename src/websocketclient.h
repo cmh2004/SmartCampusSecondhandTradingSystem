@@ -26,6 +26,8 @@ class WebSocketClient : public QObject
 public:
     static WebSocketClient* instance();
 
+    void reauthenticate();   // 重新发送认证消息
+
     // 连接管理
     bool connectToServer(const QString& url);
     void disconnectFromServer();

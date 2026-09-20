@@ -84,7 +84,7 @@ QJsonObject ApiService::login(const QString& username, const QString& password,
 
 QJsonObject ApiService::registerUser(const QString& username, const QString& password,
                                      const QString& email, const QString& phone,
-                                     const QString& nickname)
+                                     const QString& nickname, const QString& school)
 {
     QJsonObject data{
         {"username", username},
@@ -92,6 +92,7 @@ QJsonObject ApiService::registerUser(const QString& username, const QString& pas
         {"email", email},
         {"phone", phone},
         {"nickname", nickname},
+        {"school", school},
         {"register_time", QDateTime::currentSecsSinceEpoch()}
     };
 
@@ -118,7 +119,7 @@ QJsonObject ApiService::getUserProfile(const QString& userId)
         params["user_id"] = userId;
     }
 
-    return HttpClient::instance()->syncRequest("/api/user/profile", params, "GET");
+    return HttpClient::instance()->syncRequest("/api/user/get_profile", params, "POST");
 }
 
 QJsonObject ApiService::publishGoods(const QJsonObject& goodsData, const QStringList& imagePaths)
@@ -140,9 +141,9 @@ QJsonObject ApiService::publishGoods(const QJsonObject& goodsData, const QString
     return HttpClient::instance()->syncRequest("/api/goods/publish", finalData);
 }
 
-QJsonArray ApiService::searchGoods(const QString& keyword, const QString& category,
+QJsonObject ApiService::searchGoods(const QString& keyword, const QString& category,
                                    double minPrice, double maxPrice,
-                                   const QString& sortBy, int page, int pageSize)
+                                   const QString& sortBy, int page, int pageSize,bool schoolOnly)
 {
     QJsonObject params{
         {"keyword", keyword},
@@ -151,7 +152,8 @@ QJsonArray ApiService::searchGoods(const QString& keyword, const QString& catego
         {"max_price", maxPrice},
         {"sort_by", sortBy},
         {"page", page},
-        {"page_size", pageSize}
+        {"page_size", pageSize},
+        {"school_only", schoolOnly}
     };
 
     QJsonObject response = HttpClient::instance()->syncRequest("/api/goods/search", params, "POST");
@@ -163,15 +165,13 @@ QJsonArray ApiService::searchGoods(const QString& keyword, const QString& catego
 
     if (success) {
         QJsonObject dataObj = response.value("data").toObject();
-        QJsonArray goodsList = dataObj.value("goods_list").toArray();
-        qDebug() << "[searchGoods] goods_list size:" << goodsList.size();
-        return goodsList;
+        return dataObj;
     } else {
         QString error = response.value("error").toString();
         qDebug() << "[searchGoods] Error:" << error;
     }
 
-    return QJsonArray();
+    return QJsonObject();
 }
 
 QJsonObject ApiService::createOrder(int goodsId, const QJsonObject& orderInfo)
@@ -282,13 +282,29 @@ QJsonObject ApiService::getGoodsDetail(int goodsId)
 QJsonObject ApiService::submitDispute(int orderId, const QString& disputeType,
                                       const QString& description, const QStringList& evidence)
 {
+    // 1. 上传所有证据图片
+    QStringList uploadedUrls;
+    for (const QString &localPath : evidence) {
+        qDebug() << "[submitDispute] 正在上传证据:" << localPath;
+        QJsonObject uploadResult = uploadImage(localPath);
+        qDebug() << "[submitDispute] 上传结果:" << uploadResult;
+        if (uploadResult.value("success").toBool()) {
+            QString url = uploadResult.value("data").toObject().value("file_url").toString();
+            uploadedUrls.append(url);
+            qDebug() << "[submitDispute] 获得图片URL:" << url;
+        } else {
+            qWarning() << "证据图片上传失败:" << localPath << uploadResult.value("error").toString();
+        }
+    }
+
+    // 2. 构造提交数据
     QJsonObject data;
     data["order_id"] = orderId;
     data["dispute_type"] = disputeType;
     data["description"] = description;
-    QJsonArray evidenceArray = QJsonArray::fromStringList(evidence);
-    data["evidence"] = evidenceArray;
+    data["evidence_urls"] = uploadedUrls.join(",");  // 服务端期望逗号分隔的字符串
     data["submit_time"] = QDateTime::currentSecsSinceEpoch();
+
     return HttpClient::instance()->syncRequest("/api/dispute/submit", data);
 }
 
@@ -342,18 +358,33 @@ QJsonObject ApiService::submitReport(int targetId, const QString& targetType,
                                      int reason, const QString& description,
                                      const QStringList& evidence)
 {
-    QJsonObject data;
-    data["target_id"] = targetId;
-    // 将 targetType 转换为服务端所需的 target_type (int)
+    // 1. 上传证据图片
+    QStringList uploadedUrls;
+    for (const QString &localPath : evidence) {
+        if (localPath.isEmpty()) continue;
+        QJsonObject uploadResult = uploadImage(localPath);
+        if (uploadResult.value("success").toBool()) {
+            QString url = uploadResult.value("data").toObject().value("file_url").toString();
+            uploadedUrls.append(url);
+        } else {
+            qWarning() << "证据图片上传失败:" << localPath << uploadResult.value("error").toString();
+        }
+    }
+
+    // 2. 转换 targetType
     int targetTypeInt = 0;
     if (targetType == "goods") targetTypeInt = 1;
     else if (targetType == "user") targetTypeInt = 2;
-    else if (targetType == "order") targetTypeInt = 3; // 根据实际定义
+    else if (targetType == "order") targetTypeInt = 3;
+
+    QJsonObject data;
+    data["target_id"] = targetId;
     data["target_type"] = targetTypeInt;
-    data["reason_type"] = reason;   // 服务端字段名为 reason_type
+    data["reason_type"] = reason;
     data["description"] = description;
-    data["evidence_urls"] = QJsonArray::fromStringList(evidence); // 服务端期望字符串
+    data["evidence_urls"] = uploadedUrls.join(",");
     data["report_time"] = QDateTime::currentSecsSinceEpoch();
+
     return HttpClient::instance()->syncRequest("/api/report/submit", data);
 }
 
@@ -513,7 +544,7 @@ QJsonArray ApiService::getRecommendedGoods(int limit)
 QJsonObject ApiService::getOrderDetail(int orderId)
 {
     QJsonObject params{{"order_id", orderId}};
-    return HttpClient::instance()->syncRequest("/api/order/detail", params, "GET");
+    return HttpClient::instance()->syncRequest("/api/order/detail", params, "POST");
 }
 
 QJsonObject ApiService::getPaymentMethods()
@@ -553,7 +584,7 @@ QJsonArray ApiService::getGoodsReviews(int goodsId, int page, int pageSize)
 QJsonObject ApiService::getSellerReviews(const QString& sellerId, int page, int pageSize)
 {
     QJsonObject params{{"seller_id", sellerId}, {"page", page}, {"page_size", pageSize}};
-    return HttpClient::instance()->syncRequest("/api/review/seller", params, "GET");
+    return HttpClient::instance()->syncRequest("/api/review/seller", params, "POST");
 }
 
 // 取消收藏
@@ -651,10 +682,16 @@ QJsonArray ApiService::getDisputeList(const QString& status, int page, int pageS
 }
 
 // 处理纠纷（管理员）
-QJsonObject ApiService::processDispute(int disputeId, const QString& result, const QString& comment)
+QJsonObject ApiService::processDispute(int disputeId, const QString& result,
+                                       const QString& responsibility, int changeValue)
 {
-    QJsonObject data{{"dispute_id", disputeId}, {"status", 2}, {"result", result}, {"comment", comment}};
-    return HttpClient::instance()->syncRequest("/api/admin/process_dispute", data,"POST");
+    QJsonObject data;
+    data["dispute_id"] = disputeId;
+    data["result"] = result;
+    data["responsibility"] = responsibility;
+    data["change_value"] = changeValue;
+    data["status"] = 2; // 已解决
+    return HttpClient::instance()->syncRequest("/api/admin/process_dispute", data, "POST");
 }
 
 // 获取统计信息（管理员）
@@ -666,25 +703,29 @@ QJsonObject ApiService::getStatistics(const QString& period)
 
 QJsonObject ApiService::uploadImage(const QString &filePath)
 {
+    qDebug() << "[uploadImage] 开始上传:" << filePath;
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "[uploadImage] 无法打开文件:" << filePath;
         return {{"success", false}, {"error", "无法打开文件"}};
     }
     QByteArray imageData = file.readAll();
     QString base64 = imageData.toBase64();
+    qDebug() << "[uploadImage] 图片大小:" << imageData.size() << "bytes, base64长度:" << base64.size();
 
-    // 推断图片类型（可选）
     QString imageType;
     if (filePath.endsWith(".png", Qt::CaseInsensitive)) imageType = "image/png";
     else if (filePath.endsWith(".jpg", Qt::CaseInsensitive) || filePath.endsWith(".jpeg", Qt::CaseInsensitive))
         imageType = "image/jpeg";
-    else imageType = "image/jpeg"; // 默认
+    else imageType = "image/jpeg";
 
     QJsonObject data;
     data["image_base64"] = base64;
     data["image_type"] = imageType;
 
-    return HttpClient::instance()->syncRequest("/api/upload/image", data);
+    QJsonObject result = HttpClient::instance()->syncRequest("/api/upload/image", data);
+    qDebug() << "[uploadImage] 服务端返回:" << result;
+    return result;
 }
 
 QJsonArray ApiService::getAllReports(int page, int pageSize, const QString& status)
@@ -699,11 +740,13 @@ QJsonArray ApiService::getAllReports(int page, int pageSize, const QString& stat
     return QJsonArray();
 }
 
-bool ApiService::processReport(int reportId, const QString& result)
+QJsonObject ApiService::processReport(int reportId, bool isTrue, const QString& result)
 {
-    QJsonObject data{{"report_id", reportId}, {"result", result}};
-    QJsonObject response = HttpClient::instance()->syncRequest("/api/admin/process_report", data, "POST");
-    return response.value("success").toBool();
+    QJsonObject data;
+    data["report_id"] = reportId;
+    data["is_true"] = isTrue;
+    data["result"] = result;
+    return HttpClient::instance()->syncRequest("/api/admin/process_report", data, "POST");
 }
 
 QJsonObject ApiService::updateUserCreditScore(int userId, int newScore, const QString& reason)
@@ -772,6 +815,7 @@ QJsonArray ApiService::getGoodsForReview(const QString& keyword, const QString& 
     params["end_date"] = endDate;
     params["page"] = page;
     params["page_size"] = pageSize;
+
     QJsonObject response = HttpClient::instance()->syncRequest("/api/admin/goods_review_list", params, "POST");
     if (response.value("success").toBool()) {
         return response.value("data").toArray();
@@ -801,4 +845,17 @@ int ApiService::getUnreadSystemMessageCount() {
         return response.value("data").toObject().value("count").toInt();
     }
     return 0;
+}
+
+QJsonArray ApiService::getCollaborativeRecommendations(int limit, bool schoolOnly)
+{
+    QJsonObject params;
+    params["limit"] = limit;
+    params["school_only"] = schoolOnly;
+    QJsonObject response = HttpClient::instance()->syncRequest("/api/recommend/collaborative", params, "POST");
+    if (response.value("success").toBool()) {
+        QJsonObject data = response.value("data").toObject();
+        return data.value("recommendations").toArray();
+    }
+    return QJsonArray();
 }

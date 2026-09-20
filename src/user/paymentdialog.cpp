@@ -5,12 +5,12 @@
 #include <QDateTime>
 #include "paymentdialog.h"
 
-PaymentDialog::PaymentDialog(QWidget *parent, int orderId, double amount)
-    : QDialog(parent), orderId(orderId), amount(amount) {
+PaymentDialog::PaymentDialog(QWidget *parent, int orderId, double amount, const QString &goodsName)
+    : QDialog(parent), orderId(orderId), amount(amount), m_goodsName(goodsName)
+{
     setWindowTitle("支付");
     setFixedSize(400, 500);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
-
     setupUI();
 }
 
@@ -25,7 +25,7 @@ void PaymentDialog::setupUI() {
 
     orderIdLabel = new QLabel(QString("订单号: %1").arg(orderId));
     amountLabel = new QLabel(QString("支付金额: ¥%1").arg(amount, 0, 'f', 2));
-    goodsNameLabel = new QLabel("商品: 二手iPhone 12 128GB");
+    goodsNameLabel = new QLabel(QString("商品: %1").arg(m_goodsName.isEmpty() ? "未知商品" : m_goodsName));
 
     orderLayout->addWidget(orderIdLabel);
     orderLayout->addWidget(amountLabel);

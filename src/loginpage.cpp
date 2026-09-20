@@ -418,6 +418,15 @@ void LoginPage::onLoginClicked() {
         // 设置当前用户 ID 等
         ApiService::instance()->setCurrentUserId(data.value("user_id").toInt());
         selectedRole = data.value("role").toString();   // 保存实际角色
+        // 登录成功后，重新认证 WebSocket
+        QString wsUrl = data.value("ws_url").toString();
+        if (!wsUrl.isEmpty()) {
+            WebSocketClient* wsClient = WebSocketClient::instance();
+            // 先断开旧连接（如果有）
+            wsClient->disconnectFromServer();
+            // 发起新连接（连接成功后 onConnected 会自动发送认证消息）
+            wsClient->connectToServer(wsUrl);
+        }
         accept();
     } else {
         QString error = result.value("error").toString();

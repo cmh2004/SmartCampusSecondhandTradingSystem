@@ -8,7 +8,9 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QTextEdit>
+#include <QApplication>
 #include "HomePage.h"
+#include "RecommendDialog.h"
 #include "..\apiservice.h"
 
 HomePage::HomePage(QWidget *parent) : QWidget(parent),
@@ -59,9 +61,56 @@ void HomePage::setupUI() {
     searchLayout->addWidget(new QLabel("排序:"));
     searchLayout->addWidget(sortCombo);
 
+    schoolOnlyCheck = new QCheckBox("只看本校");
+    schoolOnlyCheck->setChecked(false);
+    schoolOnlyCheck->setStyleSheet("margin-left: 10px;");
+    connect(schoolOnlyCheck, &QCheckBox::stateChanged, this, &HomePage::onSchoolOnlyToggled);
+    searchLayout->addWidget(schoolOnlyCheck);
+
+    // 价格筛选输入框
+    minPriceEdit = new QLineEdit();
+    minPriceEdit->setPlaceholderText("最低价");
+    minPriceEdit->setFixedWidth(80);
+    minPriceEdit->setStyleSheet("QLineEdit { border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px; }");
+
+    QLabel *priceSeparator = new QLabel("-");
+    priceSeparator->setStyleSheet("color: #94a3b8;");
+
+    maxPriceEdit = new QLineEdit();
+    maxPriceEdit->setPlaceholderText("最高价");
+    maxPriceEdit->setFixedWidth(80);
+    maxPriceEdit->setStyleSheet("QLineEdit { border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px; }");
+
+    priceFilterBtn = new QPushButton("筛选");
+    priceFilterBtn->setObjectName("primaryBtn");
+    priceFilterBtn->setFixedSize(60, 36);
+
+    searchLayout->addWidget(new QLabel("价格:"));
+    searchLayout->addWidget(minPriceEdit);
+    searchLayout->addWidget(priceSeparator);
+    searchLayout->addWidget(maxPriceEdit);
+    searchLayout->addWidget(priceFilterBtn);
+
+    QWidget *welcomeWidget = new QWidget();
+    QHBoxLayout *welcomeLayout = new QHBoxLayout(welcomeWidget);
+    welcomeLayout->setContentsMargins(0, 0, 0, 0);
     // 欢迎标签
-    welcomeLabel = new QLabel("热门推荐商品");
+    welcomeLabel = new QLabel("欢迎");
     welcomeLabel->setObjectName("welcomeLabel");
+    QPushButton *recommendBtn = new QPushButton("🤖 为你推荐");
+    recommendBtn->setObjectName("recommendBtn");
+    recommendBtn->setFixedSize(120, 32);
+    recommendBtn->setStyleSheet(R"(
+        QPushButton {
+            background-color: #f39c12;
+            color: white;
+            border-radius: 16px;
+            font-weight: bold;
+        }
+        QPushButton:hover {
+            background-color: #e67e22;
+        }
+    )");
 
     // 主体内容区
     QWidget *contentArea = new QWidget();
@@ -141,7 +190,10 @@ void HomePage::setupUI() {
 
     // 添加到主布局
     mainLayout->addWidget(searchBar);
-    mainLayout->addWidget(welcomeLabel);
+    welcomeLayout->addWidget(welcomeLabel);
+    welcomeLayout->addStretch();
+    welcomeLayout->addWidget(recommendBtn);
+    mainLayout->insertWidget(1, welcomeWidget);
     mainLayout->addWidget(contentArea, 1);
 
     // 连接信号槽
@@ -149,13 +201,16 @@ void HomePage::setupUI() {
     connect(searchBtn, &QPushButton::clicked, this, &HomePage::onSearchClicked);
     connect(sortCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, [this](int index) {
-        loadGoodsFromServer(searchEdit->text().trimmed(),
-                            getCurrentCategory(),
-                            0, 0,
-                            getSortByValue(),
-                            1, 20);
-    });
+                loadGoodsFromServer(searchEdit->text().trimmed(),
+                                    getCurrentCategory(),
+                                    m_currentMinPrice,
+                                    m_currentMaxPrice,
+                                    getSortByValue(),
+                                    1, 20);
+            });
     connect(aiSearchBtn, &QPushButton::clicked, this, &HomePage::onAISearchClicked);
+    connect(recommendBtn, &QPushButton::clicked, this, &HomePage::showRecommendDialog);
+    connect(priceFilterBtn, &QPushButton::clicked, this, &HomePage::onPriceFilterClicked);
 
     QWidget *paginationWidget = new QWidget();
     QHBoxLayout *paginationLayout = new QHBoxLayout(paginationWidget);
@@ -168,6 +223,13 @@ void HomePage::setupUI() {
     nextPageBtn = new QPushButton("下一页");
     nextPageBtn->setObjectName("primaryBtn");
     nextPageBtn->setFixedSize(80, 32);
+    prevPageBtn->setStyleSheet(R"(
+        QPushButton:disabled {
+            background-color: #cbd5e0;
+            color: #a0aec0;
+        }
+    )");
+    nextPageBtn->setStyleSheet(prevPageBtn->styleSheet());
     pageInfoLabel = new QLabel("第 1 页");
     pageInfoLabel->setStyleSheet("font-size: 13px; color: #475569; margin: 0 15px;");
 
@@ -192,13 +254,16 @@ void HomePage::loadGoodsFromServer(const QString &keyword, const QString &catego
     m_currentPage = page;
     m_currentPageSize = pageSize;
 
-    QJsonArray goodsArray = ApiService::instance()->searchGoods(keyword, category, minPrice, maxPrice, sortBy, page, pageSize);
+    bool schoolOnly = schoolOnlyCheck->isChecked();
+    QJsonObject result = ApiService::instance()->searchGoods(keyword, category, minPrice, maxPrice, sortBy, page, pageSize, schoolOnly);
+    QJsonArray goodsArray = result.value("goods_list").toArray();
+    int total = result.value("total").toInt();
 
     // 1. 清空现有商品网格
     clearGoodsGrid();
 
     // 判断是否还有更多（如果返回数量小于 pageSize，说明是最后一页）
-    bool hasMore = (goodsArray.size() == pageSize);
+    bool hasMore = (page * pageSize) < total;
     nextPageBtn->setEnabled(hasMore);
     prevPageBtn->setEnabled(page > 1);
 
@@ -303,7 +368,7 @@ QWidget* HomePage::createGoodsCard(int goodsId, const QString& name,
 
     // 设置状态颜色
     QString statusStyle;
-    if (status == "待售") {
+    if (status == "在售") {
         statusStyle = "color: #10B981; background-color: #D1FAE5;";
     } else if (status == "交易中") {
         statusStyle = "color: #F59E0B; background-color: #FEF3C7;";
@@ -366,7 +431,7 @@ bool HomePage::eventFilter(QObject *watched, QEvent *event) {
         QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
         if (mouseEvent->button() == Qt::LeftButton) {
             QWidget *widget = qobject_cast<QWidget*>(watched);
-            if (widget && widget->objectName() == "goodsCard") {
+            if (widget && widget->objectName() == "goodsCard" || widget->objectName() == "recommendCard") {
                 int goodsId = widget->property("goodsId").toInt();
                 emit goodsDetailRequested(goodsId);
                 return true;
@@ -382,7 +447,7 @@ void HomePage::onCategoryClicked(QListWidgetItem* item) {
     category = category.mid(category.indexOf(" ") + 1);
     welcomeLabel->setText(QString("当前分类: %1").arg(category));
 
-    loadGoodsFromServer(searchEdit->text().trimmed(), category, 0, 0, getSortByValue(), 1, 20);
+    loadGoodsFromServer(searchEdit->text().trimmed(), category, m_currentMinPrice, m_currentMaxPrice, getSortByValue(), 1, 20);
 }
 
 void HomePage::onSearchClicked() {
@@ -392,8 +457,8 @@ void HomePage::onSearchClicked() {
     QString currentCategory = categoryList->currentItem()->text();
     // 移除 emoji 图标
     currentCategory = currentCategory.mid(currentCategory.indexOf(" ") + 1);
-    QString sortBy = getSortByValue(); // 需要实现从 sortCombo 获取排序字段
-    loadGoodsFromServer(keyword, currentCategory, 0, 0, sortBy, 1, 20);
+    QString sortBy = getSortByValue();
+    loadGoodsFromServer(keyword, currentCategory, m_currentMinPrice, m_currentMaxPrice, sortBy, 1, 20);
 }
 
 void HomePage::clearGoodsGrid() {
@@ -409,11 +474,11 @@ void HomePage::clearGoodsGrid() {
 QString HomePage::getSortByValue() const {
     int idx = sortCombo->currentIndex();
     switch (idx) {
-        case 0: return "newest";      // 最新发布
-        case 1: return "price_asc";   // 价格最低
-        case 2: return "price_desc";  // 价格最高
-        case 3: return "view_count";  // 最热商品
-        default: return "newest";
+    case 0: return "newest";      // 最新发布
+    case 1: return "price_asc";   // 价格最低
+    case 2: return "price_desc";  // 价格最高
+    case 3: return "view_count";  // 最热商品
+    default: return "newest";
     }
 }
 
@@ -437,7 +502,7 @@ void HomePage::onAISearchClicked()
     QVBoxLayout *layout = new QVBoxLayout(&dialog);
     QLabel *label = new QLabel("请描述您的需求：");
     QTextEdit *requirementEdit = new QTextEdit();
-    requirementEdit->setPlaceholderText("例如：我想买一台1500元左右的二手笔记本电脑，9成新以上，联想或华硕品牌");
+    requirementEdit->setPlaceholderText("示例：1500元左右的二手笔记本电脑；考研英语资料");
     QPushButton *searchBtn = new QPushButton("开始推荐");
     QPushButton *cancelBtn = new QPushButton("取消");
     QHBoxLayout *btnLayout = new QHBoxLayout();
@@ -459,10 +524,16 @@ void HomePage::onAISearchClicked()
         return;
     }
 
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+
     // 调用 API
+    bool schoolOnly = schoolOnlyCheck->isChecked();
     QJsonObject request;
     request["requirement"] = requirement;
+    request["school_only"] = schoolOnly;
     QJsonObject response = HttpClient::instance()->syncRequest("/api/ai/search", request, "POST", 30000);
+
+    QApplication::restoreOverrideCursor();
 
     if (!response.value("success").toBool()) {
         QMessageBox::warning(this, "AI 推荐失败", response.value("error").toString());
@@ -472,6 +543,51 @@ void HomePage::onAISearchClicked()
     QJsonObject data = response.value("data").toObject();
     QJsonArray goodsList = data.value("goods_list").toArray();
     bool aiUsed = data.value("ai_used").toBool();
+    QJsonObject parsedParams = data.value("parsed_params").toObject();
+
+    // 在回填前阻塞信号
+    searchEdit->blockSignals(true);
+    minPriceEdit->blockSignals(true);
+    maxPriceEdit->blockSignals(true);
+    sortCombo->blockSignals(true);
+
+    if (parsedParams.contains("keyword")) {
+        QString keyword = parsedParams.value("keyword").toString();
+        if (!keyword.isEmpty()) {
+            searchEdit->setText(keyword);
+        }
+    }
+
+    if (parsedParams.contains("min_price")) {
+        double minPrice = parsedParams.value("min_price").toDouble();
+        if (minPrice > 0) {
+            minPriceEdit->setText(QString::number(minPrice));
+        } else {
+            minPriceEdit->clear();
+        }
+    }
+    if (parsedParams.contains("max_price")) {
+        double maxPrice = parsedParams.value("max_price").toDouble();
+        if (maxPrice > 0) {
+            maxPriceEdit->setText(QString::number(maxPrice));
+        } else {
+            maxPriceEdit->clear();
+        }
+    }
+
+    if (parsedParams.contains("sort_by")) {
+        QString sortBy = parsedParams.value("sort_by").toString();
+        if (sortBy == "price_asc") sortCombo->setCurrentIndex(1);
+        else if (sortBy == "price_desc") sortCombo->setCurrentIndex(2);
+        else if (sortBy == "view_count") sortCombo->setCurrentIndex(3);
+        else sortCombo->setCurrentIndex(0);
+    }
+
+    // 恢复信号
+    searchEdit->blockSignals(false);
+    minPriceEdit->blockSignals(false);
+    maxPriceEdit->blockSignals(false);
+    sortCombo->blockSignals(false);
 
     // 清空当前商品网格并显示推荐结果
     clearGoodsGrid();
@@ -480,6 +596,12 @@ void HomePage::onAISearchClicked()
         return;
     }
 
+    m_currentKeyword = searchEdit->text().trimmed();
+    m_currentMinPrice = minPriceEdit->text().trimmed().toDouble();
+    m_currentMaxPrice = maxPriceEdit->text().trimmed().toDouble();
+    m_currentSortBy = getSortByValue();
+    m_currentPage = 1;
+
     int columns = 4;
     for (int i = 0; i < goodsList.size(); ++i) {
         QJsonObject goods = goodsList[i].toObject();
@@ -487,13 +609,16 @@ void HomePage::onAISearchClicked()
         QString name = goods.value("name").toString();
         double price = goods.value("price").toDouble();
         QString imageUrl = goods.value("image_url").toString();
-        // 状态字段（假设商品状态为1表示在售）
         QString status = "在售";
         QWidget *card = createGoodsCard(goodsId, name, QString::number(price), "", status, imageUrl);
         int row = i / columns;
         int col = i % columns;
         goodsGridLayout->addWidget(card, row, col);
     }
+
+    prevPageBtn->setEnabled(false);
+    nextPageBtn->setEnabled(goodsList.size() == 20);
+    pageInfoLabel->setText("第 1 页");
 }
 
 void HomePage::goToPrevPage() {
@@ -521,4 +646,60 @@ void HomePage::refreshWithCurrentState() {
     loadGoodsFromServer(m_currentKeyword, m_currentCategory,
                         m_currentMinPrice, m_currentMaxPrice,
                         m_currentSortBy, m_currentPage, m_currentPageSize);
+}
+
+void HomePage::showRecommendDialog()
+{
+    RecommendDialog *dialog = new RecommendDialog(this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dialog, &RecommendDialog::goodsDetailRequested, this, &HomePage::goodsDetailRequested);
+    dialog->show();
+}
+
+void HomePage::onPriceFilterClicked()
+{
+    bool minOk = true, maxOk = true;
+    double minPrice = minPriceEdit->text().trimmed().toDouble(&minOk);
+    double maxPrice = maxPriceEdit->text().trimmed().toDouble(&maxOk);
+
+    if (!minOk && !minPriceEdit->text().trimmed().isEmpty()) {
+        QMessageBox::warning(this, "提示", "最低价请输入有效数字");
+        return;
+    }
+    if (!maxOk && !maxPriceEdit->text().trimmed().isEmpty()) {
+        QMessageBox::warning(this, "提示", "最高价请输入有效数字");
+        return;
+    }
+    if (minPrice < 0) {
+        QMessageBox::warning(this, "提示", "价格不能为负数");
+        return;
+    }
+    if (maxPrice > 0 && minPrice > maxPrice) {
+        QMessageBox::warning(this, "提示", "最低价不能高于最高价");
+        return;
+    }
+
+    // 重新加载商品，传入价格区间
+    loadGoodsFromServer(
+        searchEdit->text().trimmed(),
+        getCurrentCategory(),
+        minPrice,
+        maxPrice,
+        getSortByValue(),
+        1,  // 重置到第一页
+        20
+        );
+}
+
+void HomePage::onSchoolOnlyToggled() {
+    // 使用当前的所有筛选条件重新加载商品
+    loadGoodsFromServer(
+        searchEdit->text().trimmed(),          // 关键词
+        getCurrentCategory(),                  // 分类
+        minPriceEdit->text().trimmed().toDouble(),   // 最低价
+        maxPriceEdit->text().trimmed().toDouble(),   // 最高价
+        getSortByValue(),                      // 排序
+        1,                                     // 重置到第一页
+        20
+        );
 }
